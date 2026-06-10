@@ -1848,7 +1848,7 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
   }));
   return {
     id:Date.now().toString()+Math.random().toString(36).slice(2,6),
-    empresa,contacto,correo,
+    empresa,contacto,correo,telefono:'',
     password:generatePassword(),
     estado:'Propuesta aceptada',
     servicios,
@@ -1860,6 +1860,8 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
     asignadoA,
     montoContrato:0,
     comisionPagada:false,
+    notas:[],
+    tareas:[],
   };
 }
 
@@ -2363,11 +2365,17 @@ function ProjectChecklist({project,onUpdate}){
 function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [tab,setTab]=useState('overview');
   const [editModal,setEditModal]=useState(false);
-  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,estado:client.estado});
+  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,telefono:client.telefono||'',estado:client.estado});
   const [addingProject,setAddingProject]=useState(false);
   const [newProj,setNewProj]=useState({nombre:'',tipo:'marketing',estado:'En progreso'});
   const [editMonto,setEditMonto]=useState(false);
   const [montoVal,setMontoVal]=useState(client.montoContrato||0);
+  // Notas
+  const [notaText,setNotaText]=useState('');
+  const [notaTipo,setNotaTipo]=useState('nota');
+  // Tareas
+  const [tareaForm,setTareaForm]=useState({titulo:'',prioridad:'media',fechaLimite:'',responsable:''});
+  const [addingTarea,setAddingTarea]=useState(false);
   const SVC_LABELS={marketing:'Marketing Digital',ia:'Inteligencia Artificial',web:'Página Web'};
   const SVC_COLORS={marketing:WARM,ia:AI_A,web:WEB_A};
 
@@ -2398,7 +2406,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
 
       {/* Tabs */}
       <div style={{display:'flex',gap:'0',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 32px'}}>
-        {[{k:'overview',l:'Resumen'},{k:'projects',l:'Proyectos'},{k:'portal',l:'Portal'},{k:'history',l:'Historial'}].map(t=>(
+        {[{k:'overview',l:'Resumen'},{k:'projects',l:'Proyectos'},{k:'notas',l:'Notas'},{k:'tareas',l:'Tareas'},{k:'portal',l:'Portal'},{k:'history',l:'Historial'}].map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} style={{padding:'14px 20px',background:'transparent',border:'none',borderBottom:`2px solid ${tab===t.k?CL_A:'transparent'}`,color:tab===t.k?'#fff':'rgba(255,255,255,0.35)',fontSize:'13px',fontWeight:tab===t.k?'700':'400',cursor:'pointer',fontFamily:"'Inter',sans-serif",transition:'all .15s'}}>{t.l}</button>
         ))}
       </div>
@@ -2411,7 +2419,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
             <div className="glass" style={{padding:'24px'}}>
               <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'16px',fontFamily:"'Inter',sans-serif"}}>Ficha del Cliente</p>
               <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-                {[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—'},{l:'Cliente desde',v:client.createdAt},{l:'Estado',v:null}].map(r=>(
+                {[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—'},{l:'Teléfono',v:client.telefono||'—'},{l:'Cliente desde',v:client.createdAt},{l:'Estado',v:null}].map(r=>(
                   <div key={r.l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingBottom:'10px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                     <span style={{fontSize:'12px',color:'rgba(255,255,255,0.35)',fontFamily:"'Inter',sans-serif"}}>{r.l}</span>
                     {r.v!==null?<span style={{fontSize:'13px',color:'rgba(255,255,255,0.8)',fontFamily:"'Inter',sans-serif",fontWeight:'500',maxWidth:'200px',textAlign:'right',wordBreak:'break-all'}}>{r.v}</span>:<EstadoBadge estado={client.estado}/>}
@@ -2612,6 +2620,163 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           </div>
         )}
 
+        {/* NOTAS TAB */}
+        {tab==='notas'&&(()=>{
+          const notas=client.notas||[];
+          const TIPOS={nota:{l:'Nota',c:'#a78bfa',emoji:'📝'},llamada:{l:'Llamada',c:'#34d399',emoji:'📞'},reunion:{l:'Reunión',c:'#38bdf8',emoji:'🤝'},email:{l:'Email',c:'#fb923c',emoji:'📧'}};
+          const addNota=()=>{
+            if(!notaText.trim()) return;
+            const nuevaNota={id:Date.now().toString(),texto:notaText.trim(),tipo:notaTipo,autor:currentUser?.nombre||'Admin',fecha:new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})};
+            const updated={...client,notas:[nuevaNota,...notas]};
+            onUpdate(updated);
+            setNotaText('');
+          };
+          const deleteNota=id=>{if(!confirm('¿Eliminar esta nota?'))return;onUpdate({...client,notas:notas.filter(n=>n.id!==id)});};
+          return(
+            <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+              <div className="glass" style={{padding:'24px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'16px',fontFamily:"'Inter',sans-serif"}}>Nueva Nota</p>
+                <div style={{display:'flex',gap:'8px',marginBottom:'12px'}}>
+                  {Object.entries(TIPOS).map(([k,v])=>(
+                    <button key={k} onClick={()=>setNotaTipo(k)} style={{padding:'6px 12px',background:notaTipo===k?`${v.c}22`:'rgba(255,255,255,0.04)',border:`1px solid ${notaTipo===k?v.c:'rgba(255,255,255,0.1)'}`,borderRadius:'8px',color:notaTipo===k?v.c:'rgba(255,255,255,0.4)',fontSize:'12px',cursor:'pointer',fontFamily:"'Inter',sans-serif",transition:'all .15s'}}>
+                      {v.emoji} {v.l}
+                    </button>
+                  ))}
+                </div>
+                <textarea value={notaText} onChange={e=>setNotaText(e.target.value)} placeholder="Escribe una nota, resumen de llamada, acuerdo de reunión..." rows={3}
+                  style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.09)',borderRadius:'8px',padding:'10px 14px',color:'#e5e5e5',fontSize:'13.5px',fontFamily:"'Inter',sans-serif",outline:'none',resize:'vertical',boxSizing:'border-box',marginBottom:'10px'}}
+                  onKeyDown={e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();addNota();}}}/>
+                <div style={{display:'flex',justifyContent:'flex-end'}}>
+                  <button onClick={addNota} style={{padding:'8px 20px',background:`linear-gradient(135deg,${GL_P2},${GL_P})`,border:'none',borderRadius:'8px',color:'#fff',fontSize:'13px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>+ Guardar nota</button>
+                </div>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                {notas.length===0?<p style={{fontSize:'13px',color:'rgba(255,255,255,0.25)',padding:'20px',textAlign:'center',fontFamily:"'Inter',sans-serif"}}>Sin notas aún. Agrega la primera.</p>:
+                notas.map(n=>{
+                  const t=TIPOS[n.tipo]||TIPOS.nota;
+                  return(
+                    <div key={n.id} className="glass" style={{padding:'18px 20px',borderLeft:`3px solid ${t.c}`}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                          <span style={{fontSize:'11px',padding:'2px 8px',background:`${t.c}22`,border:`1px solid ${t.c}55`,borderRadius:'4px',color:t.c,fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>{t.emoji} {t.l}</span>
+                          <span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{n.autor}</span>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                          <span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>{n.fecha}</span>
+                          {isAdmin&&<button onClick={()=>deleteNota(n.id)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.2)',cursor:'pointer',fontSize:'14px',padding:'0',lineHeight:1}} title="Eliminar">×</button>}
+                        </div>
+                      </div>
+                      <p style={{fontSize:'13.5px',color:'rgba(255,255,255,0.75)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",whiteSpace:'pre-wrap'}}>{n.texto}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* TAREAS TAB */}
+        {tab==='tareas'&&(()=>{
+          const tareas=client.tareas||[];
+          const PRIO={alta:{l:'Alta',c:'#f87171'},media:{l:'Media',c:'#fbbf24'},baja:{l:'Baja',c:'#34d399'}};
+          const addTarea=()=>{
+            if(!tareaForm.titulo.trim()) return;
+            const nueva={id:Date.now().toString(),...tareaForm,completada:false,createdAt:new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'})};
+            onUpdate({...client,tareas:[nueva,...tareas]});
+            setTareaForm({titulo:'',prioridad:'media',fechaLimite:'',responsable:''});
+            setAddingTarea(false);
+          };
+          const toggleTarea=id=>onUpdate({...client,tareas:tareas.map(t=>t.id===id?{...t,completada:!t.completada}:t)});
+          const deleteTarea=id=>{if(!confirm('¿Eliminar tarea?'))return;onUpdate({...client,tareas:tareas.filter(t=>t.id!==id)});};
+          const pendientes=tareas.filter(t=>!t.completada);
+          const completadas=tareas.filter(t=>t.completada);
+          return(
+            <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div style={{display:'flex',gap:'12px'}}>
+                  <span style={{fontSize:'13px',color:'rgba(255,255,255,0.5)',fontFamily:"'Inter',sans-serif"}}><span style={{color:'#fbbf24',fontWeight:'700'}}>{pendientes.length}</span> pendientes</span>
+                  <span style={{fontSize:'13px',color:'rgba(255,255,255,0.5)',fontFamily:"'Inter',sans-serif"}}><span style={{color:'#34d399',fontWeight:'700'}}>{completadas.length}</span> completadas</span>
+                </div>
+                <button onClick={()=>setAddingTarea(!addingTarea)} style={{padding:'8px 16px',background:`linear-gradient(135deg,${GL_P2},${GL_P})`,border:'none',borderRadius:'8px',color:'#fff',fontSize:'12px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>+ Nueva tarea</button>
+              </div>
+              {addingTarea&&(
+                <div className="glass" style={{padding:'20px'}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'12px'}}>
+                    <div style={{gridColumn:'1/-1'}}>
+                      <label style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.3)',display:'block',marginBottom:'5px',fontFamily:"'Inter',sans-serif"}}>Título de la tarea *</label>
+                      <input value={tareaForm.titulo} onChange={e=>setTareaForm(p=>({...p,titulo:e.target.value}))} placeholder="Ej: Enviar propuesta de renovación"
+                        style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none',boxSizing:'border-box'}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.3)',display:'block',marginBottom:'5px',fontFamily:"'Inter',sans-serif"}}>Prioridad</label>
+                      <select value={tareaForm.prioridad} onChange={e=>setTareaForm(p=>({...p,prioridad:e.target.value}))}
+                        style={{width:'100%',background:'#1a1a1a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none'}}>
+                        <option value="alta">🔴 Alta</option><option value="media">🟡 Media</option><option value="baja">🟢 Baja</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.3)',display:'block',marginBottom:'5px',fontFamily:"'Inter',sans-serif"}}>Fecha límite</label>
+                      <input type="date" value={tareaForm.fechaLimite} onChange={e=>setTareaForm(p=>({...p,fechaLimite:e.target.value}))}
+                        style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none',boxSizing:'border-box'}}/>
+                    </div>
+                    <div style={{gridColumn:'1/-1'}}>
+                      <label style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.3)',display:'block',marginBottom:'5px',fontFamily:"'Inter',sans-serif"}}>Responsable</label>
+                      <input value={tareaForm.responsable} onChange={e=>setTareaForm(p=>({...p,responsable:e.target.value}))} placeholder="Nombre del responsable"
+                        style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none',boxSizing:'border-box'}}/>
+                    </div>
+                  </div>
+                  <div style={{display:'flex',gap:'8px',justifyContent:'flex-end'}}>
+                    <button onClick={()=>setAddingTarea(false)} style={{padding:'8px 14px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'rgba(255,255,255,0.4)',fontSize:'12px',cursor:'pointer'}}>Cancelar</button>
+                    <button onClick={addTarea} style={{padding:'8px 18px',background:`linear-gradient(135deg,${GL_P2},${GL_P})`,border:'none',borderRadius:'8px',color:'#fff',fontSize:'12px',fontWeight:'700',cursor:'pointer'}}>Crear tarea</button>
+                  </div>
+                </div>
+              )}
+              {pendientes.length>0&&(
+                <div>
+                  <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'10px',fontFamily:"'Inter',sans-serif"}}>Pendientes</p>
+                  <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+                    {pendientes.map(t=>{
+                      const p=PRIO[t.prioridad]||PRIO.media;
+                      const overdue=t.fechaLimite&&new Date(t.fechaLimite)<new Date()&&!t.completada;
+                      return(
+                        <div key={t.id} className="glass" style={{padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:'12px',borderLeft:`3px solid ${overdue?'#f87171':p.c}`}}>
+                          <button onClick={()=>toggleTarea(t.id)} style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${p.c}`,background:'transparent',cursor:'pointer',flexShrink:0,marginTop:'2px'}}/>
+                          <div style={{flex:1}}>
+                            <p style={{fontSize:'13.5px',color:'rgba(255,255,255,0.85)',fontFamily:"'Inter',sans-serif",marginBottom:'4px'}}>{t.titulo}</p>
+                            <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
+                              <span style={{fontSize:'11px',padding:'1px 7px',background:`${p.c}22`,border:`1px solid ${p.c}44`,borderRadius:'4px',color:p.c,fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>{p.l}</span>
+                              {t.fechaLimite&&<span style={{fontSize:'11px',color:overdue?'#f87171':'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{overdue?'⚠️ Vencida: ':''}{t.fechaLimite}</span>}
+                              {t.responsable&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>👤 {t.responsable}</span>}
+                            </div>
+                          </div>
+                          {isAdmin&&<button onClick={()=>deleteTarea(t.id)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.2)',cursor:'pointer',fontSize:'16px',padding:'0',flexShrink:0}} title="Eliminar">×</button>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {completadas.length>0&&(
+                <div>
+                  <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'10px',fontFamily:"'Inter',sans-serif"}}>Completadas ({completadas.length})</p>
+                  <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                    {completadas.map(t=>(
+                      <div key={t.id} className="glass" style={{padding:'12px 16px',display:'flex',alignItems:'center',gap:'12px',opacity:0.5}}>
+                        <button onClick={()=>toggleTarea(t.id)} style={{width:'18px',height:'18px',borderRadius:'50%',border:'2px solid #34d399',background:'#34d39922',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                          <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5L8.5 2" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </button>
+                        <p style={{fontSize:'13px',color:'rgba(255,255,255,0.5)',fontFamily:"'Inter',sans-serif",textDecoration:'line-through',flex:1}}>{t.titulo}</p>
+                        {isAdmin&&<button onClick={()=>deleteTarea(t.id)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.15)',cursor:'pointer',fontSize:'14px',padding:'0'}} title="Eliminar">×</button>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tareas.length===0&&!addingTarea&&<p style={{fontSize:'13px',color:'rgba(255,255,255,0.25)',padding:'20px',textAlign:'center',fontFamily:"'Inter',sans-serif"}}>Sin tareas para este cliente. ¡Crea la primera!</p>}
+            </div>
+          );
+        })()}
+
         {/* HISTORY TAB */}
         {tab==='history'&&(
           <div className="glass" style={{padding:'28px'}}>
@@ -2639,7 +2804,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           <div style={{background:'#111',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'400px'}}>
             <h3 style={{fontSize:'17px',fontWeight:'800',color:'#fff',marginBottom:'20px'}}>Editar Cliente</h3>
             <div style={{display:'flex',flexDirection:'column',gap:'14px',marginBottom:'20px'}}>
-              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'}].map(f=>(
+              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'},{k:'telefono',l:'Teléfono',ph:'+57 300 000 0000'}].map(f=>(
                 <div key={f.k}>
                   <label style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.35)',letterSpacing:'.1em',textTransform:'uppercase',display:'block',marginBottom:'6px',fontFamily:"'Inter',sans-serif"}}>{f.l}</label>
                   <input value={editData[f.k]} onChange={e=>setEditData(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
@@ -2676,6 +2841,16 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
   const [filter,setFilter]=useState('Todos');
   const [search,setSearch]=useState('');
   const [lastRefresh,setLastRefresh]=useState(null);
+  const [viewMode,setViewMode]=useState('list'); // 'list' | 'kanban'
+  const [statusMenuId,setStatusMenuId]=useState(null);
+  const [showAddClient,setShowAddClient]=useState(false);
+  const [addForm,setAddForm]=useState({empresa:'',contacto:'',correo:'',telefono:'',servicios:[],estado:'Lead',montoContrato:0});
+  useEffect(()=>{
+    if(!statusMenuId) return;
+    const h=()=>setStatusMenuId(null);
+    document.addEventListener('click',h);
+    return()=>document.removeEventListener('click',h);
+  },[statusMenuId]);
 
   // Refresh clients from localStorage when another tab updates it (portal brief submit)
   // or when the window regains focus (user switches back from portal tab)
@@ -2703,6 +2878,27 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
   };
 
   const deleteClient=id=>{if(!confirm('¿Eliminar este cliente?'))return;persist(clients.filter(c=>c.id!==id));setSelectedClient(null);};
+  const submitAddClient=()=>{
+    if(!addForm.empresa.trim()){alert('Ingresa el nombre de la empresa.');return;}
+    const newC=makeClient({empresa:addForm.empresa.trim(),contacto:addForm.contacto.trim(),correo:addForm.correo.trim(),servicios:addForm.servicios,asignadoA:isAdmin?null:currentUser?.id});
+    newC.telefono=addForm.telefono.trim();
+    newC.estado=addForm.estado;
+    newC.montoContrato=Number(addForm.montoContrato)||0;
+    const all=clients_storage.load();
+    clients_storage.save([...all,newC]);
+    const fresh=clients_storage.load();
+    setClients(isAdmin?fresh:fresh.filter(c=>c.asignadoA===(currentUser&&currentUser.id)));
+    setShowAddClient(false);
+    setAddForm({empresa:'',contacto:'',correo:'',telefono:'',servicios:[],estado:'Lead',montoContrato:0});
+    setSelectedClient(newC);
+  };
+  const quickStatus=(id,estado)=>{
+    const all=clients_storage.load();
+    const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
+    const updated=all.map(c=>c.id===id?{...c,estado,historial:[...(c.historial||[]),{fecha:now,descripcion:`Estado cambiado a ${estado}.`}]}:c);
+    clients_storage.save(updated);
+    setClients(isAdmin?updated:updated.filter(c=>c.asignadoA===(currentUser&&currentUser.id)));
+  };
 
   if(selectedClient){
     const fresh=clients.find(c=>c.id===selectedClient.id)||selectedClient;
@@ -2734,8 +2930,59 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
     return matchFilter&&matchSearch;
   });
 
+  const exportCSV=()=>{
+    const rows=[['Empresa','Contacto','Correo','Estado','Servicios','Monto','Comisión','Creado'],...clients.map(c=>[c.empresa,c.contacto||'',c.correo||'',c.estado,(c.servicios||[]).join('+'),c.montoContrato||0,(c.montoContrato||0)*0.5,c.createdAt])];
+    const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`clientes-glowlabs-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+  };
+
   return(
     <div style={{minHeight:'100vh',background:'#080808',paddingBottom:'60px'}}>
+      {/* Add Client Modal */}
+      {showAddClient&&(
+        <div onClick={()=>setShowAddClient(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(8px)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:'480px',background:'#141414',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'16px',overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,0.9)'}}>
+            <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span style={{fontSize:'15px',fontWeight:'700',color:'#fff',fontFamily:"'Inter',sans-serif"}}>Nuevo cliente</span>
+              <button onClick={()=>setShowAddClient(false)} style={{background:'transparent',border:'none',color:'rgba(255,255,255,0.3)',fontSize:'18px',cursor:'pointer'}}>×</button>
+            </div>
+            <div style={{padding:'20px 24px',display:'flex',flexDirection:'column',gap:'14px',maxHeight:'70vh',overflowY:'auto'}}>
+              <div><label className="lbl">Empresa *</label><input className="input-f" value={addForm.empresa} onChange={e=>setAddForm(f=>({...f,empresa:e.target.value}))} placeholder="Nombre de la empresa" autoFocus/></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                <div><label className="lbl">Contacto</label><input className="input-f" value={addForm.contacto} onChange={e=>setAddForm(f=>({...f,contacto:e.target.value}))} placeholder="Nombre del contacto"/></div>
+                <div><label className="lbl">Teléfono</label><input className="input-f" value={addForm.telefono} onChange={e=>setAddForm(f=>({...f,telefono:e.target.value}))} placeholder="+57 300 000 0000"/></div>
+              </div>
+              <div><label className="lbl">Correo</label><input className="input-f" type="email" value={addForm.correo} onChange={e=>setAddForm(f=>({...f,correo:e.target.value}))} placeholder="cliente@empresa.com"/></div>
+              <div>
+                <label className="lbl">Servicios</label>
+                <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                  {['marketing','ia','web'].map(s=>{
+                    const labels={marketing:'Marketing',ia:'IA',web:'Web'};
+                    const colors={marketing:WARM,ia:AI_A,web:WEB_A};
+                    const on=addForm.servicios.includes(s);
+                    return<div key={s} onClick={()=>setAddForm(f=>({...f,servicios:on?f.servicios.filter(x=>x!==s):[...f.servicios,s]}))} style={{padding:'6px 14px',borderRadius:'100px',cursor:'pointer',fontSize:'12.5px',fontWeight:'600',fontFamily:"'Inter',sans-serif",border:`1px solid ${on?colors[s]:'rgba(255,255,255,0.1)'}`,background:on?`${colors[s]}15`:'transparent',color:on?colors[s]:'rgba(255,255,255,0.35)',transition:'all .15s'}}>{labels[s]}</div>;
+                  })}
+                </div>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                <div>
+                  <label className="lbl">Estado</label>
+                  <select className="input-f" value={addForm.estado} onChange={e=>setAddForm(f=>({...f,estado:e.target.value}))}>
+                    {CLIENT_ESTADOS.map(s=><option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div><label className="lbl">Valor del contrato ($)</label><input className="input-f" type="number" value={addForm.montoContrato||''} onChange={e=>setAddForm(f=>({...f,montoContrato:e.target.value}))} placeholder="0"/></div>
+              </div>
+            </div>
+            <div style={{padding:'16px 24px',borderTop:'1px solid rgba(255,255,255,0.07)',display:'flex',gap:'10px',justifyContent:'flex-end'}}>
+              <button onClick={()=>setShowAddClient(false)} className="btn-ghost">Cancelar</button>
+              <button onClick={submitAddClient} style={{padding:'10px 24px',background:`linear-gradient(135deg,${GL_P2},${GL_P})`,border:'none',borderRadius:'8px',color:'#fff',fontSize:'13px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>Crear cliente</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'16px 32px',display:'flex',alignItems:'center',gap:'14px'}}>
         <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={onHome}>← Inicio</button>
@@ -2747,8 +2994,24 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
           <span style={{fontSize:'14px',fontWeight:'700',color:'#fff',letterSpacing:'-.01em'}}>Clientes</span>
           <span style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.3)',background:'rgba(255,255,255,0.06)',padding:'2px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif"}}>{total}</span>
         </div>
-        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:'10px'}}>
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:'8px'}}>
           {lastRefresh&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>Actualizado {lastRefresh}</span>}
+          {/* View toggle */}
+          <div style={{display:'flex',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'7px',overflow:'hidden'}}>
+            <button onClick={()=>setViewMode('list')} title="Vista lista" style={{padding:'6px 10px',background:viewMode==='list'?'rgba(255,255,255,0.1)':'transparent',border:'none',color:viewMode==='list'?'#fff':'rgba(255,255,255,0.35)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><line x1="3" y1="3.5" x2="11" y2="3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><line x1="3" y1="7" x2="11" y2="7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><line x1="3" y1="10.5" x2="11" y2="10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+            </button>
+            <button onClick={()=>setViewMode('kanban')} title="Vista kanban" style={{padding:'6px 10px',background:viewMode==='kanban'?'rgba(255,255,255,0.1)':'transparent',border:'none',color:viewMode==='kanban'?'#fff':'rgba(255,255,255,0.35)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="3.5" height="10" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="5.25" y="2" width="3.5" height="7" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="9.5" y="2" width="3.5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/></svg>
+            </button>
+          </div>
+          <button onClick={()=>setShowAddClient(true)} style={{display:'flex',alignItems:'center',gap:'5px',background:`rgba(74,222,128,0.1)`,border:`1px solid rgba(74,222,128,0.35)`,borderRadius:'7px',color:CL_A,fontSize:'12px',fontWeight:'700',padding:'6px 12px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
+            + Nuevo cliente
+          </button>
+          {isAdmin&&<button onClick={exportCSV} title="Exportar CSV" style={{display:'flex',alignItems:'center',gap:'5px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'7px',color:'rgba(255,255,255,0.4)',fontSize:'12px',fontWeight:'600',padding:'6px 11px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            CSV
+          </button>}
           <button onClick={()=>{const all=clients_storage.load();const f=isAdmin?all:all.filter(c=>c.asignadoA===(currentUser&&currentUser.id));setClients(f);setSelectedClient(sel=>sel?f.find(c=>c.id===sel.id)||sel:null);setLastRefresh(new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));}}
             style={{display:'flex',alignItems:'center',gap:'6px',background:'rgba(74,222,128,0.08)',border:'1px solid rgba(74,222,128,0.25)',borderRadius:'7px',color:CL_A,fontSize:'12px',fontWeight:'600',padding:'6px 12px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10.5 6A4.5 4.5 0 112.1 3.6M1.5 1.5v2.4h2.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -2779,10 +3042,48 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
           </div>
         </div>
 
-        {/* Clients list */}
-        {filtered.length===0?(
+        {/* Clients list / kanban */}
+        {viewMode==='kanban'?(()=>{
+          const KANBAN_STAGES=['Lead','Propuesta enviada','Propuesta aceptada','Activo','Finalizado'];
+          const KANBAN_C=['#9e9e9e','#fb923c','#38bdf8',CL_A,'#a78bfa'];
+          return(
+            <div style={{display:'flex',gap:'12px',overflowX:'auto',paddingBottom:'16px',alignItems:'flex-start'}}>
+              {KANBAN_STAGES.map((stage,si)=>{
+                const stageClients=clients.filter(c=>c.estado===stage&&(!search||c.empresa.toLowerCase().includes(search.toLowerCase())));
+                return(
+                  <div key={stage} style={{minWidth:'220px',flex:'0 0 220px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'12px',overflow:'hidden'}}>
+                    <div style={{padding:'12px 14px',borderBottom:'1px solid rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:`2px solid ${KANBAN_C[si]}`}}>
+                      <span style={{fontSize:'12px',fontWeight:'700',color:KANBAN_C[si],fontFamily:"'Inter',sans-serif"}}>{stage}</span>
+                      <span style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.25)',background:'rgba(255,255,255,0.06)',borderRadius:'100px',padding:'1px 7px',fontFamily:"'Inter',sans-serif"}}>{stageClients.length}</span>
+                    </div>
+                    <div style={{padding:'8px',display:'flex',flexDirection:'column',gap:'6px',maxHeight:'60vh',overflowY:'auto'}}>
+                      {stageClients.length===0&&<p style={{fontSize:'11px',color:'rgba(255,255,255,0.15)',fontFamily:"'Inter',sans-serif",padding:'12px 8px',textAlign:'center'}}>Sin clientes</p>}
+                      {stageClients.map(c=>(
+                        <div key={c.id} onClick={()=>setSelectedClient(c)} style={{padding:'12px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'8px',cursor:'pointer',transition:'all .15s'}}
+                          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.borderColor=`${KANBAN_C[si]}44`;}}
+                          onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.03)';e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';}}>
+                          <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
+                            <div style={{width:'26px',height:'26px',borderRadius:'6px',background:`${KANBAN_C[si]}22`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                              <span style={{fontSize:'11px',fontWeight:'800',color:KANBAN_C[si]}}>{c.empresa[0]?.toUpperCase()}</span>
+                            </div>
+                            <p style={{fontSize:'12.5px',fontWeight:'700',color:'rgba(255,255,255,0.85)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{c.empresa}</p>
+                          </div>
+                          {c.montoContrato>0&&<p style={{fontSize:'12px',fontWeight:'700',color:'#fbbf24',fontFamily:"'Inter',sans-serif",marginBottom:'4px'}}>${c.montoContrato.toLocaleString('es-CO')}</p>}
+                          <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
+                            {(c.servicios||[]).map(s=>{const sc={marketing:WARM,ia:AI_A,web:WEB_A};return<span key={s} style={{fontSize:'9.5px',padding:'1px 6px',borderRadius:'3px',background:`${sc[s]||'#888'}22`,color:sc[s]||'#888',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>{s}</span>;})}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })():(
+        filtered.length===0?(
           <div style={{padding:'60px',textAlign:'center',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:'14px'}}>
-            <p style={{fontSize:'14px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>{clients.length===0?'Acepta una propuesta para crear tu primer cliente':'Sin resultados para este filtro'}</p>
+            <p style={{fontSize:'14px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>{clients.length===0?'Crea tu primer cliente con el botón "+ Nuevo cliente" o acepta una propuesta':'Sin resultados para este filtro'}</p>
           </div>
         ):(
           <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
@@ -2806,14 +3107,30 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
                   <div style={{display:'flex',alignItems:'center',gap:'10px',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
                     {c.servicios?.map(s=><span key={s} style={{fontSize:'10.5px',fontWeight:'600',color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.05)',padding:'3px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif"}}>{SVC_LABELS[s]||s}</span>)}
                     {proyTotal>0&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{proyDone}/{proyTotal} proyectos</span>}
-                    <EstadoBadge estado={c.estado}/>
+                    <div style={{position:'relative'}} onClick={e=>e.stopPropagation()}>
+                      <div onClick={()=>setStatusMenuId(statusMenuId===c.id?null:c.id)} style={{cursor:'pointer',userSelect:'none'}}>
+                        <EstadoBadge estado={c.estado}/>
+                      </div>
+                      {statusMenuId===c.id&&(
+                        <div style={{position:'absolute',right:0,top:'calc(100% + 4px)',zIndex:200,background:'#1c1c1c',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'10px',padding:'6px',minWidth:'172px',boxShadow:'0 12px 40px rgba(0,0,0,0.7)'}}>
+                          {CLIENT_ESTADOS.map(es=>(
+                            <div key={es} onClick={()=>{quickStatus(c.id,es);setStatusMenuId(null);}}
+                              style={{padding:'8px 12px',borderRadius:'7px',cursor:'pointer',fontSize:'12.5px',fontFamily:"'Inter',sans-serif",color:c.estado===es?'#fff':'rgba(255,255,255,0.45)',background:c.estado===es?'rgba(255,255,255,0.07)':'transparent',display:'flex',alignItems:'center',gap:'8px'}}
+                              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.05)'}
+                              onMouseLeave={e=>e.currentTarget.style.background=c.estado===es?'rgba(255,255,255,0.07)':'transparent'}>
+                              <span style={{width:'14px',color:CL_A,fontSize:'11px'}}>{c.estado===es?'✓':''}</span>{es}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <button onClick={e=>{e.stopPropagation();deleteClient(c.id);}} style={{background:'transparent',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'6px',color:'rgba(255,255,255,0.2)',fontSize:'11px',padding:'4px 8px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>×</button>
                   </div>
                 </div>
               );
             })}
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
@@ -3636,6 +3953,170 @@ function EmployeeModule({onHome}){
   );
 }
 
+/* ── DASHBOARD MODULE ── */
+function DashboardModule({onHome}){
+  const DB_A='#f59e0b';
+  const clients=clients_storage.load();
+  const emps=emp_storage.load().filter(e=>e.activo);
+  const mktSaved=storage.load();
+  const iaSaved=ai_storage.load();
+  const allProps=[...mktSaved,...iaSaved];
+
+  // Revenue
+  const totalMonto=clients.reduce((s,c)=>s+(c.montoContrato||0),0);
+  const comisionesPend=clients.filter(c=>!c.comisionPagada&&(c.montoContrato||0)>0).reduce((s,c)=>s+(c.montoContrato||0)*0.5,0);
+  const comisionesPagas=clients.filter(c=>c.comisionPagada).reduce((s,c)=>s+(c.montoContrato||0)*0.5,0);
+
+  // Pipeline
+  const STAGES=['Lead','Propuesta enviada','Propuesta aceptada','Activo','Finalizado'];
+  const STAGE_C=['#9e9e9e','#fb923c','#38bdf8',CL_A,'#a78bfa'];
+  const stageCounts=STAGES.map(s=>clients.filter(c=>c.estado===s).length);
+  const maxStage=Math.max(...stageCounts,1);
+
+  // Top clients by revenue
+  const topClients=[...clients].filter(c=>c.montoContrato>0).sort((a,b)=>(b.montoContrato||0)-(a.montoContrato||0)).slice(0,5);
+
+  // Employee leaderboard
+  const empStats=emps.map(emp=>{
+    const empClients=clients.filter(c=>c.asignadoA===emp.id);
+    const monto=empClients.reduce((s,c)=>s+(c.montoContrato||0),0);
+    const propCreadas=allProps.filter(p=>p.creadoPor===emp.id).length;
+    const cerradas=empClients.filter(c=>['Activo','Finalizado'].includes(c.estado)).length;
+    return {nombre:emp.nombre,monto,propCreadas,cerradas,comision:monto*0.5,pagada:empClients.filter(c=>c.comisionPagada).reduce((s,c)=>s+(c.montoContrato||0)*0.5,0)};
+  }).sort((a,b)=>b.monto-a.monto);
+
+  // By service
+  const byService={marketing:clients.filter(c=>c.servicios?.includes('marketing')).length,ia:clients.filter(c=>c.servicios?.includes('ia')).length,web:clients.filter(c=>c.servicios?.includes('web')).length};
+  const maxSvc=Math.max(byService.marketing,byService.ia,byService.web,1);
+
+  // Conversion rate
+  const total=clients.length||1;
+  const convRate=Math.round((clients.filter(c=>['Activo','Finalizado'].includes(c.estado)).length/total)*100);
+
+  return(
+    <div style={{minHeight:'100vh',background:'#080808',paddingBottom:'60px',fontFamily:"'Inter',sans-serif"}}>
+      {/* Header */}
+      <div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'16px 32px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
+          <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={onHome}>← Inicio</button>
+          <div style={{width:'1px',height:'18px',background:'rgba(255,255,255,0.08)'}}/>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <div style={{width:'22px',height:'22px',background:DB_A,borderRadius:'5px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="7" width="3" height="6" rx="1" fill="#000"/><rect x="5.5" y="4" width="3" height="9" rx="1" fill="#000"/><rect x="10" y="1" width="3" height="12" rx="1" fill="#000"/></svg>
+            </div>
+            <span style={{fontSize:'14px',fontWeight:'700',color:'#fff',letterSpacing:'-.01em'}}>Dashboard</span>
+          </div>
+        </div>
+        <span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)'}}>Actualizado en tiempo real</span>
+      </div>
+
+      <div style={{maxWidth:'1200px',margin:'0 auto',padding:'32px'}}>
+        {/* KPI row */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'14px',marginBottom:'24px'}}>
+          {[
+            {l:'Ingresos totales',v:`$${totalMonto.toLocaleString('es-CO')}`,c:DB_A,sub:`${clients.length} clientes`},
+            {l:'Comisiones pendientes',v:`$${comisionesPend.toLocaleString('es-CO')}`,c:'#f472b6',sub:'Por pagar al equipo'},
+            {l:'Comisiones pagadas',v:`$${comisionesPagas.toLocaleString('es-CO')}`,c:'#34d399',sub:'Historial pagado'},
+            {l:'Tasa de conversión',v:`${convRate}%`,c:CL_A,sub:'Lead → Activo/Finalizado'},
+          ].map(k=>(
+            <div key={k.l} className="glass" style={{padding:'22px',borderTop:`2px solid ${k.c}44`}}>
+              <p style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.3)',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:'10px'}}>{k.l}</p>
+              <p style={{fontSize:'26px',fontWeight:'800',color:k.c,marginBottom:'4px',letterSpacing:'-.02em'}}>{k.v}</p>
+              <p style={{fontSize:'11px',color:'rgba(255,255,255,0.25)'}}>{k.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px',marginBottom:'24px'}}>
+          {/* Pipeline */}
+          <div className="glass" style={{padding:'24px'}}>
+            <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'20px'}}>Pipeline de Clientes</p>
+            <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+              {STAGES.map((s,i)=>(
+                <div key={s} style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                  <span style={{fontSize:'11.5px',color:'rgba(255,255,255,0.45)',width:'140px',flexShrink:0}}>{s}</span>
+                  <div style={{flex:1,height:'22px',background:'rgba(255,255,255,0.04)',borderRadius:'4px',overflow:'hidden',position:'relative'}}>
+                    <div style={{position:'absolute',inset:0,left:0,width:`${(stageCounts[i]/maxStage)*100}%`,background:`${STAGE_C[i]}44`,borderRadius:'4px',borderRight:`2px solid ${STAGE_C[i]}`,transition:'width .4s ease'}}/>
+                  </div>
+                  <span style={{fontSize:'13px',fontWeight:'700',color:STAGE_C[i],width:'24px',textAlign:'right',flexShrink:0}}>{stageCounts[i]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* By service */}
+          <div className="glass" style={{padding:'24px'}}>
+            <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'20px'}}>Servicios Vendidos</p>
+            <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+              {[{l:'Marketing Digital',v:byService.marketing,c:WARM},{l:'Inteligencia Artificial',v:byService.ia,c:AI_A},{l:'Páginas Web',v:byService.web,c:WEB_A}].map(s=>(
+                <div key={s.l}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:'6px'}}>
+                    <span style={{fontSize:'12.5px',color:'rgba(255,255,255,0.6)'}}>{s.l}</span>
+                    <span style={{fontSize:'12.5px',fontWeight:'700',color:s.c}}>{s.v}</span>
+                  </div>
+                  <div style={{height:'6px',background:'rgba(255,255,255,0.05)',borderRadius:'3px',overflow:'hidden'}}>
+                    <div style={{height:'100%',width:`${(s.v/maxSvc)*100}%`,background:s.c,borderRadius:'3px',transition:'width .4s ease'}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:'20px',paddingTop:'16px',borderTop:'1px solid rgba(255,255,255,0.05)',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+              <div><p style={{fontSize:'11px',color:'rgba(255,255,255,0.25)',marginBottom:'4px'}}>Propuestas Marketing</p><p style={{fontSize:'20px',fontWeight:'800',color:WARM}}>{mktSaved.length}</p></div>
+              <div><p style={{fontSize:'11px',color:'rgba(255,255,255,0.25)',marginBottom:'4px'}}>Propuestas IA</p><p style={{fontSize:'20px',fontWeight:'800',color:AI_A}}>{iaSaved.length}</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px'}}>
+          {/* Top clients */}
+          <div className="glass" style={{padding:'24px'}}>
+            <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'20px'}}>Top Clientes por Monto</p>
+            {topClients.length===0?<p style={{fontSize:'13px',color:'rgba(255,255,255,0.25)'}}>Sin datos aún</p>:(
+              <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                {topClients.map((c,i)=>(
+                  <div key={c.id} style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 12px',background:'rgba(255,255,255,0.02)',borderRadius:'8px'}}>
+                    <span style={{fontSize:'12px',fontWeight:'800',color:'rgba(255,255,255,0.2)',width:'16px',textAlign:'center'}}>{i+1}</span>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:'13px',fontWeight:'600',color:'rgba(255,255,255,0.8)',marginBottom:'2px'}}>{c.empresa}</p>
+                      <p style={{fontSize:'11px',color:'rgba(255,255,255,0.25)'}}>{c.estado}</p>
+                    </div>
+                    <span style={{fontSize:'14px',fontWeight:'800',color:DB_A}}>${(c.montoContrato||0).toLocaleString('es-CO')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Employee leaderboard */}
+          <div className="glass" style={{padding:'24px'}}>
+            <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'20px'}}>Leaderboard de Equipo</p>
+            {empStats.length===0?<p style={{fontSize:'13px',color:'rgba(255,255,255,0.25)'}}>Sin empleados activos</p>:(
+              <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                {empStats.map((e,i)=>(
+                  <div key={e.nombre} style={{padding:'12px 14px',background:i===0?'rgba(245,158,11,0.06)':'rgba(255,255,255,0.02)',border:`1px solid ${i===0?'rgba(245,158,11,0.2)':'rgba(255,255,255,0.06)'}`,borderRadius:'8px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'6px'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                        {i===0&&<span style={{fontSize:'13px'}}>🏆</span>}
+                        <span style={{fontSize:'13px',fontWeight:'600',color:'rgba(255,255,255,0.8)'}}>{e.nombre}</span>
+                      </div>
+                      <span style={{fontSize:'14px',fontWeight:'800',color:EMP_A}}>${e.monto.toLocaleString('es-CO')}</span>
+                    </div>
+                    <div style={{display:'flex',gap:'14px'}}>
+                      <span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>📋 {e.propCreadas} props</span>
+                      <span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>✅ {e.cerradas} cerrados</span>
+                      <span style={{fontSize:'11px',color:e.pagada>0?'#34d399':'rgba(255,255,255,0.3)'}}>💰 ${e.pagada.toLocaleString('es-CO')} pagado</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HomeScreen({onSelect,currentUser}){
   const isAdmin=currentUser&&currentUser.role==='admin';
   // Load employee permissions if not admin
@@ -3645,6 +4126,25 @@ function HomeScreen({onSelect,currentUser}){
     const emp=emp_storage.load().find(e=>e.id===currentUser.id);
     return emp?.permisos||{marketing:true,ia:true,web:true,clients:true};
   },[currentUser]);
+  const homeStats=React.useMemo(()=>{
+    const allC=clients_storage.load();
+    const myC=isAdmin?allC:allC.filter(c=>c.asignadoA===currentUser?.id);
+    const allP=storage.load();
+    const aiP=ai_storage.load();
+    const allEmp=emp_storage.load();
+    const overdue=myC.flatMap(c=>(c.tareas||[]).filter(t=>!t.completado&&t.fechaLimite&&new Date(t.fechaLimite)<new Date())).length;
+    const pendComm=isAdmin?allC.filter(c=>!c.comisionPagada&&c.montoContrato>0).length:0;
+    return{
+      clientCount:myC.length,
+      activeClients:myC.filter(c=>c.estado==='Activo').length,
+      marketingProps:allP.length,
+      aiProps:aiP.length,
+      empCount:allEmp.length,
+      overdue,pendComm,
+      totalRevenue:allC.reduce((s,c)=>s+(c.montoContrato||0),0)
+    };
+  },[currentUser,isAdmin]);
+  const alerts=homeStats.overdue+homeStats.pendComm;
   return(
     <div style={{minHeight:'100vh',background:GL_BG,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 28px',position:'relative',overflow:'hidden',fontFamily:"'Inter',sans-serif"}}>
       <div style={{position:'absolute',top:'-20%',left:'50%',transform:'translateX(-50%)',width:'800px',height:'500px',borderRadius:'50%',background:`radial-gradient(ellipse,rgba(168,85,247,0.12) 0%,transparent 65%)`,pointerEvents:'none'}}/>
@@ -3653,6 +4153,19 @@ function HomeScreen({onSelect,currentUser}){
       <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(rgba(168,85,247,.03) 1px,transparent 1px)',backgroundSize:'32px 32px',pointerEvents:'none'}}/>
       <div style={{position:'absolute',top:0,left:0,right:0,height:'1px',background:`linear-gradient(90deg,transparent,${GL_P2} 30%,${GL_P} 50%,${GL_P3} 70%,transparent)`}}/>
 
+      {/* top bar */}
+      <div style={{position:'absolute',top:'24px',right:'28px',zIndex:10,display:'flex',alignItems:'center',gap:'12px'}}>
+        {alerts>0&&<div style={{display:'flex',alignItems:'center',gap:'6px',padding:'6px 14px',background:'rgba(251,191,36,0.08)',border:'1px solid rgba(251,191,36,0.25)',borderRadius:'100px',cursor:'default'}}>
+          <span style={{fontSize:'14px'}}>🔔</span>
+          <span style={{fontSize:'12px',fontWeight:'600',color:'#fbbf24',fontFamily:"'Inter',sans-serif"}}>{homeStats.overdue>0?`${homeStats.overdue} tarea${homeStats.overdue>1?'s':''} vencida${homeStats.overdue>1?'s':''}`:''}{homeStats.overdue>0&&homeStats.pendComm>0?' · ':''}{homeStats.pendComm>0?`${homeStats.pendComm} comisión${homeStats.pendComm>1?'es':''} pendiente${homeStats.pendComm>1?'s':''}':''}</span>
+        </div>}
+        <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 14px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'100px'}}>
+          <div style={{width:'22px',height:'22px',borderRadius:'50%',background:`linear-gradient(135deg,${GL_P2},${GL_P})`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <span style={{fontSize:'10px',fontWeight:'800',color:'#fff'}}>{(currentUser?.nombre||'A')[0].toUpperCase()}</span>
+          </div>
+          <span style={{fontSize:'12px',fontWeight:'500',color:'rgba(255,255,255,0.55)',fontFamily:"'Inter',sans-serif"}}>{currentUser?.nombre||'Admin'}</span>
+        </div>
+      </div>
       {/* Logo */}
       <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'10px',marginBottom:'40px',position:'relative',zIndex:2}}>
         <div style={{width:'50px',height:'50px',background:`linear-gradient(135deg,${GL_P2},${GL_P})`,borderRadius:'16px',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:`0 0 40px rgba(168,85,247,0.4)`,marginBottom:'4px'}}>
@@ -3672,7 +4185,7 @@ function HomeScreen({onSelect,currentUser}){
       </div>
 
       {/* module cards */}
-      <div style={{display:'grid',gridTemplateColumns:isAdmin?'repeat(5,1fr)':'repeat(4,1fr)',gap:'14px',maxWidth:'1550px',width:'100%',position:'relative',zIndex:2}}>
+      <div style={{display:'grid',gridTemplateColumns:isAdmin?'repeat(6,1fr)':'repeat(4,1fr)',gap:'14px',maxWidth:'1550px',width:'100%',position:'relative',zIndex:2}}>
 
         {/* MARKETING */}
         {empPerms.marketing&&<button onClick={()=>onSelect('marketing')} style={{all:'unset',cursor:'pointer',display:'block'}}>
@@ -3686,7 +4199,8 @@ function HomeScreen({onSelect,currentUser}){
             <p style={{fontSize:'10px',fontWeight:'700',color:WARM,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 01</p>
             <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Marketing<br/>Digital</h2>
             <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Propuestas de redes sociales, contenidos, identidad de marca y crecimiento digital.</p>
-            <div style={{marginTop:'20px',display:'flex',alignItems:'center',gap:'6px',color:WARM,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Crear propuesta <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={WARM} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            {homeStats.marketingProps>0&&<p style={{fontSize:'11px',color:`${WARM}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{homeStats.marketingProps} propuesta{homeStats.marketingProps>1?'s':''} guardada{homeStats.marketingProps>1?'s':''}</p>}
+            <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:WARM,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Crear propuesta <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={WARM} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
           </div>
         </button>}
 
@@ -3702,7 +4216,8 @@ function HomeScreen({onSelect,currentUser}){
             <p style={{fontSize:'10px',fontWeight:'700',color:AI_A,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 02</p>
             <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Inteligencia<br/>Artificial</h2>
             <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Propuestas de automatización, bots, CRM, fidelización y ecosistemas IA a medida.</p>
-            <div style={{marginTop:'20px',display:'flex',alignItems:'center',gap:'6px',color:AI_A,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Crear propuesta <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={AI_A} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            {homeStats.aiProps>0&&<p style={{fontSize:'11px',color:`${AI_A}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{homeStats.aiProps} propuesta{homeStats.aiProps>1?'s':''} guardada{homeStats.aiProps>1?'s':''}</p>}
+            <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:AI_A,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Crear propuesta <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={AI_A} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
           </div>
         </button>}
 
@@ -3734,7 +4249,8 @@ function HomeScreen({onSelect,currentUser}){
             <p style={{fontSize:'10px',fontWeight:'700',color:CL_A,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 04</p>
             <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Client<br/>Management</h2>
             <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Gestiona clientes, proyectos activos, portales y el ciclo de vida completo de cada cuenta.</p>
-            <div style={{marginTop:'20px',display:'flex',alignItems:'center',gap:'6px',color:CL_A,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver clientes <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={CL_A} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            <p style={{fontSize:'11px',color:`${CL_A}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{homeStats.clientCount} cliente{homeStats.clientCount!==1?'s':''} · {homeStats.activeClients} activo{homeStats.activeClients!==1?'s':''}</p>
+            <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:CL_A,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver clientes <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={CL_A} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
           </div>
         </button>}
         {/* EQUIPO — admin only */}
@@ -3750,13 +4266,98 @@ function HomeScreen({onSelect,currentUser}){
             <p style={{fontSize:'10px',fontWeight:'700',color:EMP_A,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 05</p>
             <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Equipo<br/>& Comisiones</h2>
             <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Gestiona tu equipo, asigna clientes, define metas y controla comisiones por vendedor.</p>
-            <div style={{marginTop:'20px',display:'flex',alignItems:'center',gap:'6px',color:EMP_A,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver equipo <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={EMP_A} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            <p style={{fontSize:'11px',color:`${EMP_A}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{homeStats.empCount} miembro{homeStats.empCount!==1?'s':''} en el equipo</p>
+            <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:EMP_A,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver equipo <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={EMP_A} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+          </div>
+        </button>
+        )}
+        {/* DASHBOARD — admin only */}
+        {isAdmin&&(
+        <button onClick={()=>onSelect('dashboard')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+          <div style={{padding:'32px 28px',background:'rgba(245,158,11,0.02)',border:'1px solid rgba(245,158,11,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
+            onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(245,158,11,0.4)';e.currentTarget.style.background='rgba(245,158,11,0.06)';}}
+            onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(245,158,11,0.14)';e.currentTarget.style.background='rgba(245,158,11,0.02)';}}>
+            <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:'linear-gradient(90deg,#f59e0b,transparent)'}}/>
+            <div style={{width:'36px',height:'36px',background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
+              <svg width="17" height="17" viewBox="0 0 14 14" fill="none"><rect x="1" y="7" width="3" height="6" rx="1" fill="#f59e0b"/><rect x="5.5" y="4" width="3" height="9" rx="1" fill="#f59e0b"/><rect x="10" y="1" width="3" height="12" rx="1" fill="#f59e0b"/></svg>
+            </div>
+            <p style={{fontSize:'10px',fontWeight:'700',color:'#f59e0b',letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 06</p>
+            <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Analytics<br/>Dashboard</h2>
+            <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Ingresos, pipeline, leaderboard de equipo, conversiones y métricas clave en tiempo real.</p>
+            <p style={{fontSize:'11px',color:'rgba(245,158,11,0.6)',fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>${homeStats.totalRevenue.toLocaleString('es-CO')} ingresos totales</p>
+            <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:'#f59e0b',fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver analytics <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke="#f59e0b" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
           </div>
         </button>
         )}
       </div>
 
-      <p style={{marginTop:'32px',fontSize:'11.5px',color:'rgba(255,255,255,0.1)',fontFamily:"'Inter',sans-serif",position:'relative',zIndex:2,letterSpacing:'.04em'}}>GlowLabs Agencia IA · Sistema Interno de Gestión de Agencia · v4.0</p>
+      <div style={{marginTop:'32px',display:'flex',alignItems:'center',gap:'20px',position:'relative',zIndex:2}}>
+        <p style={{fontSize:'11.5px',color:'rgba(255,255,255,0.1)',fontFamily:"'Inter',sans-serif",letterSpacing:'.04em'}}>GlowLabs Agencia IA · v5.0</p>
+        <div style={{display:'flex',alignItems:'center',gap:'6px',padding:'4px 10px',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'6px',cursor:'pointer'}} onClick={()=>{/* search triggered from App via Cmd+K */}}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>Búsqueda global</span>
+          <kbd style={{fontSize:'10px',color:'rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'3px',padding:'1px 5px',fontFamily:'monospace'}}>⌘K</kbd>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── GLOBAL SEARCH ── */
+function GlobalSearch({onClose,onNavigate}){
+  const [q,setQ]=useState('');
+  const inputRef=useRef(null);
+  useEffect(()=>{inputRef.current?.focus();},[]);
+  useEffect(()=>{
+    const h=e=>{if(e.key==='Escape')onClose();};
+    window.addEventListener('keydown',h);
+    return()=>window.removeEventListener('keydown',h);
+  },[]);
+  const results=React.useMemo(()=>{
+    if(!q.trim()||q.length<2) return null;
+    const lq=q.toLowerCase();
+    const clients=clients_storage.load().filter(c=>c.empresa.toLowerCase().includes(lq)||(c.contacto||'').toLowerCase().includes(lq)||(c.correo||'').toLowerCase().includes(lq)).slice(0,5);
+    const mktProps=storage.load().filter(p=>(p.empresa||'').toLowerCase().includes(lq)||(p.clientName||'').toLowerCase().includes(lq)).slice(0,3);
+    const aiProps=ai_storage.load().filter(p=>(p.empresa||'').toLowerCase().includes(lq)).slice(0,3);
+    return{clients,mktProps,aiProps};
+  },[q]);
+  const total=results?(results.clients.length+results.mktProps.length+results.aiProps.length):0;
+  const Row=({label,icon,accent,onClick,sub})=>(
+    <div onClick={onClick} style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 20px',cursor:'pointer',transition:'background .1s'}}
+      onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.05)'}
+      onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+      <div style={{width:'30px',height:'30px',borderRadius:'8px',background:`${accent}18`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+        <span style={{fontSize:'12px',fontWeight:'800',color:accent}}>{icon}</span>
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{fontSize:'13px',fontWeight:'600',color:'#fff',fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</p>
+        {sub&&<p style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{sub}</p>}
+      </div>
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke="rgba(255,255,255,0.2)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    </div>
+  );
+  const Section=({title})=><p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',padding:'14px 20px 4px',fontFamily:"'Inter',sans-serif"}}>{title}</p>;
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:9000,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:'100px',backdropFilter:'blur(10px)'}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:'540px',background:'#141414',border:'1px solid rgba(255,255,255,0.13)',borderRadius:'16px',overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,0.9)',fontFamily:"'Inter',sans-serif"}}>
+        <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'14px 20px',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar clientes, propuestas..." style={{flex:1,background:'transparent',border:'none',outline:'none',color:'#fff',fontSize:'15px',fontFamily:"'Inter',sans-serif"}}/>
+          <kbd style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'4px',padding:'2px 7px',fontFamily:'monospace'}}>esc</kbd>
+        </div>
+        <div style={{maxHeight:'440px',overflowY:'auto'}}>
+          {!results&&<p style={{padding:'36px',textAlign:'center',fontSize:'13px',color:'rgba(255,255,255,0.18)'}}>Escribe al menos 2 caracteres para buscar…</p>}
+          {results&&total===0&&<p style={{padding:'36px',textAlign:'center',fontSize:'13px',color:'rgba(255,255,255,0.18)'}}>Sin resultados para <em>"{q}"</em></p>}
+          {results&&results.clients.length>0&&<><Section title="Clientes"/>{results.clients.map(c=><Row key={c.id} label={c.empresa} sub={`${c.contacto||c.correo||''}${c.contacto&&c.estado?' · ':''}${c.estado}`} icon={(c.empresa[0]||'C').toUpperCase()} accent={CL_A} onClick={()=>{onNavigate('clients');onClose();}}/>)}</>}
+          {results&&results.mktProps.length>0&&<><Section title="Propuestas Marketing"/>{results.mktProps.map(p=><Row key={p.id} label={p.empresa||p.clientName||'Propuesta'} sub={p.fecha} icon={(p.empresa||'M')[0].toUpperCase()} accent={WARM} onClick={()=>{onNavigate('marketing');onClose();}}/>)}</>}
+          {results&&results.aiProps.length>0&&<><Section title="Propuestas IA"/>{results.aiProps.map(p=><Row key={p.id} label={p.empresa||'Propuesta IA'} sub={p.fecha} icon={(p.empresa||'I')[0].toUpperCase()} accent={AI_A} onClick={()=>{onNavigate('ia');onClose();}}/>)}</>}
+          <div style={{height:'8px'}}/>
+        </div>
+        <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',padding:'10px 20px',display:'flex',gap:'16px'}}>
+          <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.18)'}}>↑↓ navegar · ↵ abrir · esc cerrar</span>
+          <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.18)',marginLeft:'auto'}}>⌘K para abrir/cerrar</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -3801,6 +4402,12 @@ function App(){
   const [iaSavedId,setIaSavedId]=useState(null);
   const [iaSaved,setIaSaved]=useState(()=>ai_storage.load());
 
+  const [showSearch,setShowSearch]=useState(false);
+  useEffect(()=>{
+    const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();setShowSearch(s=>!s);}};
+    window.addEventListener('keydown',h);
+    return()=>window.removeEventListener('keydown',h);
+  },[]);
   const goHome=()=>setModule(null);
   const doLogin=(user)=>{localStorage.setItem(AUTH_KEY,JSON.stringify(user));setCurrentUser(user);};
   const doLogout=()=>{localStorage.removeItem(AUTH_KEY);setCurrentUser(null);};
@@ -3891,6 +4498,7 @@ function App(){
   /* ── HOME ── */
   if(!module) return(
     <div style={{position:'relative'}}>
+      {showSearch&&<GlobalSearch onClose={()=>setShowSearch(false)} onNavigate={mod=>{setModule(mod);setShowSearch(false);}}/>}
       <HomeScreen onSelect={setModule} currentUser={currentUser}/>
       <div style={{position:'fixed',bottom:'18px',right:'18px',display:'flex',gap:'8px',alignItems:'center',zIndex:50}}>
         <span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>{currentUser.nombre}</span>
@@ -3916,6 +4524,9 @@ function App(){
 
   /* ── EMPLOYEES module ── */
   if(module==='equipo'&&isAdmin) return <EmployeeModule onHome={goHome}/>;
+
+  /* ── DASHBOARD module ── */
+  if(module==='dashboard'&&isAdmin) return <DashboardModule onHome={goHome}/>;
 
   /* ── Permission helper for employees ── */
   const empPerms=isAdmin?{marketing:true,ia:true,web:true,clients:true}:(()=>{
