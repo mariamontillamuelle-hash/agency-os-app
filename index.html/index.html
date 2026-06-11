@@ -2835,22 +2835,38 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
               </div>
             )}
             {client.proyectos.length===0&&!addingProject&&<div className="glass" style={{padding:'40px',textAlign:'center'}}><p style={{color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",fontSize:'14px'}}>No hay proyectos para este cliente</p></div>}
-            {client.proyectos.map(proj=>(
-              <div key={proj.id} className="glass" style={{padding:'28px'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'20px'}}>
-                  <div>
-                    <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'4px'}}>
-                      <h3 style={{fontSize:'16px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em'}}>{proj.nombre}</h3>
+            {client.proyectos.map(proj=>{
+              const PROJ_STATES=['Pendiente de información','En progreso','En revisión','Pausado','Entregado'];
+              const donePct=Math.round((Object.values(proj.checklist||{}).filter(Boolean).length/Math.max(Object.keys(proj.checklist||{}).length,1))*100);
+              const updateProj=(changes)=>{const updated={...client,proyectos:client.proyectos.map(p=>p.id===proj.id?{...p,...changes}:p)};onUpdate(updated);};
+              const deleteProj=()=>{if(!confirm(`¿Eliminar proyecto "${proj.nombre}"?`))return;onUpdate({...client,proyectos:client.proyectos.filter(p=>p.id!==proj.id)});};
+              return(
+              <div key={proj.id} className="glass" style={{padding:'28px',border:proj.estado==='Entregado'?'1px solid rgba(74,222,128,0.2)':'1px solid rgba(255,255,255,0.07)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'16px'}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'8px',flexWrap:'wrap'}}>
+                      <h3 style={{fontSize:'16px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',margin:0}}>{proj.nombre}</h3>
                       <span style={{fontSize:'11px',fontWeight:'600',color:SVC_COLORS[proj.tipo]||'#888',background:`${SVC_COLORS[proj.tipo]||'#888'}15`,padding:'3px 9px',borderRadius:'100px',fontFamily:"'Inter',sans-serif"}}>{SVC_LABELS[proj.tipo]||proj.tipo}</span>
+                      <span style={{fontSize:'11px',fontWeight:'700',color:donePct===100?'#4ade80':'rgba(255,255,255,0.4)',fontFamily:"'Inter',sans-serif"}}>{donePct}% completo</span>
                     </div>
-                    <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',fontFamily:"'Inter',sans-serif"}}>{proj.estado}</p>
+                    <select value={proj.estado} onChange={e=>updateProj({estado:e.target.value})}
+                      style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'7px',padding:'5px 10px',color:'rgba(255,255,255,0.7)',fontSize:'12.5px',fontFamily:"'Inter',sans-serif",outline:'none',cursor:'pointer'}}>
+                      {PROJ_STATES.map(s=><option key={s} value={s} style={{background:'#1a1a1a'}}>{s}</option>)}
+                    </select>
                   </div>
+                  <div style={{display:'flex',gap:'8px',alignItems:'center',flexShrink:0}}>
                   {proj.prompt&&(
                     <button onClick={(e)=>{copyText(proj.prompt);const b=e.currentTarget;const prev=b.textContent;b.textContent='✓ Copiado';setTimeout(()=>{b.textContent=prev;},1500);}} style={{display:'flex',alignItems:'center',gap:'7px',padding:'8px 14px',background:'rgba(74,222,128,0.08)',border:'1px solid rgba(74,222,128,0.2)',borderRadius:'8px',color:CL_A,fontSize:'12px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                       Copiar Prompt
                     </button>
                   )}
+                  {isAdmin&&<button onClick={deleteProj} title="Eliminar proyecto" style={{padding:'7px 10px',background:'transparent',border:'1px solid rgba(248,113,113,0.2)',borderRadius:'7px',color:'rgba(248,113,113,0.5)',fontSize:'13px',cursor:'pointer'}}>×</button>}
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <div style={{height:'4px',background:'rgba(255,255,255,0.05)',borderRadius:'2px',marginBottom:'16px',overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${donePct}%`,background:donePct===100?'#4ade80':`linear-gradient(90deg,${GL_P2},${GL_P})`,borderRadius:'2px',transition:'width .4s ease'}}/>
                 </div>
                 {proj.tipo==='web'&&proj.brief&&(
                   <div style={{padding:'12px 14px',background:'rgba(74,222,128,0.05)',border:'1px solid rgba(74,222,128,0.15)',borderRadius:'8px',marginBottom:'16px',display:'flex',alignItems:'center',gap:'8px'}}>
@@ -2866,7 +2882,8 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                 )}
                 <ProjectChecklist project={proj} onUpdate={(key,val)=>updateChecklist(proj.id,key,val)}/>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
 
