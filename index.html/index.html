@@ -2755,8 +2755,13 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           const TIPOS={nota:{l:'Nota',c:'#a78bfa',emoji:'📝'},llamada:{l:'Llamada',c:'#34d399',emoji:'📞'},reunion:{l:'Reunión',c:'#38bdf8',emoji:'🤝'},email:{l:'Email',c:'#fb923c',emoji:'📧'}};
           const addNota=()=>{
             if(!notaText.trim()) return;
-            const nuevaNota={id:Date.now().toString(),texto:notaText.trim(),tipo:notaTipo,autor:currentUser?.nombre||'Admin',fecha:new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})};
-            const updated={...client,notas:[nuevaNota,...notas]};
+            const now=new Date();
+            const fechaStr=now.toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+            const fechaHistStr=now.toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
+            const nuevaNota={id:Date.now().toString(),texto:notaText.trim(),tipo:notaTipo,autor:currentUser?.nombre||'Admin',fecha:fechaStr};
+            const tipoLabel=TIPOS[notaTipo]?.l||notaTipo;
+            const entry={fecha:fechaHistStr,tipo:'nota',descripcion:`✎ ${tipoLabel}: "${notaText.trim().slice(0,60)}${notaText.trim().length>60?'…':''}"`};
+            const updated={...client,notas:[nuevaNota,...notas],historial:[...(client.historial||[]),entry]};
             onUpdate(updated);
             setNotaText('');
           };
@@ -2811,11 +2816,21 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           const addTarea=()=>{
             if(!tareaForm.titulo.trim()) return;
             const nueva={id:Date.now().toString(),...tareaForm,completada:false,createdAt:new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'})};
-            onUpdate({...client,tareas:[nueva,...tareas]});
+            const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
+            const entry={fecha:now,tipo:'tarea',descripcion:`📋 Nueva tarea creada: "${tareaForm.titulo}"`};
+            onUpdate({...client,tareas:[nueva,...tareas],historial:[...(client.historial||[]),entry]});
             setTareaForm({titulo:'',prioridad:'media',fechaLimite:'',responsable:''});
             setAddingTarea(false);
           };
-          const toggleTarea=id=>onUpdate({...client,tareas:tareas.map(t=>t.id===id?{...t,completada:!t.completada}:t)});
+          const toggleTarea=id=>{
+            const t=tareas.find(x=>x.id===id);if(!t)return;
+            const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
+            const newCompletada=!t.completada;
+            const newTareas=tareas.map(x=>x.id===id?{...x,completada:newCompletada}:x);
+            const entry=newCompletada?{fecha:now,tipo:'tarea',descripcion:`✅ Tarea completada: "${t.titulo}"`}:null;
+            const newHist=entry?[...(client.historial||[]),entry]:(client.historial||[]);
+            onUpdate({...client,tareas:newTareas,historial:newHist});
+          };
           const deleteTarea=id=>{if(!confirm('¿Eliminar tarea?'))return;onUpdate({...client,tareas:tareas.filter(t=>t.id!==id)});};
           const pendientes=tareas.filter(t=>!t.completada);
           const completadas=tareas.filter(t=>t.completada);
@@ -2907,24 +2922,70 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
         })()}
 
         {/* HISTORY TAB */}
-        {tab==='history'&&(
-          <div className="glass" style={{padding:'28px'}}>
-            <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'16px',fontFamily:"'Inter',sans-serif"}}>Historial del Cliente</p>
-            {client.historial.length===0?<p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>Sin actividad registrada</p>:(
-              <div style={{display:'flex',flexDirection:'column',gap:'0'}}>
-                {[...client.historial].reverse().map((h,i)=>(
-                  <div key={i} style={{display:'flex',gap:'14px',paddingBottom:'16px',marginBottom:'16px',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                    <div style={{flexShrink:0,width:'8px',height:'8px',borderRadius:'50%',background:CL_A,marginTop:'5px'}}/>
-                    <div>
-                      <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.7)',fontFamily:"'Inter',sans-serif",marginBottom:'3px'}}>{h.descripcion}</p>
-                      <p style={{fontSize:'11px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>{h.fecha}</p>
-                    </div>
-                  </div>
-                ))}
+        {tab==='history'&&(()=>{
+          const [newEntry,setNewEntry]=React.useState('');
+          const [histFilter,setHistFilter]=React.useState('todo');
+          const TIPO_CONFIG={
+            estado:{color:'#a855f7',icon:'◆',label:'Estado'},
+            tarea:{color:'#38bdf8',icon:'☑',label:'Tarea'},
+            nota:{color:'#fbbf24',icon:'✎',label:'Nota'},
+            sistema:{color:'rgba(255,255,255,0.3)',icon:'◉',label:'Sistema'},
+            manual:{color:CL_A,icon:'✦',label:'Manual'},
+          };
+          const gettipo=(h)=>{
+            if(h.tipo) return h.tipo;
+            const d=h.descripcion||'';
+            if(d.includes('Estado cambiado')||d.includes('estado')) return 'estado';
+            if(d.includes('tarea')||d.includes('Tarea')||d.includes('✅')||d.includes('📋')) return 'tarea';
+            if(d.includes('nota')||d.includes('Nota')) return 'nota';
+            return 'sistema';
+          };
+          const addManualEntry=()=>{
+            if(!newEntry.trim())return;
+            const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
+            onUpdate({...client,historial:[...(client.historial||[]),{fecha:now,tipo:'manual',descripcion:newEntry.trim()}]});
+            setNewEntry('');
+          };
+          const allH=[...(client.historial||[])].reverse();
+          const filtered=histFilter==='todo'?allH:allH.filter(h=>gettipo(h)===histFilter);
+          return(
+            <div className="glass" style={{padding:'28px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'20px',flexWrap:'wrap',gap:'10px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",margin:0}}>Historial del Cliente</p>
+                <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+                  {[['todo','Todos'],['estado','Estado'],['tarea','Tareas'],['manual','Manual']].map(([k,l])=>(
+                    <button key={k} onClick={()=>setHistFilter(k)} style={{padding:'4px 10px',background:histFilter===k?'rgba(255,255,255,0.12)':'transparent',border:`1px solid ${histFilter===k?'rgba(255,255,255,0.2)':'rgba(255,255,255,0.08)'}`,borderRadius:'100px',color:histFilter===k?'#fff':'rgba(255,255,255,0.35)',fontSize:'11px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>{l}</button>
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
-        )}
+              {/* Add manual entry */}
+              <div style={{display:'flex',gap:'8px',marginBottom:'24px'}}>
+                <input value={newEntry} onChange={e=>setNewEntry(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addManualEntry()} placeholder="Añadir nota al historial..." style={{flex:1,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.09)',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'12.5px',fontFamily:"'Inter',sans-serif",outline:'none'}}/>
+                <button onClick={addManualEntry} disabled={!newEntry.trim()} style={{padding:'9px 16px',background:newEntry.trim()?`rgba(74,222,128,0.15)`:'rgba(255,255,255,0.04)',border:`1px solid ${newEntry.trim()?'rgba(74,222,128,0.3)':'rgba(255,255,255,0.07)'}`,borderRadius:'8px',color:newEntry.trim()?CL_A:'rgba(255,255,255,0.2)',fontSize:'12px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",transition:'all .15s',whiteSpace:'nowrap'}}>+ Añadir</button>
+              </div>
+              {filtered.length===0&&<p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif",textAlign:'center',padding:'20px 0'}}>Sin eventos en esta categoría</p>}
+              <div style={{display:'flex',flexDirection:'column',gap:'0',position:'relative'}}>
+                <div style={{position:'absolute',left:'6px',top:'10px',bottom:'10px',width:'1px',background:'rgba(255,255,255,0.06)'}}/>
+                {filtered.map((h,i)=>{
+                  const tipo=gettipo(h);
+                  const cfg=TIPO_CONFIG[tipo]||TIPO_CONFIG.sistema;
+                  return(
+                    <div key={i} style={{display:'flex',gap:'16px',paddingBottom:'18px',marginBottom:'2px',paddingLeft:'4px'}}>
+                      <div style={{flexShrink:0,width:'13px',height:'13px',borderRadius:'50%',background:cfg.color,border:'2px solid #141414',display:'flex',alignItems:'center',justifyContent:'center',marginTop:'2px',zIndex:1,fontSize:'7px',color:'#000',fontWeight:'900',boxSizing:'border-box'}}/>
+                      <div style={{flex:1}}>
+                        <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.75)',fontFamily:"'Inter',sans-serif",marginBottom:'4px',lineHeight:'1.4'}}>{h.descripcion}</p>
+                        <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                          <span style={{fontSize:'10px',color:cfg.color,fontWeight:'700',background:`${cfg.color}18`,padding:'1px 7px',borderRadius:'100px',fontFamily:"'Inter',sans-serif"}}>{cfg.label}</span>
+                          <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>{h.fecha}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Edit Modal */}
