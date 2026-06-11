@@ -3289,6 +3289,20 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const [selectedIds,setSelectedIds]=useState(new Set());
   const [bulkAction,setBulkAction]=useState('');
   const [tagFilter,setTagFilter]=useState(''); // '' | tag string
+  const searchInputRef=useRef(null);
+  // Keyboard shortcuts
+  useEffect(()=>{
+    const h=e=>{
+      const tag=document.activeElement?.tagName;
+      const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
+      if(e.key==='Escape'){setShowAddClient(false);setShowImportCSV(false);setCsvText('');setCsvPreview(null);return;}
+      if(inInput) return;
+      if(e.key==='n'||e.key==='N'){e.preventDefault();setShowAddClient(true);return;}
+      if(e.key==='/'||e.key==='f'||e.key==='F'){e.preventDefault();searchInputRef.current?.focus();return;}
+    };
+    document.addEventListener('keydown',h);
+    return()=>document.removeEventListener('keydown',h);
+  },[]);
   useEffect(()=>{
     if(!statusMenuId) return;
     const h=()=>setStatusMenuId(null);
@@ -3638,8 +3652,9 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
 
         {/* Search + filter */}
         <div style={{display:'flex',gap:'10px',marginBottom:'20px',flexWrap:'wrap',alignItems:'center'}}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente..."
-            style={{flex:'1',minWidth:'200px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'9px 14px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none'}}/>
+          <input ref={searchInputRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente… (/ para enfocar)"
+            style={{flex:'1',minWidth:'200px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'9px 14px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none'}}
+            onFocus={e=>e.target.style.borderColor='rgba(74,222,128,0.4)'} onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.1)'}/>
           <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
             {FILTERS.map(f=>(
               <button key={f} onClick={()=>setFilter(f)} style={{padding:'7px 12px',fontSize:'11.5px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',cursor:'pointer',border:`1px solid ${filter===f?'rgba(74,222,128,0.4)':'rgba(255,255,255,0.08)'}`,background:filter===f?'rgba(74,222,128,0.08)':'transparent',color:filter===f?CL_A:'rgba(255,255,255,0.35)',fontWeight:filter===f?'700':'400',transition:'all .15s'}}>{f}</button>
@@ -3856,6 +3871,15 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
               );
             })}
           </div>
+        ))}
+      </div>
+      {/* Keyboard hints */}
+      <div style={{position:'fixed',bottom:'18px',right:'22px',display:'flex',gap:'6px',alignItems:'center',zIndex:100,opacity:0.5,pointerEvents:'none'}}>
+        {[{k:'N',l:'Nuevo'},{'k':'/','l':'Buscar'},{'k':'Esc','l':'Cerrar'}].map(h=>(
+          <span key={h.k} style={{display:'flex',alignItems:'center',gap:'4px',fontSize:'10px',color:'rgba(255,255,255,0.4)',fontFamily:"'Inter',sans-serif"}}>
+            <kbd style={{padding:'2px 6px',background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.15)',borderRadius:'4px',fontSize:'10px',color:'rgba(255,255,255,0.5)',fontFamily:'monospace'}}>{h.k}</kbd>
+            <span>{h.l}</span>
+          </span>
         ))}
       </div>
     </div>
