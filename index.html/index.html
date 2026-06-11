@@ -3950,6 +3950,16 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                 <optgroup label="Cambiar estado">
                   {CLIENT_ESTADOS.map(e=><option key={e} value={`estado:${e}`}>→ {e}</option>)}
                 </optgroup>
+                {isAdmin&&emp_storage.load().filter(e=>e.activo).length>0&&(
+                  <optgroup label="Asignar vendedor">
+                    <option value="assign:">Sin asignar (admin)</option>
+                    {emp_storage.load().filter(e=>e.activo).map(e=><option key={e.id} value={`assign:${e.id}`}>👤 {e.nombre}</option>)}
+                  </optgroup>
+                )}
+                <optgroup label="Etiquetas">
+                  {[...new Set(clients.flatMap(c=>c.tags||[]))].sort().map(tag=><option key={tag} value={`tag:${tag}`}>🏷 {tag}</option>)}
+                  <option value="tag:__new__">+ Nueva etiqueta…</option>
+                </optgroup>
                 <option value="delete">🗑 Eliminar seleccionados</option>
               </select>
               <button onClick={()=>{
@@ -3966,6 +3976,21 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                     if(nuevoEstado==='Finalizado')dateFields.fechaCierre=dateFields.fechaCierre||now;
                     return{...c,estado:nuevoEstado,...dateFields,historial:[...(c.historial||[]),{fecha:now,tipo:'estado',descripcion:`Estado cambiado a ${nuevoEstado}.`}]};
                   });
+                  clients_storage.save(updated);
+                  setClients(isAdmin?updated:updated.filter(c=>c.asignadoA===(currentUser&&currentUser.id)));
+                  setSelectedIds(new Set());setBulkAction('');
+                } else if(bulkAction.startsWith('assign:')){
+                  const empId=bulkAction.split(':')[1]||null;
+                  const allC=clients_storage.load();
+                  const updated=allC.map(c=>selectedIds.has(c.id)?{...c,asignadoA:empId||null}:c);
+                  clients_storage.save(updated);
+                  setClients(isAdmin?updated:updated.filter(c=>c.asignadoA===(currentUser&&currentUser.id)));
+                  setSelectedIds(new Set());setBulkAction('');
+                } else if(bulkAction.startsWith('tag:')){
+                  let tag=bulkAction.split(':')[1];
+                  if(tag==='__new__'){tag=window.prompt('Nombre de la nueva etiqueta:');if(!tag||!tag.trim())return;tag=tag.trim();}
+                  const allC=clients_storage.load();
+                  const updated=allC.map(c=>{if(!selectedIds.has(c.id))return c;const tags=c.tags||[];return{...c,tags:tags.includes(tag)?tags:[...tags,tag]};});
                   clients_storage.save(updated);
                   setClients(isAdmin?updated:updated.filter(c=>c.asignadoA===(currentUser&&currentUser.id)));
                   setSelectedIds(new Set());setBulkAction('');
