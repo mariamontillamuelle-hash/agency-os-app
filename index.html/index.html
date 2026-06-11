@@ -2539,6 +2539,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [tareaForm,setTareaForm]=useState({titulo:'',prioridad:'media',fechaLimite:'',responsable:''});
   const [addingTarea,setAddingTarea]=useState(false);
   const [renewalFlash,setRenewalFlash]=useState(false);
+  const [copyFlash,setCopyFlash]=useState(false);
   const SVC_LABELS={marketing:'Marketing Digital',ia:'Inteligencia Artificial',web:'Página Web'};
   const SVC_COLORS={marketing:WARM,ia:AI_A,web:WEB_A};
 
@@ -2624,6 +2625,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
             <div className="glass" style={{padding:'24px'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
                 <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0,fontFamily:"'Inter',sans-serif"}}>Ficha del Cliente</p>
+                <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                 {(()=>{const h=clientHealth(client);return(
                   <div title={`Salud del cliente: ${h.label}\n${h.signals.join(' · ')}`} style={{display:'flex',alignItems:'center',gap:'7px',padding:'4px 11px',background:`${h.color}12`,border:`1px solid ${h.color}35`,borderRadius:'100px',cursor:'default'}}>
                     <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill={h.color}/></svg>
@@ -2631,6 +2633,16 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                     <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.35)',fontFamily:"'Inter',sans-serif"}}>{h.label}</span>
                   </div>
                 );})()}
+                <button title="Copiar datos del cliente" onClick={()=>{
+                  const SL={marketing:'Marketing Digital',ia:'IA',web:'Web'};
+                  const lines=[`📋 ${client.empresa}`,`👤 ${client.contacto||'—'}`,`📧 ${client.correo||'—'}`,`📱 ${client.telefono||'—'}`,`📊 ${client.estado}`,`🛠 ${(client.servicios||[]).map(s=>SL[s]||s).join(', ')||'—'}`,`💰 $${(client.montoContrato||0).toLocaleString('es-CO')}`,`🏷 ${(client.tags||[]).join(', ')||'—'}`,`🗓 Cliente desde: ${client.createdAt||'—'}`];
+                  if(client.followUpDate) lines.push(`📅 Seguimiento: ${client.followUpDate}`);
+                  if(client.fechaVencimiento) lines.push(`⏰ Vto. contrato: ${client.fechaVencimiento}`);
+                  try{navigator.clipboard.writeText(lines.join('\n'));setCopyFlash(true);setTimeout(()=>setCopyFlash(false),2200);}catch{}
+                }} style={{padding:'4px 10px',background:copyFlash?'rgba(74,222,128,0.15)':'rgba(255,255,255,0.05)',border:`1px solid ${copyFlash?'rgba(74,222,128,0.35)':'rgba(255,255,255,0.1)'}`,borderRadius:'7px',color:copyFlash?'#4ade80':'rgba(255,255,255,0.3)',fontSize:'11px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:'600',transition:'all .2s',whiteSpace:'nowrap'}}>
+                  {copyFlash?'✓ Copiado':'⎘ Copiar'}
+                </button>
+                </div>
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
                 {(()=>{
