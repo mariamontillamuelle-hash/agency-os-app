@@ -2520,7 +2520,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
 
       {/* Tabs */}
       <div style={{display:'flex',gap:'0',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 32px'}}>
-        {[{k:'overview',l:'Resumen'},{k:'projects',l:'Proyectos'},{k:'notas',l:'Notas'},{k:'tareas',l:'Tareas'},{k:'portal',l:'Portal'},{k:'history',l:'Historial'}].map(t=>(
+        {[{k:'overview',l:'Resumen'},{k:'projects',l:'Proyectos'},{k:'notas',l:'Notas'},{k:'tareas',l:'Tareas'},{k:'mensajes',l:'✉ Mensajes'},{k:'portal',l:'Portal'},{k:'history',l:'Historial'}].map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} style={{padding:'14px 20px',background:'transparent',border:'none',borderBottom:`2px solid ${tab===t.k?CL_A:'transparent'}`,color:tab===t.k?'#fff':'rgba(255,255,255,0.35)',fontSize:'13px',fontWeight:tab===t.k?'700':'400',cursor:'pointer',fontFamily:"'Inter',sans-serif",transition:'all .15s'}}>{t.l}</button>
         ))}
       </div>
@@ -2949,6 +2949,114 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                 </div>
               )}
               {tareas.length===0&&!addingTarea&&<p style={{fontSize:'13px',color:'rgba(255,255,255,0.25)',padding:'20px',textAlign:'center',fontFamily:"'Inter',sans-serif"}}>Sin tareas para este cliente. ¡Crea la primera!</p>}
+            </div>
+          );
+        })()}
+
+        {/* MENSAJES TAB */}
+        {tab==='mensajes'&&(()=>{
+          const [selectedTpl,setSelectedTpl]=React.useState(null);
+          const [copied,setCopied]=React.useState(false);
+          const contacto=client.contacto||'Cliente';
+          const empresa=client.empresa||'tu empresa';
+          const asesor=currentUser?.nombre||'el equipo de GlowLabs';
+          const svcList=(client.servicios||[]).map(s=>({marketing:'Marketing Digital',ia:'Inteligencia Artificial',web:'Diseño Web'}[s]||s)).join(', ')||'nuestros servicios';
+          const daysRenewal=client.fechaVencimiento?Math.round((new Date(client.fechaVencimiento)-new Date())/(1000*60*60*24)):null;
+          const TEMPLATES=[
+            {
+              id:'bienvenida',
+              label:'👋 Bienvenida',
+              desc:'Para enviar cuando un cliente firma',
+              color:'#4ade80',
+              asunto:`¡Bienvenido a GlowLabs, ${empresa}!`,
+              cuerpo:`Hola ${contacto},\n\n¡Estamos emocionados de comenzar a trabajar contigo! 🎉\n\nDesde hoy, ${empresa} es parte de la familia GlowLabs. Trabajaremos juntos en ${svcList} para llevar tu negocio al siguiente nivel.\n\nEn los próximos días me pondré en contacto contigo para coordinar los primeros pasos. Si tienes alguna pregunta antes de eso, no dudes en escribirme.\n\nBienvenido/a,\n${asesor}\nGlowLabs Agencia IA`
+            },
+            {
+              id:'seguimiento',
+              label:'🔄 Seguimiento',
+              desc:'Follow-up post-propuesta o reunión',
+              color:'#38bdf8',
+              asunto:`Seguimiento — ${empresa}`,
+              cuerpo:`Hola ${contacto},\n\nEspero que estés bien. Quería hacer un seguimiento de nuestra conversación y ver si tienes alguna pregunta sobre la propuesta que te compartimos.\n\nEstamos listos para comenzar y queremos asegurarnos de que tengas toda la información que necesitas para tomar una decisión con confianza.\n\n¿Tienes disponibilidad esta semana para una llamada rápida de 15 minutos?\n\nQuedo atento/a,\n${asesor}\nGlowLabs Agencia IA`
+            },
+            {
+              id:'renovacion',
+              label:'🔔 Renovación',
+              desc:`Recordatorio de vencimiento${daysRenewal!==null?' ('+daysRenewal+'d)':''}`,
+              color:'#fbbf24',
+              asunto:`Renovación de contrato — ${empresa}`,
+              cuerpo:`Hola ${contacto},\n\nEspero que todo vaya muy bien. Me comunico porque${daysRenewal!==null&&daysRenewal>=0?' en '+daysRenewal+' día'+( daysRenewal===1?'':'s'):' recientemente'} vence tu contrato actual con GlowLabs.\n\nHa sido un placer trabajar con ${empresa} en ${svcList}. Los resultados han sido muy positivos y nos encantaría continuar esta alianza.\n\n¿Podemos agendar una llamada esta semana para revisar los términos de renovación y planificar la siguiente etapa?\n\nCuando gustes,\n${asesor}\nGlowLabs Agencia IA`
+            },
+            {
+              id:'entrega',
+              label:'✅ Entrega de proyecto',
+              desc:'Al completar un entregable',
+              color:'#a78bfa',
+              asunto:`¡Tu proyecto está listo! — ${empresa}`,
+              cuerpo:`Hola ${contacto},\n\n¡Tenemos excelentes noticias! Tu proyecto de ${svcList} está listo y esperando tu revisión. 🚀\n\nPuedes acceder a los entregables en el link que te compartiré por separado. Por favor, revisa todo y compártenos tu feedback.\n\nTu opinión es muy importante para nosotros. Si necesitas algún ajuste o tienes preguntas, con mucho gusto los atendemos.\n\n¡Gracias por confiar en GlowLabs!\n${asesor}`
+            },
+            {
+              id:'inactivo',
+              label:'💬 Re-activación',
+              desc:'Para clientes inactivos o perdidos',
+              color:'#fb923c',
+              asunto:`Una novedad para ${empresa} 🚀`,
+              cuerpo:`Hola ${contacto},\n\n¡Espero que estés muy bien! Hace un tiempo no tenemos noticias tuyas y quería contactarme.\n\nEn GlowLabs hemos lanzado nuevas soluciones de ${svcList} con resultados increíbles para negocios como el de ${empresa}. Creo que te podría interesar mucho lo que tenemos ahora.\n\n¿Podríamos tener una conversación de 20 minutos para contarte las novedades?\n\n¡Sería genial reconectar!\n${asesor}\nGlowLabs Agencia IA`
+            },
+            {
+              id:'comision',
+              label:'💰 Pago de comisión',
+              desc:'Confirmación interna de comisión',
+              color:'#34d399',
+              asunto:`Confirmación comisión — ${empresa}`,
+              cuerpo:`Hola,\n\nQuiero confirmar el pago de comisión correspondiente al cliente ${empresa}.\n\nMonto del contrato: $${(client.montoContrato||0).toLocaleString('es-CO')}\nComisión (50%): $${((client.montoContrato||0)*0.5).toLocaleString('es-CO')}\nEstado: ${client.comisionPagada?'✅ Pagada':'⏳ Pendiente'}\n\nPor favor, confirmar recibo.\n\nGracias,\n${asesor}`
+            },
+          ];
+          const tpl=TEMPLATES.find(t=>t.id===selectedTpl);
+          const copyText=()=>{
+            if(!tpl)return;
+            navigator.clipboard.writeText(`Asunto: ${tpl.asunto}\n\n${tpl.cuerpo}`).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});
+          };
+          return(
+            <div style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:'16px',minHeight:'400px'}}>
+              {/* Template list */}
+              <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                <p style={{fontSize:'10.5px',fontWeight:'700',color:'rgba(255,255,255,0.25)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'8px',fontFamily:"'Inter',sans-serif"}}>Plantillas</p>
+                {TEMPLATES.map(t=>(
+                  <button key={t.id} onClick={()=>{setSelectedTpl(t.id);setCopied(false);}}
+                    style={{textAlign:'left',padding:'10px 14px',background:selectedTpl===t.id?`${t.color}15`:'rgba(255,255,255,0.03)',border:`1px solid ${selectedTpl===t.id?t.color+'44':'rgba(255,255,255,0.07)'}`,borderRadius:'9px',cursor:'pointer',transition:'all .15s'}}>
+                    <p style={{fontSize:'12.5px',fontWeight:'700',color:selectedTpl===t.id?t.color:'rgba(255,255,255,0.7)',margin:'0 0 3px',fontFamily:"'Inter',sans-serif"}}>{t.label}</p>
+                    <p style={{fontSize:'10.5px',color:'rgba(255,255,255,0.3)',margin:0,fontFamily:"'Inter',sans-serif"}}>{t.desc}</p>
+                  </button>
+                ))}
+              </div>
+              {/* Template preview */}
+              <div className="glass" style={{padding:'20px',display:'flex',flexDirection:'column',gap:'12px'}}>
+                {!tpl&&<p style={{fontSize:'13px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif",margin:'auto',textAlign:'center',padding:'40px 0'}}>← Selecciona una plantilla para previsualizar</p>}
+                {tpl&&<>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',flexWrap:'wrap'}}>
+                    <div>
+                      <span style={{fontSize:'10.5px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif"}}>Asunto</span>
+                      <p style={{fontSize:'13.5px',fontWeight:'700',color:'#fff',margin:'3px 0 0',fontFamily:"'Inter',sans-serif"}}>{tpl.asunto}</p>
+                    </div>
+                    <div style={{display:'flex',gap:'8px'}}>
+                      {client.correo&&<a href={`mailto:${client.correo}?subject=${encodeURIComponent(tpl.asunto)}&body=${encodeURIComponent(tpl.cuerpo)}`}
+                        style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 14px',background:'rgba(56,189,248,0.12)',border:'1px solid rgba(56,189,248,0.3)',borderRadius:'8px',color:'#38bdf8',fontSize:'12px',fontWeight:'700',textDecoration:'none',fontFamily:"'Inter',sans-serif"}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+                        Abrir email
+                      </a>}
+                      <button onClick={copyText}
+                        style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 14px',background:copied?'rgba(52,211,153,0.12)':'rgba(255,255,255,0.06)',border:`1px solid ${copied?'rgba(52,211,153,0.3)':'rgba(255,255,255,0.12)'}`,borderRadius:'8px',color:copied?'#34d399':'rgba(255,255,255,0.6)',fontSize:'12px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",transition:'all .2s'}}>
+                        {copied?'✓ Copiado':'Copiar'}
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'12px',flex:1}}>
+                    <span style={{fontSize:'10.5px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif"}}>Cuerpo</span>
+                    <pre style={{fontFamily:"'Inter',sans-serif",fontSize:'13px',color:'rgba(255,255,255,0.75)',whiteSpace:'pre-wrap',lineHeight:'1.65',marginTop:'8px',background:'rgba(255,255,255,0.02)',padding:'14px',borderRadius:'8px',border:'1px solid rgba(255,255,255,0.06)'}}>{tpl.cuerpo}</pre>
+                  </div>
+                </>}
+              </div>
             </div>
           );
         })()}
