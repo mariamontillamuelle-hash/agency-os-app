@@ -1,3 +1,7 @@
 {
-  "outputDirectory": "index.html"
+  "buildCommand": null,
+  "outputDirectory": "index.html",
+  "installCommand": null,
+  "devCommand": null,
+  "framework": null
 }
