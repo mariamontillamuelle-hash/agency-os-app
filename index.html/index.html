@@ -2966,6 +2966,8 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
   const [lastRefresh,setLastRefresh]=useState(null);
   const [viewMode,setViewMode]=useState('list'); // 'list' | 'kanban'
   const [svcFilter,setSvcFilter]=useState(''); // '' | 'marketing' | 'ia' | 'web'
+  const [empFilter,setEmpFilter]=useState(''); // '' | empId
+  const [sortBy,setSortBy]=useState('reciente'); // 'reciente' | 'monto' | 'az'
   const [statusMenuId,setStatusMenuId]=useState(null);
   const [showAddClient,setShowAddClient]=useState(false);
   const [addForm,setAddForm]=useState({empresa:'',contacto:'',correo:'',telefono:'',servicios:[],estado:'Lead',montoContrato:0});
@@ -3060,11 +3062,17 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
   ];
 
   const FILTERS=['Todos',...CLIENT_ESTADOS];
+  const allEmps=emp_storage.load().filter(e=>e.activo);
   const filtered=clients.filter(c=>{
     const matchFilter=filter==='Todos'||c.estado===filter;
-    const matchSearch=!search||c.empresa.toLowerCase().includes(search.toLowerCase())||c.correo?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch=!search||c.empresa.toLowerCase().includes(search.toLowerCase())||c.correo?.toLowerCase().includes(search.toLowerCase())||(c.contacto||'').toLowerCase().includes(search.toLowerCase());
     const matchSvc=!svcFilter||(c.servicios||[]).includes(svcFilter);
-    return matchFilter&&matchSearch&&matchSvc;
+    const matchEmp=!empFilter||c.asignadoA===empFilter;
+    return matchFilter&&matchSearch&&matchSvc&&matchEmp;
+  }).sort((a,b)=>{
+    if(sortBy==='monto') return (b.montoContrato||0)-(a.montoContrato||0);
+    if(sortBy==='az') return a.empresa.localeCompare(b.empresa);
+    return 0; // 'reciente' preserves natural order (insert order)
   });
 
   const exportCSV=()=>{
@@ -3182,6 +3190,26 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
               <button key={s.k} onClick={()=>setSvcFilter(s.k)} style={{padding:'6px 11px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',cursor:'pointer',border:`1px solid ${svcFilter===s.k?(s.c?s.c+'66':'rgba(255,255,255,0.3)'):'rgba(255,255,255,0.07)'}`,background:svcFilter===s.k?(s.c?s.c+'18':'rgba(255,255,255,0.05)'):'transparent',color:svcFilter===s.k?(s.c||'#fff'):'rgba(255,255,255,0.3)',fontWeight:svcFilter===s.k?'700':'400',transition:'all .15s'}}>{s.l}</button>
             ))}
           </div>
+          {isAdmin&&allEmps.length>0&&(
+            <select value={empFilter} onChange={e=>setEmpFilter(e.target.value)} style={{padding:'6px 10px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'8px',border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.6)',cursor:'pointer',outline:'none'}}>
+              <option value=''>Todos los asesores</option>
+              {allEmps.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}
+            </select>
+          )}
+          <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{padding:'6px 10px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'8px',border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.6)',cursor:'pointer',outline:'none'}}>
+            <option value='reciente'>Más reciente</option>
+            <option value='monto'>Mayor monto</option>
+            <option value='az'>A→Z</option>
+          </select>
+          {(empFilter||svcFilter||filter!=='Todos'||search)&&(
+            <button onClick={()=>{setEmpFilter('');setSvcFilter('');setFilter('Todos');setSearch('');}} style={{padding:'6px 12px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',border:'1px solid rgba(248,113,113,0.3)',background:'rgba(248,113,113,0.08)',color:'#f87171',cursor:'pointer',fontWeight:'600',whiteSpace:'nowrap'}}>✕ Limpiar</button>
+          )}
+        </div>
+
+        {/* Results count */}
+        <div style={{marginBottom:'12px',display:'flex',alignItems:'center',gap:'8px'}}>
+          <span style={{fontSize:'11.5px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>{filtered.length} cliente{filtered.length!==1?'s':''}{filtered.length<clients.length?` de ${clients.length}`:''}</span>
+          {filtered.length<clients.length&&<span style={{fontSize:'10px',background:'rgba(168,139,250,0.12)',border:'1px solid rgba(168,139,250,0.25)',color:'#a78bfa',borderRadius:'100px',padding:'1px 8px',fontFamily:"'Inter',sans-serif"}}>filtrado</span>}
         </div>
 
         {/* Clients list / kanban */}
@@ -3191,7 +3219,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
           return(
             <div style={{display:'flex',gap:'12px',overflowX:'auto',paddingBottom:'16px',alignItems:'flex-start'}}>
               {KANBAN_STAGES.map((stage,si)=>{
-                const stageClients=clients.filter(c=>c.estado===stage&&(!search||c.empresa.toLowerCase().includes(search.toLowerCase())));
+                const stageClients=filtered.filter(c=>c.estado===stage);
                 return(
                   <div key={stage} style={{minWidth:'220px',flex:'0 0 220px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'12px',overflow:'hidden'}}>
                     <div style={{padding:'12px 14px',borderBottom:'1px solid rgba(255,255,255,0.06)',display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:`2px solid ${KANBAN_C[si]}`}}>
