@@ -1971,6 +1971,7 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
     notas:[],
     tareas:[],
     followUpDate:'',
+    tags:[],
   };
 }
 
@@ -2567,6 +2568,37 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                 )):<p style={{fontSize:'12px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>Sin servicios asignados</p>}
               </div>
             </div>
+            {/* Tags */}
+            {(()=>{
+              const [tagInput,setTagInput]=React.useState('');
+              const tags=client.tags||[];
+              const addTag=()=>{
+                const t=tagInput.trim().toLowerCase().replace(/[^a-z0-9áéíóúñ\-_]/gi,'').slice(0,20);
+                if(!t||tags.includes(t))return;
+                onUpdate({...client,tags:[...tags,t]});
+                setTagInput('');
+              };
+              const removeTag=(tag)=>onUpdate({...client,tags:tags.filter(t=>t!==tag)});
+              return(
+                <div className="glass" style={{padding:'24px'}}>
+                  <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'14px',fontFamily:"'Inter',sans-serif"}}>Etiquetas</p>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'10px'}}>
+                    {tags.length===0&&<span style={{fontSize:'12px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>Sin etiquetas</span>}
+                    {tags.map(tag=>(
+                      <span key={tag} style={{display:'inline-flex',alignItems:'center',gap:'5px',padding:'4px 10px',background:'rgba(192,132,252,0.12)',border:'1px solid rgba(192,132,252,0.25)',borderRadius:'100px',fontSize:'12px',color:GL_P3,fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>
+                        #{tag}
+                        <button onClick={()=>removeTag(tag)} style={{background:'none',border:'none',color:'rgba(192,132,252,0.5)',cursor:'pointer',padding:'0',fontSize:'13px',lineHeight:'1',display:'flex',alignItems:'center'}}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',gap:'6px'}}>
+                    <input value={tagInput} onChange={e=>setTagInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addTag();}}} placeholder="Nueva etiqueta…" maxLength={20}
+                      style={{flex:1,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.09)',borderRadius:'8px',padding:'7px 11px',color:'#fff',fontSize:'12.5px',fontFamily:"'Inter',sans-serif",outline:'none'}}/>
+                    <button onClick={addTag} disabled={!tagInput.trim()} style={{padding:'7px 14px',background:tagInput.trim()?'rgba(192,132,252,0.15)':'rgba(255,255,255,0.04)',border:`1px solid ${tagInput.trim()?'rgba(192,132,252,0.3)':'rgba(255,255,255,0.08)'}`,borderRadius:'8px',color:tagInput.trim()?GL_P3:'rgba(255,255,255,0.2)',fontSize:'12px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>+</button>
+                  </div>
+                </div>
+              );
+            })()}
             {/* Monto vendido + comisión */}
             <div className="glass" style={{padding:'24px'}}>
               <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'16px',fontFamily:"'Inter',sans-serif"}}>Monto & Comisión</p>
@@ -3048,6 +3080,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const [csvImporting,setCsvImporting]=useState(false);
   const [selectedIds,setSelectedIds]=useState(new Set());
   const [bulkAction,setBulkAction]=useState('');
+  const [tagFilter,setTagFilter]=useState(''); // '' | tag string
   useEffect(()=>{
     if(!statusMenuId) return;
     const h=()=>setStatusMenuId(null);
@@ -3140,12 +3173,14 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
 
   const FILTERS=['Todos',...CLIENT_ESTADOS];
   const allEmps=emp_storage.load().filter(e=>e.activo);
+  const allTags=[...new Set(clients.flatMap(c=>c.tags||[]))].sort();
   const filtered=clients.filter(c=>{
     const matchFilter=filter==='Todos'||c.estado===filter;
     const matchSearch=!search||c.empresa.toLowerCase().includes(search.toLowerCase())||c.correo?.toLowerCase().includes(search.toLowerCase())||(c.contacto||'').toLowerCase().includes(search.toLowerCase());
     const matchSvc=!svcFilter||(c.servicios||[]).includes(svcFilter);
     const matchEmp=!empFilter||c.asignadoA===empFilter;
-    return matchFilter&&matchSearch&&matchSvc&&matchEmp;
+    const matchTag=!tagFilter||(c.tags||[]).includes(tagFilter);
+    return matchFilter&&matchSearch&&matchSvc&&matchEmp&&matchTag;
   }).sort((a,b)=>{
     if(sortBy==='monto') return (b.montoContrato||0)-(a.montoContrato||0);
     if(sortBy==='az') return a.empresa.localeCompare(b.empresa);
@@ -3414,8 +3449,15 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
             <option value='monto'>Mayor monto</option>
             <option value='az'>A→Z</option>
           </select>
-          {(empFilter||svcFilter||filter!=='Todos'||search)&&(
-            <button onClick={()=>{setEmpFilter('');setSvcFilter('');setFilter('Todos');setSearch('');}} style={{padding:'6px 12px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',border:'1px solid rgba(248,113,113,0.3)',background:'rgba(248,113,113,0.08)',color:'#f87171',cursor:'pointer',fontWeight:'600',whiteSpace:'nowrap'}}>✕ Limpiar</button>
+          {allTags.length>0&&(
+            <div style={{display:'flex',gap:'5px',flexWrap:'wrap'}}>
+              {allTags.map(tag=>(
+                <button key={tag} onClick={()=>setTagFilter(tagFilter===tag?'':tag)} style={{padding:'5px 10px',fontSize:'10.5px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',cursor:'pointer',border:`1px solid ${tagFilter===tag?'rgba(192,132,252,0.5)':'rgba(255,255,255,0.08)'}`,background:tagFilter===tag?'rgba(192,132,252,0.15)':'transparent',color:tagFilter===tag?GL_P3:'rgba(255,255,255,0.35)',fontWeight:tagFilter===tag?'700':'400',transition:'all .15s'}}>#{tag}</button>
+              ))}
+            </div>
+          )}
+          {(empFilter||svcFilter||filter!=='Todos'||search||tagFilter)&&(
+            <button onClick={()=>{setEmpFilter('');setSvcFilter('');setFilter('Todos');setSearch('');setTagFilter('');}} style={{padding:'6px 12px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',border:'1px solid rgba(248,113,113,0.3)',background:'rgba(248,113,113,0.08)',color:'#f87171',cursor:'pointer',fontWeight:'600',whiteSpace:'nowrap'}}>✕ Limpiar</button>
           )}
         </div>
 
@@ -3565,6 +3607,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                   )}
                   <div style={{display:'flex',alignItems:'center',gap:'10px',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
                     {c.servicios?.map(s=><span key={s} style={{fontSize:'10.5px',fontWeight:'600',color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.05)',padding:'3px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif"}}>{SVC_LABELS[s]||s}</span>)}
+                    {(c.tags||[]).map(tag=><span key={tag} onClick={e=>{e.stopPropagation();setTagFilter(tag);}} style={{fontSize:'10px',fontWeight:'600',color:GL_P3,background:'rgba(192,132,252,0.1)',border:'1px solid rgba(192,132,252,0.2)',padding:'2px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>#{tag}</span>)}
                     {proyTotal>0&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{proyDone}/{proyTotal} proyectos</span>}
                     <div style={{position:'relative'}} onClick={e=>e.stopPropagation()}>
                       <div onClick={()=>setStatusMenuId(statusMenuId===c.id?null:c.id)} style={{cursor:'pointer',userSelect:'none'}}>
