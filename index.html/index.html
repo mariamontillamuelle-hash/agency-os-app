@@ -3357,6 +3357,13 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
 
   const persist=list=>{setClients(list);clients_storage.save(list);};
 
+  const ONBOARDING_TASKS=[
+    {titulo:'Enviar email de bienvenida',prioridad:'alta'},
+    {titulo:'Agendar llamada de kickoff',prioridad:'alta'},
+    {titulo:'Configurar acceso al portal del cliente',prioridad:'media'},
+    {titulo:'Crear carpeta de trabajo en Drive',prioridad:'media'},
+    {titulo:'Definir entregables y fechas clave',prioridad:'media'},
+  ];
   const updateClient=updated=>{
     const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
     const prev=clients.find(c=>c.id===updated.id)||{};
@@ -3364,7 +3371,20 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     if(updated.estado==='Propuesta enviada'&&!updated.fechaPropuesta&&!prev.fechaPropuesta) dateFields.fechaPropuesta=now;
     if(updated.estado==='Propuesta aceptada'&&!updated.fechaAceptacion&&!prev.fechaAceptacion) dateFields.fechaAceptacion=now;
     if(updated.estado==='Activo'&&!updated.fechaCierre&&!prev.fechaCierre) dateFields.fechaCierre=now;
-    const withHistory={...updated,...dateFields,historial:[...(updated.historial||[]),{fecha:now,descripcion:`Datos actualizados.`}]};
+    // Auto-create onboarding tasks when first moving to Activo
+    let extraTareas=[];
+    let onboardingEntry=null;
+    if(updated.estado==='Activo'&&prev.estado!=='Activo'&&prev.estado!=='Finalizado'){
+      const existing=(updated.tareas||[]).map(t=>t.titulo.toLowerCase());
+      const toAdd=ONBOARDING_TASKS.filter(t=>!existing.includes(t.titulo.toLowerCase()));
+      if(toAdd.length>0){
+        extraTareas=toAdd.map(t=>({id:Date.now().toString()+Math.random().toString(36).slice(2),titulo:t.titulo,prioridad:t.prioridad,fechaLimite:'',responsable:'',completada:false,createdAt:now}));
+        onboardingEntry={fecha:now,tipo:'sistema',descripcion:`🚀 Onboarding iniciado — ${toAdd.length} tarea${toAdd.length!==1?'s':''} de bienvenida creadas automáticamente.`};
+      }
+    }
+    const newTareas=extraTareas.length>0?[...extraTareas,...(updated.tareas||[])]:(updated.tareas||[]);
+    const newHist=onboardingEntry?[...(updated.historial||[]),onboardingEntry]:(updated.historial||[]);
+    const withHistory={...updated,...dateFields,tareas:newTareas,historial:[...newHist,{fecha:now,descripcion:`Datos actualizados.`}]};
     persist(clients.map(c=>c.id===updated.id?withHistory:c));
     setSelectedClient(withHistory);
   };
@@ -3393,7 +3413,15 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
       if(estado==='Propuesta enviada'&&!c.fechaPropuesta) dateFields.fechaPropuesta=now;
       if(estado==='Propuesta aceptada'&&!c.fechaAceptacion) dateFields.fechaAceptacion=now;
       if(estado==='Activo'&&!c.fechaCierre) dateFields.fechaCierre=now;
-      return{...c,estado,...dateFields,historial:[...(c.historial||[]),{fecha:now,descripcion:`Estado cambiado a ${estado}.`}]};
+      let extraTareas=[];let onboardingEntry=null;
+      if(estado==='Activo'&&c.estado!=='Activo'&&c.estado!=='Finalizado'){
+        const existing=(c.tareas||[]).map(t=>t.titulo.toLowerCase());
+        const toAdd=ONBOARDING_TASKS.filter(t=>!existing.includes(t.titulo.toLowerCase()));
+        if(toAdd.length>0){extraTareas=toAdd.map(t=>({id:Date.now().toString()+Math.random().toString(36).slice(2),titulo:t.titulo,prioridad:t.prioridad,fechaLimite:'',responsable:'',completada:false,createdAt:now}));onboardingEntry={fecha:now,tipo:'sistema',descripcion:`🚀 Onboarding iniciado — ${toAdd.length} tarea${toAdd.length!==1?'s':''} de bienvenida creadas automáticamente.`};}
+      }
+      const newTareas=extraTareas.length>0?[...extraTareas,...(c.tareas||[])]:(c.tareas||[]);
+      const newHist=onboardingEntry?[...(c.historial||[]),onboardingEntry]:(c.historial||[]);
+      return{...c,estado,...dateFields,tareas:newTareas,historial:[...newHist,{fecha:now,descripcion:`Estado cambiado a ${estado}.`}]};
     });
     clients_storage.save(updated);
     setClients(isAdmin?updated:updated.filter(c=>c.asignadoA===(currentUser&&currentUser.id)));
