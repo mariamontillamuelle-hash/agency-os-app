@@ -4201,6 +4201,51 @@ function DashboardModule({onHome}){
           ))}
         </div>
 
+        {/* Revenue Forecast */}
+        {(()=>{
+          const mrr=clients.filter(c=>c.estado==='Activo').reduce((s,c)=>s+(c.montoContrato||0),0);
+          const arr=mrr*12;
+          const pipeline=clients.filter(c=>['Propuesta enviada','Propuesta aceptada'].includes(c.estado)).reduce((s,c)=>s+(c.montoContrato||0),0);
+          const pipelineHigh=clients.filter(c=>c.estado==='Propuesta aceptada').reduce((s,c)=>s+(c.montoContrato||0),0);
+          const totalActive=clients.filter(c=>c.estado==='Activo').length;
+          const totalPipeline=clients.filter(c=>['Propuesta enviada','Propuesta aceptada'].includes(c.estado)).length;
+          const mrrTarget=emps.reduce((s,e)=>s+(e.metaMensual||0),0);
+          const mrrPct=mrrTarget>0?Math.min(100,Math.round((mrr/mrrTarget)*100)):0;
+          return(
+            <div className="glass" style={{padding:'24px',marginBottom:'24px',borderTop:'2px solid rgba(251,191,36,0.2)'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'20px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0}}>Proyección de Ingresos</p>
+                <span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',background:'rgba(255,255,255,0.04)',padding:'3px 10px',borderRadius:'100px'}}>Datos en tiempo real</span>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'20px',marginBottom:'20px'}}>
+                {[
+                  {l:'MRR',v:`$${mrr.toLocaleString('es-CO')}`,sub:`${totalActive} clientes activos`,c:'#34d399'},
+                  {l:'ARR Proyectado',v:`$${arr.toLocaleString('es-CO')}`,sub:'MRR × 12 meses',c:'#f59e0b'},
+                  {l:'Pipeline Total',v:`$${pipeline.toLocaleString('es-CO')}`,sub:`${totalPipeline} oportunidades`,c:'#38bdf8'},
+                  {l:'Cierre Probable',v:`$${pipelineHigh.toLocaleString('es-CO')}`,sub:'Propuestas aceptadas',c:'#a78bfa'},
+                ].map(f=>(
+                  <div key={f.l} style={{padding:'16px',background:'rgba(255,255,255,0.02)',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.05)'}}>
+                    <p style={{fontSize:'10.5px',fontWeight:'600',color:'rgba(255,255,255,0.3)',letterSpacing:'.06em',textTransform:'uppercase',margin:'0 0 8px'}}>{f.l}</p>
+                    <p style={{fontSize:'20px',fontWeight:'800',color:f.c,margin:'0 0 4px',letterSpacing:'-.02em'}}>{f.v}</p>
+                    <p style={{fontSize:'11px',color:'rgba(255,255,255,0.25)',margin:0}}>{f.sub}</p>
+                  </div>
+                ))}
+              </div>
+              {mrrTarget>0&&(
+                <div>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                    <p style={{fontSize:'11.5px',color:'rgba(255,255,255,0.4)',margin:0}}>Meta mensual del equipo</p>
+                    <p style={{fontSize:'12px',fontWeight:'700',color:mrrPct>=100?'#34d399':mrrPct>=60?'#fbbf24':'rgba(255,255,255,0.5)',margin:0}}>{mrrPct}% — ${mrr.toLocaleString('es-CO')} de ${mrrTarget.toLocaleString('es-CO')}</p>
+                  </div>
+                  <div style={{height:'6px',background:'rgba(255,255,255,0.06)',borderRadius:'99px',overflow:'hidden'}}>
+                    <div style={{height:'100%',width:`${mrrPct}%`,background:`linear-gradient(90deg,${mrrPct>=100?'#34d399':mrrPct>=60?'#fbbf24':'#a855f7'}88,${mrrPct>=100?'#34d399':mrrPct>=60?'#fbbf24':'#a855f7'})`,borderRadius:'99px',transition:'width .5s ease'}}/>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px',marginBottom:'24px'}}>
           {/* Pipeline */}
           <div className="glass" style={{padding:'24px'}}>
