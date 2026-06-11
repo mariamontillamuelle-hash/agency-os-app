@@ -2522,6 +2522,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   // Tareas
   const [tareaForm,setTareaForm]=useState({titulo:'',prioridad:'media',fechaLimite:'',responsable:''});
   const [addingTarea,setAddingTarea]=useState(false);
+  const [renewalFlash,setRenewalFlash]=useState(false);
   const SVC_LABELS={marketing:'Marketing Digital',ia:'Inteligencia Artificial',web:'Página Web'};
   const SVC_COLORS={marketing:WARM,ia:AI_A,web:WEB_A};
 
@@ -2560,6 +2561,44 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           <button key={t.k} onClick={()=>setTab(t.k)} style={{padding:'14px 20px',background:'transparent',border:'none',borderBottom:`2px solid ${tab===t.k?CL_A:'transparent'}`,color:tab===t.k?'#fff':'rgba(255,255,255,0.35)',fontSize:'13px',fontWeight:tab===t.k?'700':'400',cursor:'pointer',fontFamily:"'Inter',sans-serif",transition:'all .15s'}}>{t.l}</button>
         ))}
       </div>
+
+      {/* Contract renewal banner */}
+      {client.fechaVencimiento&&client.estado==='Activo'&&(()=>{
+        const dv=new Date(client.fechaVencimiento);
+        const now=new Date();
+        const days=Math.round((dv-now)/(1000*60*60*24));
+        if(days>60) return null;
+        const expired=days<0;
+        const urgent=days<=7&&!expired;
+        const bgCol=expired?'rgba(248,113,113,0.08)':'rgba(251,191,36,0.06)';
+        const borderCol=expired?'rgba(248,113,113,0.3)':urgent?'rgba(251,191,36,0.4)':'rgba(251,191,36,0.2)';
+        const textCol=expired?'#f87171':'#fbbf24';
+        const label=expired?`Contrato vencido hace ${Math.abs(days)} día${Math.abs(days)!==1?'s':''}`:days===0?'Contrato vence hoy':`Contrato vence en ${days} día${days!==1?'s':''}`;
+        const startRenewal=()=>{
+          const todayStr=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
+          const deadlineStr=new Date(Date.now()+7*24*60*60*1000).toISOString().split('T')[0];
+          const newTask={id:Date.now().toString(),titulo:`Renovar contrato — ${client.empresa}`,prioridad:'alta',fechaLimite:deadlineStr,responsable:'',completada:false,createdAt:todayStr};
+          const entry={fecha:todayStr,tipo:'manual',descripcion:`🔄 Proceso de renovación de contrato iniciado.`};
+          onUpdate({...client,tareas:[newTask,...(client.tareas||[])],historial:[...(client.historial||[]),entry]});
+          setRenewalFlash(true);
+          setTab('tareas');
+          setTimeout(()=>setRenewalFlash(false),3500);
+        };
+        return(
+          <div style={{maxWidth:'860px',margin:'0 auto',padding:'16px 32px 0'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'14px',padding:'12px 18px',background:bgCol,border:`1px solid ${borderCol}`,borderRadius:'12px'}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={textCol} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span style={{flex:1,fontSize:'13px',fontWeight:'600',color:textCol,fontFamily:"'Inter',sans-serif"}}>{label}</span>
+              {renewalFlash&&<span style={{fontSize:'12px',color:'#4ade80',fontWeight:'700',fontFamily:"'Inter',sans-serif",animation:'fadeIn .3s'}}>✓ Tarea creada</span>}
+              <button onClick={startRenewal} style={{padding:'6px 16px',background:expired?'rgba(248,113,113,0.12)':'rgba(251,191,36,0.1)',border:`1px solid ${borderCol}`,borderRadius:'8px',color:textCol,fontSize:'12px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}
+                onMouseEnter={e=>{e.currentTarget.style.background=expired?'rgba(248,113,113,0.22)':'rgba(251,191,36,0.2)';}}
+                onMouseLeave={e=>{e.currentTarget.style.background=expired?'rgba(248,113,113,0.12)':'rgba(251,191,36,0.1)';}}>
+                🔄 Renovar Contrato
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       <div style={{maxWidth:'860px',margin:'0 auto',padding:'32px'}}>
 
