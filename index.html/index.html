@@ -2541,6 +2541,8 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [renewalFlash,setRenewalFlash]=useState(false);
   const [copyFlash,setCopyFlash]=useState(false);
   const [tagInput,setTagInput]=useState('');
+  const [emailModal,setEmailModal]=useState(false);
+  const [emailCopied,setEmailCopied]=useState(false);
   const SVC_LABELS={marketing:'Marketing Digital',ia:'Inteligencia Artificial',web:'Página Web'};
   const SVC_COLORS={marketing:WARM,ia:AI_A,web:WEB_A};
 
@@ -2643,6 +2645,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                 }} style={{padding:'4px 10px',background:copyFlash?'rgba(74,222,128,0.15)':'rgba(255,255,255,0.05)',border:`1px solid ${copyFlash?'rgba(74,222,128,0.35)':'rgba(255,255,255,0.1)'}`,borderRadius:'7px',color:copyFlash?'#4ade80':'rgba(255,255,255,0.3)',fontSize:'11px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:'600',transition:'all .2s',whiteSpace:'nowrap'}}>
                   {copyFlash?'✓ Copiado':'⎘ Copiar'}
                 </button>
+                <button title="Generar plantilla de email" onClick={()=>setEmailModal(true)} style={{padding:'4px 10px',background:'rgba(56,189,248,0.07)',border:'1px solid rgba(56,189,248,0.2)',borderRadius:'7px',color:'rgba(56,189,248,0.7)',fontSize:'11px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:'600',whiteSpace:'nowrap'}}>✉ Email</button>
                 </div>
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
@@ -3281,6 +3284,40 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
       </div>
 
       {/* Edit Modal */}
+      {emailModal&&(()=>{
+        const SL={marketing:'Marketing Digital',ia:'Inteligencia Artificial',web:'Diseño Web'};
+        const svcs=(client.servicios||[]).map(s=>SL[s]||s).join(' y ')||'nuestros servicios';
+        const name=client.contacto?client.contacto.split(' ')[0]:'';
+        const greeting=name?`Hola ${name},`:'Hola,';
+        const templates={
+          'Lead':`${greeting}\n\nSoy Mafe de GlowLabs Agencia IA. Me pongo en contacto porque creo que podemos ayudar a ${client.empresa||'tu empresa'} a crecer con estrategias digitales basadas en inteligencia artificial.\n\nEstamos especializados en ${svcs} y hemos trabajado con negocios similares al tuyo con excelentes resultados.\n\n¿Tienes 20 minutos esta semana para una llamada rápida de diagnóstico? Me encantaría escuchar más sobre tus objetivos.\n\nQuedo pendiente,\nMafe Montilla Mueller\nGlowLabs Agencia IA`,
+          'Propuesta enviada':`${greeting}\n\nEspero que hayas tenido la oportunidad de revisar la propuesta que te enviamos para ${client.empresa||'tu proyecto'}.\n\nQuería hacer un seguimiento para ver si tienes alguna pregunta o si necesitas ajustar algún aspecto de la propuesta. Estamos disponibles para agendar una llamada y resolver cualquier duda.\n\n¿Qué te pareció la propuesta? ¿Hay algo que quieras modificar o profundizar?\n\nQuedo atenta,\nMafe Montilla Mueller\nGlowLabs Agencia IA`,
+          'Propuesta aceptada':`${greeting}\n\n¡Estamos muy emocionadas de empezar a trabajar juntas! La propuesta está lista y hemos reservado tiempo en nuestro equipo para ${client.empresa||'tu proyecto'}.\n\nEl siguiente paso es coordinar nuestra llamada de kickoff para alinear objetivos, definir entregables y arrancar el proceso. ¿Cuándo tienes disponibilidad esta semana?\n\nTe preparo el acceso al portal del cliente donde podrás seguir el avance en tiempo real.\n\n¡Vamos con todo!\nMafe Montilla Mueller\nGlowLabs Agencia IA`,
+          'Activo':`${greeting}\n\nEs un placer tenerte como parte de la familia GlowLabs. Quería hacer un check-in rápido sobre cómo va el trabajo con ${client.empresa||'tu empresa'}.\n\nEn las últimas semanas hemos avanzado en ${svcs} y quería compartirte los resultados más recientes y escuchar tu feedback.\n\n¿Tienes espacio esta semana para una llamada de 15-20 minutos? Me gustaría asegurarme de que estamos alineados con tus expectativas.\n\nSiempre a tu disposición,\nMafe Montilla Mueller\nGlowLabs Agencia IA`,
+          'Finalizado':`${greeting}\n\nHa sido un placer trabajar con ${client.empresa||'tu empresa'} en estos meses. Fue un honor acompañarlos en este proceso de crecimiento digital.\n\nMe gustaría saber cómo han ido los resultados desde que finalizamos y si en algún momento podemos volver a colaborar. También te agradecería mucho si puedes dejarnos una reseña o referir a alguien de tu red.\n\n¡Gracias por confiar en GlowLabs!\nMafe Montilla Mueller\nGlowLabs Agencia IA`,
+        };
+        const tpl=templates[client.estado]||templates['Lead'];
+        return(
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999,padding:'24px'}} onClick={()=>setEmailModal(false)}>
+            <div style={{background:'#111',border:'1px solid rgba(56,189,248,0.25)',borderRadius:'16px',padding:'28px',width:'100%',maxWidth:'540px',maxHeight:'85vh',overflow:'auto'}} onClick={e=>e.stopPropagation()}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
+                <div>
+                  <h3 style={{fontSize:'16px',fontWeight:'800',color:'#fff',margin:0}}>✉ Plantilla de seguimiento</h3>
+                  <p style={{fontSize:'11.5px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",margin:'3px 0 0'}}>{client.empresa} · {client.estado}</p>
+                </div>
+                <button onClick={()=>setEmailModal(false)} style={{all:'unset',cursor:'pointer',fontSize:'20px',color:'rgba(255,255,255,0.3)',lineHeight:1}}>&times;</button>
+              </div>
+              <textarea readOnly value={tpl} style={{width:'100%',minHeight:'280px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'10px',padding:'14px',color:'rgba(255,255,255,0.75)',fontSize:'13px',fontFamily:"'Inter',sans-serif",lineHeight:'1.65',resize:'vertical',outline:'none',boxSizing:'border-box',colorScheme:'dark'}}/>
+              <div style={{display:'flex',gap:'10px',marginTop:'14px',justifyContent:'flex-end'}}>
+                <button onClick={()=>setEmailModal(false)} style={{padding:'8px 18px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'rgba(255,255,255,0.4)',fontSize:'13px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Cerrar</button>
+                <button onClick={()=>{try{navigator.clipboard.writeText(tpl);}catch{}setEmailCopied(true);setTimeout(()=>setEmailCopied(false),2500);}} style={{padding:'8px 20px',background:emailCopied?'rgba(56,189,248,0.2)':'rgba(56,189,248,0.12)',border:`1px solid ${emailCopied?'rgba(56,189,248,0.5)':'rgba(56,189,248,0.3)'}`,borderRadius:'8px',color:'#38bdf8',fontSize:'13px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:'700',transition:'all .2s'}}>
+                  {emailCopied?'✓ ¡Copiado!':'⎘ Copiar email'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {editModal&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999,padding:'24px'}}>
           <div style={{background:'#111',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'400px'}}>
