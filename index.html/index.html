@@ -3650,6 +3650,50 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
           ))}
         </div>
 
+        {/* Upcoming events strip */}
+        {(()=>{
+          const now=new Date();
+          const in7=new Date(now.getTime()+7*24*60*60*1000);
+          const in30=new Date(now.getTime()+30*24*60*60*1000);
+          const events=[];
+          clients.forEach(c=>{
+            if(c.followUpDate){
+              const d=new Date(c.followUpDate);
+              const days=Math.round((d-now)/(1000*60*60*24));
+              if(days<=7&&days>=-1) events.push({type:'followup',client:c,days,label:days<0?'Vencido':days===0?'Hoy':days===1?'Mañana':`${days}d`,color:'#38bdf8',icon:'📅',desc:`Follow-up: ${c.empresa}`});
+            }
+            if(c.fechaVencimiento&&c.estado==='Activo'){
+              const d=new Date(c.fechaVencimiento);
+              const days=Math.round((d-now)/(1000*60*60*24));
+              if(days<=30&&days>=-1) events.push({type:'renewal',client:c,days,label:days<0?'Vencido':days===0?'Hoy':days===1?'Mañana':`${days}d`,color:'#fbbf24',icon:'🔄',desc:`Renueva: ${c.empresa}`});
+            }
+          });
+          events.sort((a,b)=>a.days-b.days);
+          if(!events.length) return null;
+          return(
+            <div style={{marginBottom:'20px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
+                <span style={{fontSize:'10.5px',fontWeight:'700',color:'rgba(255,255,255,0.25)',letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif"}}>Próximos eventos</span>
+                <div style={{flex:1,height:'1px',background:'rgba(255,255,255,0.04)'}}/>
+              </div>
+              <div style={{display:'flex',gap:'8px',overflowX:'auto',paddingBottom:'4px'}}>
+                {events.map((ev,i)=>(
+                  <button key={i} onClick={()=>setSelectedClient(ev.client)}
+                    style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 14px',background:`${ev.color}0d`,border:`1px solid ${ev.color}30`,borderRadius:'10px',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,transition:'all .15s'}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=`${ev.color}18`;e.currentTarget.style.borderColor=`${ev.color}55`;}}
+                    onMouseLeave={e=>{e.currentTarget.style.background=`${ev.color}0d`;e.currentTarget.style.borderColor=`${ev.color}30`;}}>
+                    <span style={{fontSize:'13px'}}>{ev.icon}</span>
+                    <div style={{textAlign:'left'}}>
+                      <p style={{fontSize:'12px',fontWeight:'600',color:'rgba(255,255,255,0.8)',margin:0,fontFamily:"'Inter',sans-serif"}}>{ev.desc}</p>
+                    </div>
+                    <span style={{fontSize:'11px',fontWeight:'800',color:ev.days<0?'#f87171':ev.color,background:`${ev.days<0?'rgba(248,113,113,0.15)':ev.color+'18'}`,padding:'2px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif"}}>{ev.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Search + filter */}
         <div style={{display:'flex',gap:'10px',marginBottom:'20px',flexWrap:'wrap',alignItems:'center'}}>
           <input ref={searchInputRef} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar cliente… (/ para enfocar)"
