@@ -1944,6 +1944,41 @@ function generatePassword(){
   return Array.from({length:10},()=>c[Math.floor(Math.random()*c.length)]).join('');
 }
 
+function clientHealth(c){
+  // Returns {score:0-100, label, color, signals:[]}
+  let score=0;
+  const signals=[];
+  const now=new Date();
+  // Status weight (40 pts)
+  const statusPts={Lead:5,'Propuesta enviada':15,'Propuesta aceptada':25,Activo:40,Finalizado:30};
+  score+=statusPts[c.estado]||0;
+  // Contract value (10 pts)
+  if((c.montoContrato||0)>0){score+=10;signals.push('Contrato con valor');}
+  // Contract expiry (-15 if expired, -5 if <30d)
+  if(c.fechaVencimiento){
+    const days=Math.round((new Date(c.fechaVencimiento)-now)/(1000*60*60*24));
+    if(days<0){score-=15;signals.push('Contrato vencido');}
+    else if(days<30){score-=5;signals.push(`Vence en ${days}d`);}
+  }
+  // Has contact info (5 pts)
+  if(c.correo||c.telefono){score+=5;signals.push('Datos de contacto');}
+  // Recent notes (10 pts if note in last 30d)
+  const recentNote=(c.notas||[]).some(n=>{try{const d=new Date(n.fecha);return(now-d)<30*24*60*60*1000;}catch{return false;}});
+  if(recentNote){score+=10;signals.push('Nota reciente');}
+  // Completed tasks (5 pts if any)
+  if((c.tareas||[]).some(t=>t.completada)){score+=5;signals.push('Tareas completadas');}
+  // Overdue tasks (-10 each, max -20)
+  const overdueTasks=(c.tareas||[]).filter(t=>!t.completada&&t.fechaLimite&&new Date(t.fechaLimite)<now);
+  if(overdueTasks.length>0){const penalty=Math.min(20,overdueTasks.length*10);score-=penalty;signals.push(`${overdueTasks.length} tarea${overdueTasks.length>1?'s':''} vencida${overdueTasks.length>1?'s':''}`);}
+  // Follow-up set (5 pts)
+  if(c.followUpDate&&new Date(c.followUpDate)>=now){score+=5;signals.push('Follow-up agendado');}
+  // Clamp 0-100
+  score=Math.max(0,Math.min(100,score));
+  const label=score>=80?'Excelente':score>=60?'Bueno':score>=40?'Regular':score>=20?'Bajo':'Crítico';
+  const color=score>=80?'#4ade80':score>=60?'#a3e635':score>=40?'#fbbf24':score>=20?'#fb923c':'#f87171';
+  return{score,label,color,signals};
+}
+
 function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=null,proposalData=null,asignadoA=null}){
   const now=new Date();
   const proyectos=servicios.filter(s=>s==='web').map(()=>({
@@ -2532,7 +2567,16 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
         {tab==='overview'&&(
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
             <div className="glass" style={{padding:'24px'}}>
-              <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'16px',fontFamily:"'Inter',sans-serif"}}>Ficha del Cliente</p>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0,fontFamily:"'Inter',sans-serif"}}>Ficha del Cliente</p>
+                {(()=>{const h=clientHealth(client);return(
+                  <div title={`Salud del cliente: ${h.label}\n${h.signals.join(' · ')}`} style={{display:'flex',alignItems:'center',gap:'7px',padding:'4px 11px',background:`${h.color}12`,border:`1px solid ${h.color}35`,borderRadius:'100px',cursor:'default'}}>
+                    <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill={h.color}/></svg>
+                    <span style={{fontSize:'11.5px',fontWeight:'800',color:h.color,fontFamily:"'Inter',sans-serif"}}>{h.score}</span>
+                    <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.35)',fontFamily:"'Inter',sans-serif"}}>{h.label}</span>
+                  </div>
+                );})()}
+              </div>
               <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
                 {(()=>{
                   const items=[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—',href:client.correo?`mailto:${client.correo}`:null},{l:'Teléfono',v:client.telefono||'—',href:client.telefono?`https://wa.me/${client.telefono.replace(/\D/g,'')}`:null},{l:'Cliente desde',v:client.createdAt},{l:'Estado',v:null}];
@@ -3718,6 +3762,10 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                     {c.servicios?.map(s=><span key={s} style={{fontSize:'10.5px',fontWeight:'600',color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.05)',padding:'3px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif"}}>{SVC_LABELS[s]||s}</span>)}
                     {(c.tags||[]).map(tag=><span key={tag} onClick={e=>{e.stopPropagation();setTagFilter(tag);}} style={{fontSize:'10px',fontWeight:'600',color:GL_P3,background:'rgba(192,132,252,0.1)',border:'1px solid rgba(192,132,252,0.2)',padding:'2px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>#{tag}</span>)}
                     {proyTotal>0&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{proyDone}/{proyTotal} proyectos</span>}
+                    {(()=>{const h=clientHealth(c);return(<span title={`Salud: ${h.label} (${h.score}/100)\n${h.signals.join(' · ')}`} style={{display:'inline-flex',alignItems:'center',gap:'4px',padding:'2px 8px',borderRadius:'100px',background:`${h.color}14`,border:`1px solid ${h.color}40`,cursor:'default'}}>
+                      <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill={h.color}/></svg>
+                      <span style={{fontSize:'10.5px',fontWeight:'700',color:h.color,fontFamily:"'Inter',sans-serif"}}>{h.score}</span>
+                    </span>);})()}
                     <div style={{position:'relative'}} onClick={e=>e.stopPropagation()}>
                       <div onClick={()=>setStatusMenuId(statusMenuId===c.id?null:c.id)} style={{cursor:'pointer',userSelect:'none'}}>
                         <EstadoBadge estado={c.estado}/>
