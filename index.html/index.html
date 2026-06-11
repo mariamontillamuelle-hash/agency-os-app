@@ -3021,13 +3021,17 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
 }
 
 /* ── Clients Module (list + dashboard) ── */
-function ClientsModule({onHome,onClientAccepted,currentUser}){
+function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const isAdmin=!currentUser||currentUser.role==='admin';
   const [clients,setClients]=useState(()=>{
     const all=clients_storage.load();
     return isAdmin?all:all.filter(c=>c.asignadoA===currentUser.id);
   });
-  const [selectedClient,setSelectedClient]=useState(null);
+  const [selectedClient,setSelectedClient]=useState(()=>{
+    if(!initialClientId) return null;
+    const all=clients_storage.load();
+    return all.find(c=>c.id===initialClientId)||null;
+  });
   const [filter,setFilter]=useState('Todos');
   const [search,setSearch]=useState('');
   const [lastRefresh,setLastRefresh]=useState(null);
@@ -4938,56 +4942,110 @@ function HomeScreen({onSelect,currentUser}){
 /* ── GLOBAL SEARCH ── */
 function GlobalSearch({onClose,onNavigate}){
   const [q,setQ]=useState('');
+  const [activeIdx,setActiveIdx]=useState(0);
   const inputRef=useRef(null);
+  const listRef=useRef(null);
   useEffect(()=>{inputRef.current?.focus();},[]);
-  useEffect(()=>{
-    const h=e=>{if(e.key==='Escape')onClose();};
-    window.addEventListener('keydown',h);
-    return()=>window.removeEventListener('keydown',h);
-  },[]);
+  useEffect(()=>{setActiveIdx(0);},[q]);
+
   const results=React.useMemo(()=>{
     if(!q.trim()||q.length<2) return null;
     const lq=q.toLowerCase();
-    const clients=clients_storage.load().filter(c=>c.empresa.toLowerCase().includes(lq)||(c.contacto||'').toLowerCase().includes(lq)||(c.correo||'').toLowerCase().includes(lq)).slice(0,5);
+    const allClients=clients_storage.load();
+    // Clients matching by name/contact/email
+    const clients=allClients.filter(c=>c.empresa.toLowerCase().includes(lq)||(c.contacto||'').toLowerCase().includes(lq)||(c.correo||'').toLowerCase().includes(lq)).slice(0,6);
+    // Tasks matching title
+    const tasks=allClients.flatMap(c=>(c.tareas||[]).filter(t=>t.titulo&&t.titulo.toLowerCase().includes(lq)&&!t.completada).map(t=>({...t,_empresa:c.empresa,_clientId:c.id}))).slice(0,4);
+    // Notes matching text
+    const notes=allClients.flatMap(c=>(c.notas||[]).filter(n=>n.texto&&n.texto.toLowerCase().includes(lq)).map(n=>({...n,_empresa:c.empresa,_clientId:c.id}))).slice(0,3);
     const mktProps=storage.load().filter(p=>(p.empresa||'').toLowerCase().includes(lq)||(p.clientName||'').toLowerCase().includes(lq)).slice(0,3);
     const aiProps=ai_storage.load().filter(p=>(p.empresa||'').toLowerCase().includes(lq)).slice(0,3);
-    return{clients,mktProps,aiProps};
+    return{clients,tasks,notes,mktProps,aiProps};
   },[q]);
-  const total=results?(results.clients.length+results.mktProps.length+results.aiProps.length):0;
-  const Row=({label,icon,accent,onClick,sub})=>(
-    <div onClick={onClick} style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 20px',cursor:'pointer',transition:'background .1s'}}
-      onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.05)'}
-      onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-      <div style={{width:'30px',height:'30px',borderRadius:'8px',background:`${accent}18`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-        <span style={{fontSize:'12px',fontWeight:'800',color:accent}}>{icon}</span>
-      </div>
-      <div style={{flex:1,minWidth:0}}>
-        <p style={{fontSize:'13px',fontWeight:'600',color:'#fff',fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{label}</p>
-        {sub&&<p style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{sub}</p>}
-      </div>
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke="rgba(255,255,255,0.2)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-    </div>
-  );
+
+  // Build flat list of all items for keyboard nav
+  const allItems=React.useMemo(()=>{
+    if(!results) return [];
+    const items=[];
+    results.clients.forEach(c=>items.push({type:'client',data:c,label:c.empresa,sub:`${c.contacto||c.correo||''}${c.estado?' · '+c.estado:''}`,accent:CL_A,icon:(c.empresa[0]||'C').toUpperCase(),action:()=>onNavigate('clients',c.id)}));
+    results.tasks.forEach(t=>items.push({type:'task',data:t,label:t.titulo,sub:`Tarea · ${t._empresa}${t.prioridad?' · '+t.prioridad:''}`,accent:'#38bdf8',icon:'☑',action:()=>onNavigate('clients',t._clientId)}));
+    results.notes.forEach(n=>items.push({type:'note',data:n,label:n.texto.slice(0,60)+(n.texto.length>60?'…':''),sub:`Nota · ${n._empresa}`,accent:'#fbbf24',icon:'✎',action:()=>onNavigate('clients',n._clientId)}));
+    results.mktProps.forEach(p=>items.push({type:'mkt',data:p,label:p.empresa||p.clientName||'Propuesta',sub:`Marketing · ${p.fecha||''}`,accent:WARM,icon:(p.empresa||'M')[0].toUpperCase(),action:()=>onNavigate('marketing')}));
+    results.aiProps.forEach(p=>items.push({type:'ai',data:p,label:p.empresa||'Propuesta IA',sub:`IA · ${p.fecha||''}`,accent:AI_A,icon:(p.empresa||'I')[0].toUpperCase(),action:()=>onNavigate('ia')}));
+    return items;
+  },[results]);
+
+  useEffect(()=>{
+    const h=e=>{
+      if(e.key==='Escape'){onClose();return;}
+      if(e.key==='ArrowDown'){e.preventDefault();setActiveIdx(i=>Math.min(i+1,allItems.length-1));}
+      if(e.key==='ArrowUp'){e.preventDefault();setActiveIdx(i=>Math.max(i-1,0));}
+      if(e.key==='Enter'&&allItems[activeIdx]){allItems[activeIdx].action();onClose();}
+    };
+    window.addEventListener('keydown',h);
+    return()=>window.removeEventListener('keydown',h);
+  },[allItems,activeIdx]);
+
+  // Auto-scroll active item into view
+  useEffect(()=>{
+    const el=listRef.current?.querySelector(`[data-idx="${activeIdx}"]`);
+    el?.scrollIntoView({block:'nearest'});
+  },[activeIdx]);
+
+  const total=allItems.length;
   const Section=({title})=><p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',padding:'14px 20px 4px',fontFamily:"'Inter',sans-serif"}}>{title}</p>;
+
+  // Render items grouped by type
+  const renderItems=(type,sectionTitle)=>{
+    const group=allItems.filter(it=>it.type===type);
+    if(!group.length) return null;
+    const startIdx=allItems.findIndex(it=>it.type===type);
+    return(<>
+      <Section title={sectionTitle}/>
+      {group.map((it,i)=>{
+        const idx=startIdx+i;
+        const isActive=idx===activeIdx;
+        return(
+          <div key={idx} data-idx={idx} onClick={()=>{it.action();onClose();}} onMouseEnter={()=>setActiveIdx(idx)}
+            style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 20px',cursor:'pointer',background:isActive?'rgba(255,255,255,0.07)':'transparent',transition:'background .08s'}}>
+            <div style={{width:'30px',height:'30px',borderRadius:'8px',background:`${it.accent}18`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <span style={{fontSize:'12px',fontWeight:'800',color:it.accent}}>{it.icon}</span>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <p style={{fontSize:'13px',fontWeight:'600',color:'#fff',fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{it.label}</p>
+              {it.sub&&<p style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{it.sub}</p>}
+            </div>
+            {isActive&&<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke="rgba(255,255,255,0.4)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          </div>
+        );
+      })}
+    </>);
+  };
+
   return(
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:9000,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:'100px',backdropFilter:'blur(10px)'}}>
       <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:'540px',background:'#141414',border:'1px solid rgba(255,255,255,0.13)',borderRadius:'16px',overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,0.9)',fontFamily:"'Inter',sans-serif"}}>
         <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'14px 20px',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar clientes, propuestas..." style={{flex:1,background:'transparent',border:'none',outline:'none',color:'#fff',fontSize:'15px',fontFamily:"'Inter',sans-serif"}}/>
+          <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar clientes, tareas, notas, propuestas…" style={{flex:1,background:'transparent',border:'none',outline:'none',color:'#fff',fontSize:'15px',fontFamily:"'Inter',sans-serif"}}/>
           <kbd style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'4px',padding:'2px 7px',fontFamily:'monospace'}}>esc</kbd>
         </div>
-        <div style={{maxHeight:'440px',overflowY:'auto'}}>
+        <div ref={listRef} style={{maxHeight:'460px',overflowY:'auto'}}>
           {!results&&<p style={{padding:'36px',textAlign:'center',fontSize:'13px',color:'rgba(255,255,255,0.18)'}}>Escribe al menos 2 caracteres para buscar…</p>}
           {results&&total===0&&<p style={{padding:'36px',textAlign:'center',fontSize:'13px',color:'rgba(255,255,255,0.18)'}}>Sin resultados para <em>"{q}"</em></p>}
-          {results&&results.clients.length>0&&<><Section title="Clientes"/>{results.clients.map(c=><Row key={c.id} label={c.empresa} sub={`${c.contacto||c.correo||''}${c.contacto&&c.estado?' · ':''}${c.estado}`} icon={(c.empresa[0]||'C').toUpperCase()} accent={CL_A} onClick={()=>{onNavigate('clients');onClose();}}/>)}</>}
-          {results&&results.mktProps.length>0&&<><Section title="Propuestas Marketing"/>{results.mktProps.map(p=><Row key={p.id} label={p.empresa||p.clientName||'Propuesta'} sub={p.fecha} icon={(p.empresa||'M')[0].toUpperCase()} accent={WARM} onClick={()=>{onNavigate('marketing');onClose();}}/>)}</>}
-          {results&&results.aiProps.length>0&&<><Section title="Propuestas IA"/>{results.aiProps.map(p=><Row key={p.id} label={p.empresa||'Propuesta IA'} sub={p.fecha} icon={(p.empresa||'I')[0].toUpperCase()} accent={AI_A} onClick={()=>{onNavigate('ia');onClose();}}/>)}</>}
+          {results&&<>
+            {renderItems('client','Clientes')}
+            {renderItems('task','Tareas pendientes')}
+            {renderItems('note','Notas')}
+            {renderItems('mkt','Propuestas Marketing')}
+            {renderItems('ai','Propuestas IA')}
+          </>}
           <div style={{height:'8px'}}/>
         </div>
         <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',padding:'10px 20px',display:'flex',gap:'16px'}}>
           <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.18)'}}>↑↓ navegar · ↵ abrir · esc cerrar</span>
-          <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.18)',marginLeft:'auto'}}>⌘K para abrir/cerrar</span>
+          {results&&total>0&&<span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.18)'}}>{total} resultado{total!==1?'s':''}</span>}
+          <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.18)',marginLeft:'auto'}}>⌘K</span>
         </div>
       </div>
     </div>
@@ -5035,6 +5093,7 @@ function App(){
   const [iaSaved,setIaSaved]=useState(()=>ai_storage.load());
 
   const [showSearch,setShowSearch]=useState(false);
+  const [searchClientId,setSearchClientId]=useState(null);
   useEffect(()=>{
     const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();setShowSearch(s=>!s);}};
     window.addEventListener('keydown',h);
@@ -5130,7 +5189,7 @@ function App(){
   /* ── HOME ── */
   if(!module) return(
     <div style={{position:'relative'}}>
-      {showSearch&&<GlobalSearch onClose={()=>setShowSearch(false)} onNavigate={mod=>{setModule(mod);setShowSearch(false);}}/>}
+      {showSearch&&<GlobalSearch onClose={()=>setShowSearch(false)} onNavigate={(mod,clientId)=>{setModule(mod);if(clientId)setSearchClientId(clientId);setShowSearch(false);}}/>}
       <HomeScreen onSelect={setModule} currentUser={currentUser}/>
       <div style={{position:'fixed',bottom:'18px',right:'18px',display:'flex',gap:'8px',alignItems:'center',zIndex:50}}>
         <span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>{currentUser.nombre}</span>
@@ -5174,7 +5233,11 @@ function App(){
   );
 
   /* ── CLIENTS module ── */
-  if(module==='clients') return empPerms.clients?<ClientsModule onHome={goHome} currentUser={currentUser}/>:noAccess('clients');
+  if(module==='clients'){
+    const cid=searchClientId;
+    if(cid) setTimeout(()=>setSearchClientId(null),100);
+    return empPerms.clients?<ClientsModule key={cid||'cl'} onHome={goHome} currentUser={currentUser} initialClientId={cid}/>:noAccess('clients');
+  }
 
   /* ── MARKETING module ── */
   if(module==='marketing'){
