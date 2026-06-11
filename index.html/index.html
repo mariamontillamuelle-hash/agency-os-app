@@ -5431,6 +5431,22 @@ function HomeScreen({onSelect,currentUser}){
         <p style={{fontSize:'14px',color:'rgba(255,255,255,0.3)',lineHeight:'1.7'}}>Cada módulo representa un proceso de la agencia. Elige el que necesitas.</p>
       </div>
 
+      {/* KPI quick stats */}
+      {isAdmin&&<div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'28px',position:'relative',zIndex:2,flexWrap:'wrap',justifyContent:'center'}}>
+        {[
+          {label:'Ingresos totales',value:`€${homeStats.totalRevenue.toLocaleString('es-CO')}`,color:'#f59e0b',icon:'€'},
+          {label:'Clientes activos',value:homeStats.activeClients,color:CL_A,icon:'👥'},
+          {label:'Tareas vencidas',value:homeStats.overdue,color:homeStats.overdue>0?'#f87171':'rgba(255,255,255,0.2)',icon:'⚠'},
+          {label:'Contratos por vencer',value:homeStats.expiring,color:homeStats.expiring>0?'#fbbf24':'rgba(255,255,255,0.2)',icon:'📅'},
+          {label:'Comisiones pendientes',value:homeStats.pendComm,color:homeStats.pendComm>0?'#fb923c':'rgba(255,255,255,0.2)',icon:'💰'},
+        ].map((s,i)=>(
+          <div key={i} style={{padding:'8px 16px',background:'rgba(255,255,255,0.02)',border:`1px solid ${(s.color&&s.color!=='rgba(255,255,255,0.2)')?s.color+'22':'rgba(255,255,255,0.07)'}`,borderRadius:'100px',display:'flex',alignItems:'center',gap:'8px',cursor:'default'}}>
+            <span style={{fontSize:'12px',color:s.color,fontFamily:"'Inter',sans-serif",fontWeight:'700'}}>{s.value}</span>
+            <span style={{fontSize:'11px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>{s.label}</span>
+          </div>
+        ))}
+      </div>}
+
       {/* module cards */}
       <div style={{display:'grid',gridTemplateColumns:isAdmin?'repeat(6,1fr)':'repeat(4,1fr)',gap:'14px',maxWidth:'1550px',width:'100%',position:'relative',zIndex:2}}>
 
