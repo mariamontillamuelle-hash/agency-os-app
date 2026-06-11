@@ -4369,6 +4369,50 @@ function DashboardModule({onHome}){
             )}
           </div>
         </div>
+        {/* Employee performance chart */}
+        {empStats.length>=2&&(()=>{
+          const [perfMetric,setPerfMetric]=React.useState('monto');
+          const metrics=[{k:'monto',l:'Ingresos',fmt:v=>`$${v.toLocaleString('es-CO')}`,c:'#f59e0b'},{k:'propCreadas',l:'Propuestas',fmt:v=>String(v),c:'#38bdf8'},{k:'cerradas',l:'Cierres',fmt:v=>String(v),c:'#4ade80'}];
+          const active=metrics.find(m=>m.k===perfMetric);
+          const maxVal=Math.max(...empStats.map(e=>e[perfMetric]),1);
+          return(
+            <div className="glass" style={{padding:'24px',marginTop:'20px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'20px',flexWrap:'wrap',gap:'12px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0}}>Rendimiento del Equipo</p>
+                <div style={{display:'flex',gap:'6px'}}>
+                  {metrics.map(m=>(
+                    <button key={m.k} onClick={()=>setPerfMetric(m.k)} style={{padding:'5px 14px',borderRadius:'100px',border:`1px solid ${perfMetric===m.k?m.c+'66':'rgba(255,255,255,0.08)'}`,background:perfMetric===m.k?m.c+'18':'transparent',color:perfMetric===m.k?m.c:'rgba(255,255,255,0.35)',fontSize:'11px',fontWeight:'600',cursor:'pointer',transition:'all .15s'}}>{m.l}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{display:'flex',gap:'12px',alignItems:'flex-end',height:'160px'}}>
+                {empStats.map((e,i)=>{
+                  const val=e[perfMetric];
+                  const pct=maxVal>0?Math.max(4,(val/maxVal)*100):4;
+                  const isTop=i===0;
+                  return(
+                    <div key={e.nombre} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'6px',height:'100%',justifyContent:'flex-end'}}>
+                      <span style={{fontSize:'11px',fontWeight:'700',color:isTop?active.c:'rgba(255,255,255,0.5)'}}>{active.fmt(val)}</span>
+                      <div style={{width:'100%',height:`${pct}%`,background:isTop?`linear-gradient(180deg,${active.c},${active.c}88)`:'rgba(255,255,255,0.07)',borderRadius:'6px 6px 3px 3px',border:`1px solid ${isTop?active.c+'55':'rgba(255,255,255,0.05)'}`,position:'relative',transition:'height .4s ease',minHeight:'8px'}}>
+                        {isTop&&<div style={{position:'absolute',top:'-20px',left:'50%',transform:'translateX(-50%)',fontSize:'11px'}}>👑</div>}
+                      </div>
+                      <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.4)',textAlign:'center',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'100%'}}>{e.nombre.split(' ')[0]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{marginTop:'18px',paddingTop:'16px',borderTop:'1px solid rgba(255,255,255,0.05)',display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'10px'}}>
+                {metrics.map(m=>(
+                  <div key={m.k} style={{textAlign:'center',padding:'10px',background:'rgba(255,255,255,0.02)',borderRadius:'8px'}}>
+                    <p style={{fontSize:'10px',color:'rgba(255,255,255,0.25)',margin:'0 0 4px',textTransform:'uppercase',letterSpacing:'.06em'}}>{m.l}</p>
+                    <p style={{fontSize:'16px',fontWeight:'800',color:m.c,margin:'0 0 2px'}}>{m.fmt(empStats.reduce((s,e)=>s+e[m.k],0))}</p>
+                    <p style={{fontSize:'10px',color:'rgba(255,255,255,0.2)',margin:0}}>total equipo</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
         {/* Overdue tasks */}
         {(()=>{
           const overdue=clients.flatMap(c=>(c.tareas||[]).filter(t=>!t.completado&&t.fechaLimite&&new Date(t.fechaLimite)<new Date()).map(t=>({...t,empresa:c.empresa,clientId:c.id})));
