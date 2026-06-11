@@ -1970,6 +1970,7 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
     comisionPagada:false,
     notas:[],
     tareas:[],
+    followUpDate:'',
   };
 }
 
@@ -2473,7 +2474,7 @@ function ProjectChecklist({project,onUpdate}){
 function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [tab,setTab]=useState('overview');
   const [editModal,setEditModal]=useState(false);
-  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,telefono:client.telefono||'',estado:client.estado,fechaVencimiento:client.fechaVencimiento||''});
+  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,telefono:client.telefono||'',estado:client.estado,fechaVencimiento:client.fechaVencimiento||'',followUpDate:client.followUpDate||''});
   const [addingProject,setAddingProject]=useState(false);
   const [newProj,setNewProj]=useState({nombre:'',tipo:'marketing',estado:'En progreso'});
   const [editMonto,setEditMonto]=useState(false);
@@ -2536,6 +2537,11 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                   if(client.fechaPropuesta) items.push({l:'Propuesta enviada',v:client.fechaPropuesta});
                   if(client.fechaAceptacion) items.push({l:'Propuesta aceptada',v:client.fechaAceptacion});
                   if(client.fechaCierre) items.push({l:'Fecha de cierre',v:client.fechaCierre});
+                  if(client.followUpDate){
+                    const fd=new Date(client.followUpDate);const now2=new Date();const fdays=Math.round((fd-now2)/(1000*60*60*24));
+                    const fLabel=`${fd.toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'})}${fdays<=0?' 🔔 hoy/vencido':fdays<=3?' ('+fdays+'d)':''}`;
+                    items.push({l:'Próximo seguimiento',v:fLabel});
+                  }
                   if(client.fechaVencimiento){
                     const dv=new Date(client.fechaVencimiento);const now=new Date();const days=Math.round((dv-now)/(1000*60*60*24));
                     const vLabel=`${dv.toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'})}${days<=30&&days>=0?' ⚠️ '+days+'d':days<0?' (vencido)':''}`;
@@ -2927,7 +2933,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           <div style={{background:'#111',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'400px'}}>
             <h3 style={{fontSize:'17px',fontWeight:'800',color:'#fff',marginBottom:'20px'}}>Editar Cliente</h3>
             <div style={{display:'flex',flexDirection:'column',gap:'14px',marginBottom:'20px'}}>
-              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'},{k:'telefono',l:'Teléfono',ph:'+57 300 000 0000'},{k:'fechaVencimiento',l:'Fecha venc. contrato',ph:'',type:'date'}].map(f=>(
+              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'},{k:'telefono',l:'Teléfono',ph:'+57 300 000 0000'},{k:'fechaVencimiento',l:'Fecha venc. contrato',ph:'',type:'date'},{k:'followUpDate',l:'Próximo seguimiento',ph:'',type:'date'}].map(f=>(
                 <div key={f.k}>
                   <label style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.35)',letterSpacing:'.1em',textTransform:'uppercase',display:'block',marginBottom:'6px',fontFamily:"'Inter',sans-serif"}}>{f.l}</label>
                   <input type={f.type||'text'} value={editData[f.k]||''} onChange={e=>setEditData(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
@@ -3274,12 +3280,25 @@ function ClientsModule({onHome,onClientAccepted,currentUser}){
                       <p style={{fontSize:'12px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{c.contacto||c.correo||'Sin contacto'}</p>
                     </div>
                   </div>
-                  {(()=>{const pendTasks=(c.tareas||[]).filter(t=>!t.completado);const overdueTasks=pendTasks.filter(t=>t.fechaLimite&&new Date(t.fechaLimite)<new Date());return pendTasks.length>0?(
-                    <div style={{display:'flex',gap:'5px',flexShrink:0}}>
-                      {overdueTasks.length>0&&<span style={{fontSize:'10px',fontWeight:'700',background:'rgba(248,113,113,0.15)',border:'1px solid rgba(248,113,113,0.3)',color:'#f87171',borderRadius:'100px',padding:'2px 8px',fontFamily:"'Inter',sans-serif"}}>⚠ {overdueTasks.length}</span>}
-                      {pendTasks.length>overdueTasks.length&&<span style={{fontSize:'10px',fontWeight:'600',background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.2)',color:'#fbbf24',borderRadius:'100px',padding:'2px 8px',fontFamily:"'Inter',sans-serif"}}>{pendTasks.length} tareas</span>}
-                    </div>
-                  ):null;})()}
+                  {(()=>{
+                    const pendTasks=(c.tareas||[]).filter(t=>!t.completado);
+                    const overdueTasks=pendTasks.filter(t=>t.fechaLimite&&new Date(t.fechaLimite)<new Date());
+                    const renewalDays=c.fechaVencimiento?Math.round((new Date(c.fechaVencimiento)-new Date())/(1000*60*60*24)):null;
+                    const showRenewal=renewalDays!==null&&renewalDays<=45;
+                    const followUpDays=c.followUpDate?Math.round((new Date(c.followUpDate)-new Date())/(1000*60*60*24)):null;
+                    const showFollowUp=followUpDays!==null&&followUpDays<=1;
+                    const hasBadge=pendTasks.length>0||showRenewal||showFollowUp||(!c.comisionPagada&&(c.montoContrato||0)>0&&isAdmin&&c.estado==='Activo');
+                    if(!hasBadge) return null;
+                    return(
+                      <div style={{display:'flex',gap:'5px',flexShrink:0,flexWrap:'wrap'}}>
+                        {overdueTasks.length>0&&<span style={{fontSize:'10px',fontWeight:'700',background:'rgba(248,113,113,0.15)',border:'1px solid rgba(248,113,113,0.3)',color:'#f87171',borderRadius:'100px',padding:'2px 8px',fontFamily:"'Inter',sans-serif"}}>⚠ {overdueTasks.length}</span>}
+                        {pendTasks.length>overdueTasks.length&&<span style={{fontSize:'10px',fontWeight:'600',background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.2)',color:'#fbbf24',borderRadius:'100px',padding:'2px 8px',fontFamily:"'Inter',sans-serif"}}>{pendTasks.length} tareas</span>}
+                        {showRenewal&&<span title={`Vence: ${new Date(c.fechaVencimiento).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'})}`} style={{fontSize:'10px',fontWeight:'700',background:renewalDays<0?'rgba(248,113,113,0.15)':renewalDays<=14?'rgba(248,113,113,0.1)':'rgba(251,191,36,0.08)',border:`1px solid ${renewalDays<0?'rgba(248,113,113,0.4)':renewalDays<=14?'rgba(248,113,113,0.25)':'rgba(251,191,36,0.2)'}`,color:renewalDays<0?'#f87171':renewalDays<=14?'#fb923c':'#fbbf24',borderRadius:'100px',padding:'2px 8px',fontFamily:"'Inter',sans-serif",cursor:'default'}}>{renewalDays<0?'Vencido':renewalDays===0?'Vence hoy':`${renewalDays}d renovación`}</span>}
+                        {showFollowUp&&<span title={`Follow-up: ${new Date(c.followUpDate).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}`} style={{fontSize:'10px',fontWeight:'700',background:'rgba(168,85,247,0.12)',border:'1px solid rgba(168,85,247,0.3)',color:'#c084fc',borderRadius:'100px',padding:'2px 8px',fontFamily:"'Inter',sans-serif",cursor:'default'}}>{followUpDays<=0?'🔔 Follow-up':'🔔 mañana'}</span>}
+                        {!c.comisionPagada&&(c.montoContrato||0)>0&&isAdmin&&c.estado==='Activo'&&<span style={{fontSize:'10px',fontWeight:'600',background:'rgba(52,211,153,0.08)',border:'1px solid rgba(52,211,153,0.2)',color:'#34d399',borderRadius:'100px',padding:'2px 8px',fontFamily:"'Inter',sans-serif",cursor:'default'}}>$ comisión</span>}
+                      </div>
+                    );
+                  })()}
                   {(c.telefono||c.correo)&&(
                     <div style={{display:'flex',gap:'4px',flexShrink:0}} onClick={e=>e.stopPropagation()}>
                       {c.telefono&&<a href={`https://wa.me/${c.telefono.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" title={`WhatsApp: ${c.telefono}`} style={{width:'28px',height:'28px',borderRadius:'7px',background:'rgba(37,211,102,0.1)',border:'1px solid rgba(37,211,102,0.2)',display:'flex',alignItems:'center',justifyContent:'center',textDecoration:'none',transition:'all .15s',flexShrink:0}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(37,211,102,0.22)';e.currentTarget.style.borderColor='rgba(37,211,102,0.45)'}} onMouseLeave={e=>{e.currentTarget.style.background='rgba(37,211,102,0.1)';e.currentTarget.style.borderColor='rgba(37,211,102,0.2)'}}><svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.098 21.9l4.85-1.272A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.96 7.96 0 01-4.065-1.112l-.29-.173-3.016.791.806-2.948-.19-.303A7.96 7.96 0 014 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8z"/></svg></a>}
