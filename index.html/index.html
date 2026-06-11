@@ -3337,6 +3337,8 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   }).sort((a,b)=>{
     if(sortBy==='monto') return (b.montoContrato||0)-(a.montoContrato||0);
     if(sortBy==='az') return a.empresa.localeCompare(b.empresa);
+    if(sortBy==='health') return clientHealth(b).score-clientHealth(a).score;
+    if(sortBy==='healthAsc') return clientHealth(a).score-clientHealth(b).score;
     return 0; // 'reciente' preserves natural order (insert order)
   });
 
@@ -3601,6 +3603,8 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
             <option value='reciente'>Más reciente</option>
             <option value='monto'>Mayor monto</option>
             <option value='az'>A→Z</option>
+            <option value='health'>Mayor salud</option>
+            <option value='healthAsc'>Menor salud</option>
           </select>
           {allTags.length>0&&(
             <div style={{display:'flex',gap:'5px',flexWrap:'wrap'}}>
