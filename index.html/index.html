@@ -4915,30 +4915,50 @@ function DashboardModule({onHome}){
             </div>
           );
         })()}
-        {/* Overdue tasks */}
+        {/* Tasks panel */}
         {(()=>{
-          const overdue=clients.flatMap(c=>(c.tareas||[]).filter(t=>!t.completado&&t.fechaLimite&&new Date(t.fechaLimite)<new Date()).map(t=>({...t,empresa:c.empresa,clientId:c.id})));
-          if(!overdue.length) return null;
-          overdue.sort((a,b)=>new Date(a.fechaLimite)-new Date(b.fechaLimite));
-          return(
-            <div className="glass" style={{padding:'24px',marginTop:'20px',borderTop:'2px solid rgba(248,113,113,0.3)'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
-                <span style={{fontSize:'13px',background:'rgba(248,113,113,0.15)',border:'1px solid rgba(248,113,113,0.3)',color:'#f87171',borderRadius:'100px',padding:'3px 10px',fontWeight:'700',fontSize:'11px'}}>⚠ {overdue.length} vencidas</span>
-                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0}}>Tareas Vencidas</p>
+          const [taskTab,setTaskTab]=React.useState('overdue');
+          const now=new Date();
+          const soon=new Date(now.getTime()+7*24*60*60*1000);
+          const allTasks=clients.flatMap(c=>(c.tareas||[]).filter(t=>!t.completada).map(t=>({...t,empresa:c.empresa,clientId:c.id})));
+          const overdueTasks=allTasks.filter(t=>t.fechaLimite&&new Date(t.fechaLimite)<now).sort((a,b)=>new Date(a.fechaLimite)-new Date(b.fechaLimite));
+          const upcomingTasks=allTasks.filter(t=>t.fechaLimite&&new Date(t.fechaLimite)>=now&&new Date(t.fechaLimite)<=soon).sort((a,b)=>new Date(a.fechaLimite)-new Date(b.fechaLimite));
+          const allPendTasks=allTasks.filter(t=>!t.fechaLimite).sort((a,b)=>{const p={alta:0,media:1,baja:2};return(p[a.prioridad]??1)-(p[b.prioridad]??1);});
+          const PRIO_C={alta:'#f87171',media:'#fbbf24',baja:'#34d399'};
+          const tabs=[{k:'overdue',l:`⚠ Vencidas`,n:overdueTasks.length},{k:'upcoming',l:'Próximas 7d',n:upcomingTasks.length},{k:'pending',l:'Sin fecha',n:allPendTasks.length}];
+          const showTasks=taskTab==='overdue'?overdueTasks:taskTab==='upcoming'?upcomingTasks:allPendTasks;
+          if(!allTasks.length) return null;
+          const TaskRow=({t})=>{
+            const isOverdue=t.fechaLimite&&new Date(t.fechaLimite)<now;
+            const dDiff=t.fechaLimite?Math.round((new Date(t.fechaLimite)-now)/(1000*60*60*24)):null;
+            const dateLabel=dDiff===null?null:dDiff<0?`+${-dDiff}d vencida`:dDiff===0?'Hoy':`${dDiff}d`;
+            return(
+              <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 14px',background:'rgba(255,255,255,0.02)',border:`1px solid ${isOverdue?'rgba(248,113,113,0.12)':'rgba(255,255,255,0.05)'}`,borderRadius:'9px'}}>
+                <div style={{width:'8px',height:'8px',borderRadius:'50%',background:PRIO_C[t.prioridad]||'rgba(255,255,255,0.2)',flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontSize:'12.5px',fontWeight:'600',color:'rgba(255,255,255,0.85)',margin:'0 0 2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.titulo||t.texto||'Tarea'}</p>
+                  <p style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',margin:0,fontFamily:"'Inter',sans-serif"}}>{t.empresa}{t.responsable?` · ${t.responsable}`:''}</p>
+                </div>
+                {dateLabel&&<span style={{fontSize:'10.5px',fontWeight:'700',color:isOverdue?'#f87171':dDiff===0?'#fbbf24':'rgba(255,255,255,0.35)',background:isOverdue?'rgba(248,113,113,0.1)':dDiff===0?'rgba(251,191,36,0.1)':'transparent',padding:isOverdue||dDiff===0?'2px 7px':'0',borderRadius:'100px',whiteSpace:'nowrap',flexShrink:0}}>{dateLabel}</span>}
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:'10px'}}>
-                {overdue.slice(0,6).map((t,i)=>{
-                  const daysOverdue=Math.round((new Date()-new Date(t.fechaLimite))/(1000*60*60*24));
-                  return(
-                    <div key={i} style={{padding:'12px 14px',background:'rgba(248,113,113,0.04)',border:'1px solid rgba(248,113,113,0.15)',borderRadius:'10px'}}>
-                      <p style={{fontSize:'12.5px',fontWeight:'600',color:'rgba(255,255,255,0.8)',margin:'0 0 4px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.texto}</p>
-                      <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
-                        <span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>{t.empresa}</span>
-                        <span style={{fontSize:'10px',color:'#f87171',fontWeight:'700',marginLeft:'auto'}}>+{daysOverdue}d</span>
-                      </div>
-                    </div>
-                  );
-                })}
+            );
+          };
+          return(
+            <div className="glass" style={{padding:'24px',marginTop:'20px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px',gap:'12px',flexWrap:'wrap'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0}}>Tareas del Equipo</p>
+                <div style={{display:'flex',gap:'6px'}}>
+                  {tabs.map(tb=>(
+                    <button key={tb.k} onClick={()=>setTaskTab(tb.k)} style={{padding:'4px 12px',background:taskTab===tb.k?'rgba(255,255,255,0.1)':'transparent',border:`1px solid ${taskTab===tb.k?'rgba(255,255,255,0.2)':'rgba(255,255,255,0.07)'}`,borderRadius:'100px',color:taskTab===tb.k?'#fff':'rgba(255,255,255,0.35)',fontSize:'11px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
+                      {tb.l}{tb.n>0&&<span style={{marginLeft:'5px',background:taskTab===tb.k?(tb.k==='overdue'?'rgba(248,113,113,0.3)':'rgba(255,255,255,0.15)'):'rgba(255,255,255,0.08)',borderRadius:'100px',padding:'0 5px',fontSize:'10px'}}>{tb.n}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {showTasks.length===0&&<p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.2)',textAlign:'center',padding:'20px 0',fontFamily:"'Inter',sans-serif"}}>No hay tareas en esta categoría ✓</p>}
+              <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                {showTasks.slice(0,8).map((t,i)=><TaskRow key={i} t={t}/>)}
+                {showTasks.length>8&&<p style={{fontSize:'11.5px',color:'rgba(255,255,255,0.25)',textAlign:'center',margin:'8px 0 0',fontFamily:"'Inter',sans-serif"}}>+{showTasks.length-8} más</p>}
               </div>
             </div>
           );
