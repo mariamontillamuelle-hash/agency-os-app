@@ -3379,6 +3379,49 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   );
 }
 
+/* ── Notes / Activity global search panel ── */
+function NotesSearchPanel({onOpenClient}){
+  const [nsq,setNsq]=useState('');
+  const typeColor={nota:GL_P,historial:'rgba(255,255,255,0.3)',tarea:'#fbbf24'};
+  const typeLabel={nota:'Nota',historial:'Actividad',tarea:'Tarea'};
+  const allClients=React.useMemo(()=>clients_storage.load(),[]);
+  const results=React.useMemo(()=>{
+    if(nsq.trim().length<2) return [];
+    const q=nsq.toLowerCase();
+    const hits=[];
+    allClients.forEach(c=>{
+      (c.notas||[]).forEach(n=>{const t=n.texto||n.text||'';if(t.toLowerCase().includes(q))hits.push({empresa:c.empresa,cid:c.id,tipo:'nota',fecha:n.fecha||'',text:t});});
+      (c.historial||[]).forEach(h=>{if((h.descripcion||'').toLowerCase().includes(q))hits.push({empresa:c.empresa,cid:c.id,tipo:'historial',fecha:h.fecha||'',text:h.descripcion||''});});
+      (c.tareas||[]).forEach(t=>{if((t.titulo||'').toLowerCase().includes(q))hits.push({empresa:c.empresa,cid:c.id,tipo:'tarea',fecha:t.fechaLimite||t.createdAt||'',text:t.titulo||''});});
+    });
+    return hits.sort((a,b)=>{try{return new Date(b.fecha)-new Date(a.fecha);}catch{return 0;}}).slice(0,50);
+  },[nsq,allClients]);
+  return(
+    <div>
+      <div style={{marginBottom:'18px'}}>
+        <input autoFocus value={nsq} onChange={e=>setNsq(e.target.value)} placeholder="Buscar en todas las notas, actividad y tareas de todos los clientes…"
+          style={{width:'100%',background:'rgba(168,85,247,0.06)',border:'1px solid rgba(168,85,247,0.3)',borderRadius:'10px',padding:'12px 16px',color:'#fff',fontSize:'14px',fontFamily:"'Inter',sans-serif",outline:'none',boxSizing:'border-box'}}/>
+      </div>
+      {nsq.trim().length>0&&nsq.trim().length<2&&<p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>Escribe al menos 2 caracteres…</p>}
+      {results.length===0&&nsq.trim().length>=2&&<p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>Sin resultados para "{nsq}"</p>}
+      {results.length>0&&<p style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif",marginBottom:'12px'}}>{results.length} resultado{results.length!==1?'s':''}</p>}
+      <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+        {results.map((r,i)=>(
+          <div key={i} onClick={()=>{const c=allClients.find(x=>x.id===r.cid);if(c)onOpenClient(c);}} style={{padding:'12px 16px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'10px',cursor:'pointer',transition:'border .15s'}}
+            onMouseOver={e=>e.currentTarget.style.border='1px solid rgba(168,85,247,0.3)'} onMouseOut={e=>e.currentTarget.style.border='1px solid rgba(255,255,255,0.06)'}>
+            <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'5px'}}>
+              <span style={{fontSize:'10px',fontWeight:'700',padding:'2px 7px',background:`${typeColor[r.tipo]}15`,border:`1px solid ${typeColor[r.tipo]}35`,borderRadius:'100px',color:typeColor[r.tipo],fontFamily:"'Inter',sans-serif"}}>{typeLabel[r.tipo]}</span>
+              <span style={{fontSize:'12.5px',fontWeight:'700',color:'rgba(255,255,255,0.7)',fontFamily:"'Inter',sans-serif"}}>{r.empresa}</span>
+              {r.fecha&&<span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif",marginLeft:'auto'}}>{r.fecha}</span>}
+            </div>
+            <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.5)',fontFamily:"'Inter',sans-serif",lineHeight:'1.5',margin:0,wordBreak:'break-word'}}>{r.text.length>200?r.text.slice(0,200)+'…':r.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Clients Module (list + dashboard) ── */
 function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const isAdmin=!currentUser||currentUser.role==='admin';
@@ -3766,6 +3809,9 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
             <button onClick={()=>{setViewMode('kanban');setSelectedIds(new Set());}} title="Vista kanban" style={{padding:'6px 10px',background:viewMode==='kanban'?'rgba(255,255,255,0.1)':'transparent',border:'none',color:viewMode==='kanban'?'#fff':'rgba(255,255,255,0.35)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}>
               <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="3.5" height="10" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="5.25" y="2" width="3.5" height="7" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="9.5" y="2" width="3.5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/></svg>
             </button>
+            <button onClick={()=>setViewMode(viewMode==='search'?'list':'search')} title="Búsqueda en notas y actividad" style={{padding:'6px 10px',background:viewMode==='search'?'rgba(168,85,247,0.2)':'transparent',border:'none',color:viewMode==='search'?GL_P:'rgba(255,255,255,0.35)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.4"/><path d="M9.5 9.5l2.5 2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+            </button>
           </div>
           <button onClick={()=>setShowAddClient(true)} style={{display:'flex',alignItems:'center',gap:'5px',background:`rgba(74,222,128,0.1)`,border:`1px solid rgba(74,222,128,0.35)`,borderRadius:'7px',color:CL_A,fontSize:'12px',fontWeight:'700',padding:'6px 12px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
             + Nuevo cliente
@@ -3937,8 +3983,11 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
           </div>
         )}
 
+        {/* Global notes / activity search view */}
+        {viewMode==='search'&&<NotesSearchPanel onOpenClient={c=>setSelectedClient(c)}/>}
+
         {/* Clients list / kanban */}
-        {viewMode==='kanban'?(()=>{
+        {viewMode!=='search'&&viewMode==='kanban'?(()=>{
           const KANBAN_STAGES=['Lead','Propuesta enviada','Propuesta aceptada','Activo','Finalizado'];
           const KANBAN_C=['#9e9e9e','#fb923c','#38bdf8',CL_A,'#a78bfa'];
           return(
