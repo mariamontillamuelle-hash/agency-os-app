@@ -5285,6 +5285,62 @@ function DashboardModule({onHome}){
           ))}
         </div>
 
+        {/* Monthly Revenue Chart */}
+        {(()=>{
+          const now=new Date();
+          // Build last 8 months labels
+          const months=[];
+          for(let i=7;i>=0;i--){
+            const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+            months.push({key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:d.toLocaleDateString('es-ES',{month:'short',year:'2-digit'}),rev:0,count:0});
+          }
+          // Match clients by fechaCierre
+          clients.forEach(c=>{
+            if(!c.fechaCierre||!(c.montoContrato>0)) return;
+            // fechaCierre is like "21 dic. 2025" or date string
+            let d;
+            try{d=new Date(c.fechaCierre);}catch{return;}
+            if(isNaN(d)) return;
+            const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+            const m=months.find(m=>m.key===key);
+            if(m){m.rev+=c.montoContrato||0;m.count++;}
+          });
+          const hasData=months.some(m=>m.rev>0);
+          if(!hasData) return null;
+          const maxRev=Math.max(...months.map(m=>m.rev),1);
+          const totalChartRev=months.reduce((s,m)=>s+m.rev,0);
+          // Trend: compare last 4 months vs previous 4 months
+          const half=months.length/2;
+          const recent=months.slice(half).reduce((s,m)=>s+m.rev,0);
+          const prev=months.slice(0,half).reduce((s,m)=>s+m.rev,0);
+          const trend=prev>0?Math.round(((recent-prev)/prev)*100):null;
+          return(
+            <div className="glass" style={{padding:'24px',marginBottom:'24px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'20px',flexWrap:'wrap',gap:'10px'}}>
+                <div>
+                  <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:'0 0 4px'}}>Ingresos por Mes</p>
+                  <p style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',margin:0,fontFamily:"'Inter',sans-serif"}}>Basado en fecha de cierre · Total: <span style={{color:DB_A,fontWeight:'700'}}>${totalChartRev.toLocaleString('es-CO')}</span></p>
+                </div>
+                {trend!==null&&<span style={{fontSize:'12px',fontWeight:'700',color:trend>=0?'#4ade80':'#f87171',background:trend>=0?'rgba(74,222,128,0.1)':'rgba(248,113,113,0.1)',border:`1px solid ${trend>=0?'rgba(74,222,128,0.2)':'rgba(248,113,113,0.2)'}`,borderRadius:'100px',padding:'4px 12px',fontFamily:"'Inter',sans-serif"}}>{trend>=0?'↑':'↓'} {Math.abs(trend)}% vs 4 meses ant.</span>}
+              </div>
+              <div style={{display:'flex',gap:'8px',alignItems:'flex-end',height:'120px'}}>
+                {months.map((m,i)=>{
+                  const pct=maxRev>0?Math.max(4,(m.rev/maxRev)*100):4;
+                  const isCurrent=i===months.length-1;
+                  return(
+                    <div key={m.key} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'5px',height:'100%',justifyContent:'flex-end'}}>
+                      {m.rev>0&&<span style={{fontSize:'9px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",writingMode:'unset',whiteSpace:'nowrap'}}>${(m.rev/1000).toFixed(0)}k</span>}
+                      <div style={{width:'100%',height:`${pct}%`,background:isCurrent?`linear-gradient(180deg,${DB_A},rgba(245,158,11,0.4))`:`linear-gradient(180deg,rgba(245,158,11,0.5),rgba(245,158,11,0.2))`,borderRadius:'4px 4px 2px 2px',transition:'height .4s ease',minHeight:'4px',position:'relative'}}>
+                        {m.count>0&&<div style={{position:'absolute',top:'-14px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',color:isCurrent?DB_A:'rgba(255,255,255,0.2)',fontWeight:'700',whiteSpace:'nowrap'}}>{m.count}</div>}
+                      </div>
+                      <span style={{fontSize:'8.5px',color:isCurrent?DB_A:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif",fontWeight:isCurrent?'700':'400',textAlign:'center',lineHeight:'1.2'}}>{m.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
         {/* Revenue Forecast */}
         {(()=>{
           const mrr=clients.filter(c=>c.estado==='Activo').reduce((s,c)=>s+(c.montoContrato||0),0);
