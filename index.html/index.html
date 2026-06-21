@@ -2607,7 +2607,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
 
       {/* Tabs */}
       <div style={{display:'flex',gap:'0',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 32px'}}>
-        {[{k:'overview',l:'Resumen'},{k:'projects',l:'Proyectos'},{k:'notas',l:'Notas'},{k:'tareas',l:'Tareas'},{k:'pagos',l:'💳 Pagos'},{k:'mensajes',l:'✉ Mensajes'},{k:'portal',l:'Portal'},{k:'history',l:'Historial'}].map(t=>(
+        {[{k:'overview',l:'Resumen'},{k:'projects',l:'Proyectos'},{k:'notas',l:'Notas'},{k:'tareas',l:'Tareas'},{k:'pagos',l:'💳 Pagos'},{k:'ltv',l:'📈 LTV'},{k:'mensajes',l:'✉ Mensajes'},{k:'portal',l:'Portal'},{k:'history',l:'Historial'}].map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} style={{padding:'14px 20px',background:'transparent',border:'none',borderBottom:`2px solid ${tab===t.k?CL_A:'transparent'}`,color:tab===t.k?'#fff':'rgba(255,255,255,0.35)',fontSize:'13px',fontWeight:tab===t.k?'700':'400',cursor:'pointer',fontFamily:"'Inter',sans-serif",transition:'all .15s'}}>{t.l}</button>
         ))}
       </div>
@@ -3252,6 +3252,94 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
         })()}
 
         {/* MENSAJES TAB */}
+        {/* LTV TAB */}
+        {tab==='ltv'&&(()=>{
+          const pagos=client.pagos||[];
+          const totalPagado=pagos.reduce((s,p)=>s+(Number(p.monto)||0),0);
+          const contrato=client.montoContrato||0;
+          // Duration: from createdAt to fechaVencimiento or today
+          const createdDate=client.createdAt?new Date(client.createdAt):null;
+          const endDate=client.fechaVencimiento?new Date(client.fechaVencimiento):new Date();
+          const monthsActive=createdDate&&!isNaN(createdDate)?Math.max(1,Math.round((endDate-createdDate)/(1000*60*60*24*30.44))):1;
+          const monthlyValue=contrato>0?Math.round(contrato/monthsActive):0;
+          // Renewals: count historial entries with "renovación" keyword
+          const renewals=(client.historial||[]).filter(h=>h.descripcion&&/renov/i.test(h.descripcion)).length;
+          // Churn probability: simple heuristic
+          const overdueTasks=(client.tareas||[]).filter(t=>!t.completada&&t.fechaLimite&&new Date(t.fechaLimite)<new Date()).length;
+          const hasRecentNote=(client.notas||[]).some(n=>{try{return(new Date()-new Date(n.fecha))<60*24*60*60*1000;}catch{return false;}});
+          const churnRisk=overdueTasks>=2?'Alto':!hasRecentNote&&client.estado==='Activo'?'Medio':'Bajo';
+          const churnColor={Alto:'#f87171',Medio:'#fbbf24',Bajo:'#4ade80'}[churnRisk];
+          // LTV scenarios (1yr / 2yr / 3yr)
+          const retention={Bajo:0.85,Medio:0.65,Alto:0.40}[churnRisk];
+          const ltv1=Math.round(monthlyValue*12*retention);
+          const ltv2=Math.round(monthlyValue*24*retention*0.9);
+          const ltv3=Math.round(monthlyValue*36*retention*0.82);
+          // Upsell potential
+          const svcCount=(client.servicios||[]).length;
+          const upsellMsg=svcCount===1?'Alta — solo tiene 1 servicio activo':svcCount===2?'Media — tiene 2 servicios':'Baja — ya tiene todos los servicios';
+          const fmt=(n)=>n.toLocaleString('es-CO');
+          return(
+            <div style={{display:'flex',flexDirection:'column',gap:'20px'}}>
+              {/* KPI row */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:'12px'}}>
+                {[
+                  {l:'Valor mensual',v:`$${fmt(monthlyValue)}`,sub:`${monthsActive} mes${monthsActive!==1?'es':''} activo`,c:'#4ade80'},
+                  {l:'Total facturado',v:`$${fmt(contrato)}`,sub:'Monto de contrato',c:'#fbbf24'},
+                  {l:'Total pagado',v:`$${fmt(totalPagado)}`,sub:contrato>0?`${Math.round((totalPagado/contrato)*100)}% del contrato`:'Sin contrato',c:'#38bdf8'},
+                  {l:'Renovaciones',v:renewals,sub:'Detectadas en historial',c:GL_P3},
+                  {l:'Riesgo churn',v:churnRisk,sub:'Basado en actividad',c:churnColor},
+                ].map((k,i)=>(
+                  <div key={i} className="glass" style={{padding:'16px 18px',border:`1px solid ${k.c}22`}}>
+                    <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'6px'}}>{k.l}</p>
+                    <p style={{fontSize:'22px',fontWeight:'800',color:k.c,fontFamily:"'Inter',sans-serif",letterSpacing:'-.02em',margin:'0 0 3px'}}>{k.v}</p>
+                    <p style={{fontSize:'11px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif",margin:0}}>{k.sub}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* LTV Scenarios */}
+              <div className="glass" style={{padding:'24px'}}>
+                <p style={{fontSize:'13px',fontWeight:'700',color:'#fff',marginBottom:'4px',fontFamily:"'Inter',sans-serif"}}>Proyección de LTV</p>
+                <p style={{fontSize:'12px',color:'rgba(255,255,255,0.3)',marginBottom:'20px',fontFamily:"'Inter',sans-serif"}}>Estimado con tasa de retención {Math.round(retention*100)}% (riesgo {churnRisk.toLowerCase()})</p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'12px'}}>
+                  {[{label:'LTV 1 año',value:ltv1,highlight:true},{label:'LTV 2 años',value:ltv2},{label:'LTV 3 años',value:ltv3}].map((s,i)=>(
+                    <div key={i} style={{padding:'20px',background:s.highlight?`linear-gradient(135deg,rgba(168,85,247,0.12),rgba(124,58,237,0.08))`:'rgba(255,255,255,0.02)',border:`1px solid ${s.highlight?'rgba(168,85,247,0.35)':'rgba(255,255,255,0.07)'}`,borderRadius:'12px',textAlign:'center'}}>
+                      <p style={{fontSize:'11px',fontWeight:'600',color:s.highlight?GL_P3:'rgba(255,255,255,0.3)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'8px'}}>{s.label}</p>
+                      <p style={{fontSize:'28px',fontWeight:'800',color:s.highlight?GL_P:'rgba(255,255,255,0.7)',fontFamily:"'Inter',sans-serif",letterSpacing:'-.03em',margin:0}}>${fmt(s.value)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Upsell + ROI */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                <div className="glass" style={{padding:'20px'}}>
+                  <p style={{fontSize:'12px',fontWeight:'700',color:'rgba(255,255,255,0.5)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'12px'}}>Potencial de Upsell</p>
+                  <p style={{fontSize:'14px',color:'rgba(255,255,255,0.75)',fontFamily:"'Inter',sans-serif",marginBottom:'8px'}}>{upsellMsg}</p>
+                  {svcCount<3&&<div style={{marginTop:'10px',display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                    {['marketing','ia','web'].filter(s=>!(client.servicios||[]).includes(s)).map(s=>(
+                      <span key={s} style={{fontSize:'11px',padding:'3px 9px',background:'rgba(168,85,247,0.1)',border:'1px solid rgba(168,85,247,0.25)',borderRadius:'100px',color:GL_P3,fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>+ {s==='marketing'?'Marketing':s==='ia'?'IA':'Web'}</span>
+                    ))}
+                  </div>}
+                </div>
+                <div className="glass" style={{padding:'20px'}}>
+                  <p style={{fontSize:'12px',fontWeight:'700',color:'rgba(255,255,255,0.5)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'12px'}}>Resumen Financiero</p>
+                  {[
+                    {l:'Comisión acumulada (50%)',v:`$${fmt(Math.round(totalPagado*0.5))}`},
+                    {l:'Saldo pendiente',v:`$${fmt(Math.max(0,contrato-totalPagado))}`},
+                    {l:'Valor mensual promedio',v:`$${fmt(monthlyValue)}/mes`},
+                  ].map((r,i)=>(
+                    <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:i<2?'1px solid rgba(255,255,255,0.05)':'none'}}>
+                      <span style={{fontSize:'12.5px',color:'rgba(255,255,255,0.4)',fontFamily:"'Inter',sans-serif"}}>{r.l}</span>
+                      <span style={{fontSize:'12.5px',fontWeight:'700',color:'rgba(255,255,255,0.75)',fontFamily:"'Inter',sans-serif"}}>{r.v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {tab==='mensajes'&&(()=>{
           const [selectedTpl,setSelectedTpl]=React.useState(null);
           const [copied,setCopied]=React.useState(false);
