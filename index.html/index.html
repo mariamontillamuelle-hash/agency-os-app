@@ -3010,6 +3010,8 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
             setNotaText('');
           };
           const deleteNota=id=>{if(!confirm('¿Eliminar esta nota?'))return;onUpdate({...client,notas:notas.filter(n=>n.id!==id)});};
+          const togglePin=id=>{onUpdate({...client,notas:notas.map(n=>n.id===id?{...n,pinned:!n.pinned}:n)});};
+          const sortedNotas=[...notas.filter(n=>n.pinned),...notas.filter(n=>!n.pinned)];
           return(
             <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
               <div className="glass" style={{padding:'24px'}}>
@@ -3030,17 +3032,19 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
                 {notas.length===0?<p style={{fontSize:'13px',color:'rgba(255,255,255,0.25)',padding:'20px',textAlign:'center',fontFamily:"'Inter',sans-serif"}}>Sin notas aún. Agrega la primera.</p>:
-                notas.map(n=>{
+                sortedNotas.map(n=>{
                   const t=TIPOS[n.tipo]||TIPOS.nota;
                   return(
-                    <div key={n.id} className="glass" style={{padding:'18px 20px',borderLeft:`3px solid ${t.c}`}}>
+                    <div key={n.id} className="glass" style={{padding:'18px 20px',borderLeft:`3px solid ${n.pinned?'#fbbf24':t.c}`,background:n.pinned?'rgba(251,191,36,0.04)':''}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                          {n.pinned&&<span style={{fontSize:'11px',padding:'2px 7px',background:'rgba(251,191,36,0.12)',border:'1px solid rgba(251,191,36,0.35)',borderRadius:'4px',color:'#fbbf24',fontWeight:'700',fontFamily:"'Inter',sans-serif"}}>📌 Fijada</span>}
                           <span style={{fontSize:'11px',padding:'2px 8px',background:`${t.c}22`,border:`1px solid ${t.c}55`,borderRadius:'4px',color:t.c,fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>{t.emoji} {t.l}</span>
                           <span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{n.autor}</span>
                         </div>
-                        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                           <span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>{n.fecha}</span>
+                          <button onClick={()=>togglePin(n.id)} title={n.pinned?'Desfijar nota':'Fijar nota arriba'} style={{background:n.pinned?'rgba(251,191,36,0.12)':'none',border:n.pinned?'1px solid rgba(251,191,36,0.3)':'none',borderRadius:'4px',color:n.pinned?'#fbbf24':'rgba(255,255,255,0.2)',cursor:'pointer',fontSize:'13px',padding:'1px 4px',lineHeight:1,transition:'all .15s'}} onMouseEnter={e=>{e.currentTarget.style.color='#fbbf24';}} onMouseLeave={e=>{e.currentTarget.style.color=n.pinned?'#fbbf24':'rgba(255,255,255,0.2)';}}>📌</button>
                           {isAdmin&&<button onClick={()=>deleteNota(n.id)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.2)',cursor:'pointer',fontSize:'14px',padding:'0',lineHeight:1}} title="Eliminar">×</button>}
                         </div>
                       </div>
