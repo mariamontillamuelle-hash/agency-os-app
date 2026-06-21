@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -3869,6 +3870,55 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=`clientes-glowlabs-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
   };
+  const exportXLSX=()=>{
+    if(typeof XLSX==='undefined'){alert('SheetJS no está disponible. Verifica tu conexión a internet.');return;}
+    const svcLabel={marketing:'Marketing Digital',ia:'Inteligencia Artificial',web:'Diseño Web'};
+    const data=clients.map(c=>({
+      'Empresa':c.empresa,
+      'Contacto':c.contacto||'',
+      'Correo':c.correo||'',
+      'Teléfono':c.telefono||'',
+      'Sector':c.sector||'',
+      'Servicios':(c.servicios||[]).map(s=>svcLabel[s]||s).join(', '),
+      'Estado':c.estado,
+      'Tier':c.tier||'',
+      'Monto Contrato':c.montoContrato||0,
+      'Comisión (50%)':(c.montoContrato||0)*0.5,
+      'Pagado':(c.pagos||[]).reduce((s,p)=>s+(Number(p.monto)||0),0),
+      'Tareas Pendientes':(c.tareas||[]).filter(t=>!t.completada).length,
+      'Notas':(c.notas||[]).length,
+      'Referido por':c.referidoPor||'',
+      'Follow-up':c.followUpDate||'',
+      'Vencimiento Propuesta':c.expiryPropuesta||'',
+      'Fecha Vencimiento':c.fechaVencimiento||'',
+      'Motivo Cierre':c.closeReason||'',
+      'Empleado Responsable':c.empleadoId?(employees.find(e=>e.id===c.empleadoId)||{}).nombre||c.empleadoId:'',
+      'Creado':c.createdAt,
+      'Archivado':c.archivado?'Sí':'No',
+    }));
+    const ws=XLSX.utils.json_to_sheet(data);
+    // Column widths
+    const cols=[22,18,28,16,16,30,20,10,16,16,14,10,8,18,14,18,18,22,22,12,10];
+    ws['!cols']=cols.map(w=>({wch:w}));
+    // Header style
+    const range=XLSX.utils.decode_range(ws['!ref']);
+    for(let C=range.s.c;C<=range.e.c;C++){
+      const cell=ws[XLSX.utils.encode_cell({r:0,c:C})];
+      if(cell){cell.s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'7C3AED'}},alignment:{horizontal:'center'}};}
+    }
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Clientes');
+    // Summary sheet
+    const totalMonto=clients.reduce((s,c)=>s+(c.montoContrato||0),0);
+    const byEstado=CLIENT_ESTADOS.map(e=>({Estado:e,Cantidad:clients.filter(c=>c.estado===e).length,Monto:clients.filter(c=>c.estado===e).reduce((s,c)=>s+(c.montoContrato||0),0)}));
+    const ws2=XLSX.utils.json_to_sheet([{Métrica:'Total clientes',Valor:clients.length},{Métrica:'Monto total contratos',Valor:totalMonto},{Métrica:'Comisión total (50%)',Valor:totalMonto*0.5},{Métrica:'Fecha exportación',Valor:new Date().toLocaleDateString('es-ES')}]);
+    ws2['!cols']=[{wch:28},{wch:20}];
+    const ws3=XLSX.utils.json_to_sheet(byEstado);
+    ws3['!cols']=[{wch:24},{wch:12},{wch:18}];
+    XLSX.utils.book_append_sheet(wb,ws2,'Resumen');
+    XLSX.utils.book_append_sheet(wb,ws3,'Por Estado');
+    XLSX.writeFile(wb,`clientes-glowlabs-${new Date().toISOString().slice(0,10)}.xlsx`);
+  };
 
   const parseCSVText=(text)=>{
     const lines=text.trim().replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
@@ -4118,6 +4168,10 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
           {isAdmin&&<button onClick={exportCSV} title="Exportar CSV" style={{display:'flex',alignItems:'center',gap:'5px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'7px',color:'rgba(255,255,255,0.4)',fontSize:'12px',fontWeight:'600',padding:'6px 11px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             CSV
+          </button>}
+          {isAdmin&&<button onClick={exportXLSX} title="Exportar Excel" style={{display:'flex',alignItems:'center',gap:'5px',background:'rgba(34,197,94,0.07)',border:'1px solid rgba(34,197,94,0.2)',borderRadius:'7px',color:'rgba(34,197,94,0.7)',fontSize:'12px',fontWeight:'600',padding:'6px 11px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            XLSX
           </button>}
           {isAdmin&&<button onClick={()=>setShowImportCSV(true)} title="Importar CSV" style={{display:'flex',alignItems:'center',gap:'5px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'7px',color:'rgba(255,255,255,0.4)',fontSize:'12px',fontWeight:'600',padding:'6px 11px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 13V5M4 8l3-3 3 3M2 1h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
