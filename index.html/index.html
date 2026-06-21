@@ -5996,6 +5996,64 @@ function DashboardModule({onHome}){
           );
         })()}
 
+        {/* Time-to-close analytics */}
+        {(()=>{
+          const parseSpDate=s=>{if(!s)return null;const d=new Date(s);return isNaN(d)?null:d;};
+          const closed=clients.filter(c=>['Activo','Finalizado'].includes(c.estado)&&c.createdAt&&c.fechaCierre).map(c=>{
+            const start=parseSpDate(c.createdAt);const end=parseSpDate(c.fechaCierre);
+            if(!start||!end||end<=start)return null;
+            const days=Math.round((end-start)/(1000*60*60*24));
+            return{...c,days};
+          }).filter(Boolean);
+          if(closed.length<2) return null;
+          const avg=Math.round(closed.reduce((s,c)=>s+c.days,0)/closed.length);
+          const minC=closed.reduce((a,b)=>a.days<b.days?a:b);
+          const maxC=closed.reduce((a,b)=>a.days>b.days?a:b);
+          const SVC_CFG={marketing:{l:'Marketing',c:WARM},ia:{l:'IA',c:AI_A},web:{l:'Web',c:WEB_A}};
+          const bySvc=Object.entries(SVC_CFG).map(([k,cfg])=>{
+            const sc=closed.filter(c=>(c.servicios||[]).includes(k));
+            if(!sc.length)return null;
+            return{...cfg,avg:Math.round(sc.reduce((s,c)=>s+c.days,0)/sc.length),count:sc.length};
+          }).filter(Boolean);
+          const maxBar=Math.max(...bySvc.map(r=>r.avg),avg,1);
+          return(
+            <div className="glass" style={{padding:'24px',marginTop:'20px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'20px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0}}>Tiempo Medio de Cierre</p>
+                <span style={{fontSize:'11px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>{closed.length} deal{closed.length!==1?'s':''} con datos</span>
+              </div>
+              <div style={{display:'flex',gap:'16px',marginBottom:'20px',flexWrap:'wrap'}}>
+                {[{l:'Promedio',v:`${avg}d`,c:'#a78bfa'},{l:'Más rápido',v:`${minC.days}d`,sub:minC.empresa,c:'#4ade80'},{l:'Más lento',v:`${maxC.days}d`,sub:maxC.empresa,c:'#f87171'}].map(kpi=>(
+                  <div key={kpi.l} style={{flex:1,minWidth:'100px',background:'rgba(255,255,255,0.02)',border:`1px solid ${kpi.c}22`,borderRadius:'10px',padding:'14px 16px'}}>
+                    <p style={{fontSize:'10.5px',fontWeight:'600',color:'rgba(255,255,255,0.3)',letterSpacing:'.08em',textTransform:'uppercase',margin:'0 0 6px',fontFamily:"'Inter',sans-serif"}}>{kpi.l}</p>
+                    <p style={{fontSize:'22px',fontWeight:'800',color:kpi.c,margin:'0 0 2px',fontFamily:"'Inter',sans-serif"}}>{kpi.v}</p>
+                    {kpi.sub&&<p style={{fontSize:'10.5px',color:'rgba(255,255,255,0.25)',margin:0,fontFamily:"'Inter',sans-serif",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{kpi.sub}</p>}
+                  </div>
+                ))}
+              </div>
+              {bySvc.length>0&&(
+                <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                  <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',margin:'0 0 4px',fontFamily:"'Inter',sans-serif"}}>Por servicio</p>
+                  {bySvc.map(r=>(
+                    <div key={r.l}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'5px'}}>
+                        <span style={{fontSize:'12.5px',fontWeight:'600',color:'rgba(255,255,255,0.7)',fontFamily:"'Inter',sans-serif"}}>{r.l}</span>
+                        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                          <span style={{fontSize:'10.5px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>{r.count} deal{r.count!==1?'s':''}</span>
+                          <span style={{fontSize:'13px',fontWeight:'800',color:r.c,fontFamily:"'Inter',sans-serif"}}>{r.avg}d</span>
+                        </div>
+                      </div>
+                      <div style={{height:'5px',background:'rgba(255,255,255,0.05)',borderRadius:'100px',overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${(r.avg/maxBar)*100}%`,background:`linear-gradient(90deg,${r.c}88,${r.c})`,borderRadius:'100px',transition:'width .5s ease'}}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Revenue by service breakdown */}
         {(()=>{
           const SVC_CFG={marketing:{l:'Marketing Digital',c:WARM,icon:'📣'},ia:{l:'Inteligencia Artificial',c:AI_A,icon:'🤖'},web:{l:'Página Web',c:WEB_A,icon:'🌐'}};
