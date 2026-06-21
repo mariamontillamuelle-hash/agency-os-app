@@ -5984,6 +5984,55 @@ function HomeScreen({onSelect,currentUser}){
       </div>
       )}
 
+      {/* Employee personal stats strip */}
+      {!isAdmin&&currentUser?.role==='employee'&&(()=>{
+        const allC=clients_storage.load();
+        const myC=allC.filter(c=>c.asignadoA===currentUser.id);
+        const myTasks=myC.flatMap(c=>(c.tareas||[]).filter(t=>!t.completada));
+        const overdueTasks=myTasks.filter(t=>t.fechaLimite&&new Date(t.fechaLimite)<new Date());
+        const todayTasks=myTasks.filter(t=>t.fechaLimite&&new Date(t.fechaLimite).toDateString()===new Date().toDateString());
+        const myRevenue=myC.reduce((s,c)=>s+(c.montoContrato||0),0);
+        const myComision=myC.filter(c=>!c.comisionPagada&&(c.montoContrato||0)>0).reduce((s,c)=>s+(c.montoContrato||0)*0.5,0);
+        const myActive=myC.filter(c=>c.estado==='Activo').length;
+        const emp=emp_storage.load().find(e=>e.id===currentUser.id);
+        const meta=emp?.metaMensual||0;
+        const metaPct=meta>0?Math.min(100,Math.round((myRevenue/meta)*100)):0;
+        return(
+          <div style={{marginTop:'28px',width:'100%',maxWidth:'1550px',position:'relative',zIndex:2}}>
+            <div style={{display:'flex',alignItems:'center',marginBottom:'12px',gap:'8px'}}>
+              <div style={{width:'4px',height:'16px',background:`linear-gradient(180deg,${EMP_A},rgba(244,114,182,0.3))`,borderRadius:'100px'}}/>
+              <span style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.35)',letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif"}}>Mi rendimiento</span>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'10px'}}>
+              {[
+                {l:'Mis clientes',v:myC.length,sub:`${myActive} activos`,c:CL_A},
+                {l:'Mis ingresos',v:`$${myRevenue.toLocaleString('es-CO')}`,sub:meta>0?`Meta: ${metaPct}%`:'Sin meta',c:'#fbbf24'},
+                {l:'Mi comisión',v:`$${myComision.toLocaleString('es-CO')}`,sub:'Pendiente de pago',c:EMP_A},
+                {l:'Tareas vencidas',v:overdueTasks.length,sub:`${todayTasks.length} para hoy`,c:overdueTasks.length>0?'#f87171':CL_A},
+                {l:'Tareas pendientes',v:myTasks.length,sub:'En todos mis clientes',c:'rgba(255,255,255,0.5)'},
+              ].map(s=>(
+                <div key={s.l} onClick={()=>onSelect('clients')} style={{padding:'14px 16px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'10px',cursor:'pointer',transition:'all .15s'}}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor=`${EMP_A}44`;e.currentTarget.style.background='rgba(244,114,182,0.04)';}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.06)';e.currentTarget.style.background='rgba(255,255,255,0.02)';}}>
+                  <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.25)',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:'6px',fontFamily:"'Inter',sans-serif"}}>{s.l}</p>
+                  <p style={{fontSize:'20px',fontWeight:'800',color:s.c,margin:'0 0 2px',letterSpacing:'-.02em',fontFamily:"'Inter',sans-serif"}}>{s.v}</p>
+                  <p style={{fontSize:'10.5px',color:'rgba(255,255,255,0.2)',margin:0,fontFamily:"'Inter',sans-serif"}}>{s.sub}</p>
+                </div>
+              ))}
+            </div>
+            {meta>0&&(
+              <div style={{marginTop:'10px',padding:'12px 16px',background:'rgba(244,114,182,0.03)',border:'1px solid rgba(244,114,182,0.1)',borderRadius:'8px',display:'flex',alignItems:'center',gap:'14px'}}>
+                <span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>Meta mensual</span>
+                <div style={{flex:1,height:'5px',background:'rgba(255,255,255,0.05)',borderRadius:'100px',overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${metaPct}%`,background:metaPct>=100?'linear-gradient(90deg,#4ade80aa,#4ade80)':metaPct>=60?'linear-gradient(90deg,#fbbf24aa,#fbbf24)':`linear-gradient(90deg,${EMP_A}aa,${EMP_A})`,borderRadius:'100px',transition:'width .5s ease'}}/>
+                </div>
+                <span style={{fontSize:'11px',fontWeight:'700',color:metaPct>=100?'#4ade80':EMP_A,fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>{metaPct}%</span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <div style={{marginTop:'32px',display:'flex',alignItems:'center',gap:'20px',position:'relative',zIndex:2}}>
         <p style={{fontSize:'11.5px',color:'rgba(255,255,255,0.1)',fontFamily:"'Inter',sans-serif",letterSpacing:'.04em'}}>GlowLabs Agencia IA · v6.0</p>
         <div style={{display:'flex',alignItems:'center',gap:'6px',padding:'4px 10px',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'6px',cursor:'pointer'}} onClick={()=>{/* search triggered from App via Cmd+K */}}>
