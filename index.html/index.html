@@ -2050,6 +2050,7 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
     expiryPropuesta:'',
     closeReason:'',
     fechaFin:'',
+    referidoPor:'',
   };
 }
 
@@ -2553,7 +2554,7 @@ function ProjectChecklist({project,onUpdate}){
 function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [tab,setTab]=useState('overview');
   const [editModal,setEditModal]=useState(false);
-  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,telefono:client.telefono||'',sector:client.sector||'',estado:client.estado,fechaVencimiento:client.fechaVencimiento||'',followUpDate:client.followUpDate||'',expiryPropuesta:client.expiryPropuesta||''});
+  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,telefono:client.telefono||'',sector:client.sector||'',referidoPor:client.referidoPor||'',estado:client.estado,fechaVencimiento:client.fechaVencimiento||'',followUpDate:client.followUpDate||'',expiryPropuesta:client.expiryPropuesta||''});
   const [addingProject,setAddingProject]=useState(false);
   const [newProj,setNewProj]=useState({nombre:'',tipo:'marketing',estado:'En progreso'});
   const [editMonto,setEditMonto]=useState(false);
@@ -2679,7 +2680,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
                 {(()=>{
-                  const items=[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—',href:client.correo?`mailto:${client.correo}`:null},{l:'Teléfono',v:client.telefono||'—',href:client.telefono?`https://wa.me/${client.telefono.replace(/\D/g,'')}`:null},...(client.sector?[{l:'Sector',v:client.sector}]:[]),{l:'Cliente desde',v:client.createdAt},...(client.fechaFin?[{l:'Fecha fin',v:client.fechaFin}]:[]),...(client.closeReason?[{l:'Motivo cierre',v:client.closeReason}]:[]),{l:'Estado',v:null}];
+                  const items=[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—',href:client.correo?`mailto:${client.correo}`:null},{l:'Teléfono',v:client.telefono||'—',href:client.telefono?`https://wa.me/${client.telefono.replace(/\D/g,'')}`:null},...(client.sector?[{l:'Sector',v:client.sector}]:[]),...(client.referidoPor?[{l:'Referido por',v:client.referidoPor}]:[]),{l:'Cliente desde',v:client.createdAt},...(client.fechaFin?[{l:'Fecha fin',v:client.fechaFin}]:[]),...(client.closeReason?[{l:'Motivo cierre',v:client.closeReason}]:[]),{l:'Estado',v:null}];
                   if(client.fechaPropuesta) items.push({l:'Propuesta enviada',v:client.fechaPropuesta});
                   if(client.expiryPropuesta){
                     const ep=new Date(client.expiryPropuesta);const now3=new Date();const epDays=Math.round((ep-now3)/(1000*60*60*24));
@@ -3525,7 +3526,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           <div style={{background:'#111',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'400px'}}>
             <h3 style={{fontSize:'17px',fontWeight:'800',color:'#fff',marginBottom:'20px'}}>Editar Cliente</h3>
             <div style={{display:'flex',flexDirection:'column',gap:'14px',marginBottom:'20px'}}>
-              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'},{k:'telefono',l:'Teléfono',ph:'+57 300 000 0000'},{k:'sector',l:'Sector / Industria',ph:'Salud, Moda, Tecnología…'},{k:'expiryPropuesta',l:'Vencimiento propuesta',ph:'',type:'date'},{k:'fechaVencimiento',l:'Fecha venc. contrato',ph:'',type:'date'},{k:'followUpDate',l:'Próximo seguimiento',ph:'',type:'date'}].map(f=>(
+              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'},{k:'telefono',l:'Teléfono',ph:'+57 300 000 0000'},{k:'sector',l:'Sector / Industria',ph:'Salud, Moda, Tecnología…'},{k:'referidoPor',l:'Referido por',ph:'Nombre del referente'},{k:'expiryPropuesta',l:'Vencimiento propuesta',ph:'',type:'date'},{k:'fechaVencimiento',l:'Fecha venc. contrato',ph:'',type:'date'},{k:'followUpDate',l:'Próximo seguimiento',ph:'',type:'date'}].map(f=>(
                 <div key={f.k}>
                   <label style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.35)',letterSpacing:'.1em',textTransform:'uppercase',display:'block',marginBottom:'6px',fontFamily:"'Inter',sans-serif"}}>{f.l}</label>
                   <input type={f.type||'text'} value={editData[f.k]||''} onChange={e=>setEditData(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
@@ -5731,7 +5732,7 @@ function DashboardModule({onHome}){
             </div>
           );
         })()}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:'20px'}}>
           {/* Top clients */}
           <div className="glass" style={{padding:'24px'}}>
             <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'20px'}}>Top Clientes por Monto</p>
@@ -5750,6 +5751,32 @@ function DashboardModule({onHome}){
               </div>
             )}
           </div>
+
+          {/* Referral leaderboard */}
+          {(()=>{
+            const referred=clients.filter(c=>c.referidoPor&&c.referidoPor.trim());
+            if(!referred.length) return null;
+            const counts={};const rev={};
+            referred.forEach(c=>{const r=c.referidoPor.trim();counts[r]=(counts[r]||0)+1;rev[r]=(rev[r]||0)+(c.montoContrato||0);});
+            const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+            return(
+              <div className="glass" style={{padding:'24px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'20px'}}>Top Referentes</p>
+                <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                  {sorted.map(([name,count],i)=>(
+                    <div key={name} style={{display:'flex',alignItems:'center',gap:'10px',padding:'10px 12px',background:i===0?'rgba(251,191,36,0.06)':'rgba(255,255,255,0.02)',border:`1px solid ${i===0?'rgba(251,191,36,0.2)':'rgba(255,255,255,0.06)'}`,borderRadius:'8px'}}>
+                      <span style={{fontSize:'13px'}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':'👤'}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{fontSize:'13px',fontWeight:'600',color:'rgba(255,255,255,0.8)',margin:'0 0 2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</p>
+                        {rev[name]>0&&<p style={{fontSize:'10.5px',color:'rgba(255,255,255,0.3)',margin:0,fontFamily:"'Inter',sans-serif"}}>${rev[name].toLocaleString('es-CO')}</p>}
+                      </div>
+                      <span style={{fontSize:'14px',fontWeight:'800',color:'#fbbf24',fontFamily:"'Inter',sans-serif",flexShrink:0}}>{count} ref.</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Employee leaderboard */}
           <div className="glass" style={{padding:'24px'}}>
