@@ -3719,6 +3719,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     if(sortBy==='healthAsc') return clientHealth(a).score-clientHealth(b).score;
     if(sortBy==='lastActivity'){const la=lastInteraction(a),lb=lastInteraction(b);if(!la&&!lb)return 0;if(!la)return 1;if(!lb)return -1;return la.days-lb.days;}
     if(sortBy==='lastActivityAsc'){const la=lastInteraction(a),lb=lastInteraction(b);if(!la&&!lb)return 0;if(!la)return -1;if(!lb)return 1;return lb.days-la.days;}
+    if(sortBy==='rating') return (b.rating||0)-(a.rating||0);
     return 0; // 'reciente' preserves natural order (insert order)
   });
 
@@ -4045,6 +4046,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
             <option value='healthAsc'>Menor salud</option>
             <option value='lastActivity'>Más reciente interacción</option>
             <option value='lastActivityAsc'>Más olvidados</option>
+            <option value='rating'>Mayor satisfacción</option>
           </select>
           {allTags.length>0&&(
             <div style={{display:'flex',gap:'5px',flexWrap:'wrap'}}>
@@ -5267,12 +5269,13 @@ function DashboardModule({onHome}){
 
       <div style={{maxWidth:'1200px',margin:'0 auto',padding:'32px'}}>
         {/* KPI row */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'14px',marginBottom:'24px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'14px',marginBottom:'24px'}}>
           {[
             {l:'Ingresos totales',v:`$${totalMonto.toLocaleString('es-CO')}`,c:DB_A,sub:`${clients.length} clientes`},
             {l:'Comisiones pendientes',v:`$${comisionesPend.toLocaleString('es-CO')}`,c:'#f472b6',sub:'Por pagar al equipo'},
             {l:'Comisiones pagadas',v:`$${comisionesPagas.toLocaleString('es-CO')}`,c:'#34d399',sub:'Historial pagado'},
             {l:'Tasa de conversión',v:`${convRate}%`,c:CL_A,sub:'Lead → Activo/Finalizado'},
+            (()=>{const rated=clients.filter(c=>(c.rating||0)>0);const avg=rated.length?Math.round(rated.reduce((s,c)=>s+(c.rating||0),0)/rated.length*10)/10:0;return{l:'Satisfacción media',v:avg>0?`★ ${avg}/5`:'—',c:avg>=4?'#4ade80':avg>=3?'#fbbf24':avg>0?'#f87171':'rgba(255,255,255,0.3)',sub:rated.length>0?`${rated.length} cliente${rated.length!==1?'s':''} valorados`:'Sin valoraciones'};})(),
           ].map(k=>(
             <div key={k.l} className="glass" style={{padding:'22px',borderTop:`2px solid ${k.c}44`}}>
               <p style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.3)',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:'10px'}}>{k.l}</p>
