@@ -5893,6 +5893,51 @@ function DashboardModule({onHome}){
           );
         })()}
 
+        {/* Sector / Industry breakdown */}
+        {(()=>{
+          const sectorData=[...new Set(clients.map(c=>c.sector).filter(Boolean))].sort().map(sec=>{
+            const sc=clients.filter(c=>c.sector===sec);
+            const rev=sc.reduce((s,c)=>s+(c.montoContrato||0),0);
+            const activos=sc.filter(c=>c.estado==='Activo').length;
+            return{sec,count:sc.length,rev,activos};
+          }).sort((a,b)=>b.count-a.count);
+          if(sectorData.length===0) return null;
+          const maxCount=sectorData[0].count;
+          const SECT_COLORS=['#a78bfa','#38bdf8','#4ade80','#fb923c','#f472b6','#fbbf24','#34d399','#818cf8'];
+          return(
+            <div className="glass" style={{padding:'24px',marginTop:'20px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'20px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0}}>Clientes por Sector</p>
+                <span style={{fontSize:'12px',fontWeight:'700',color:'rgba(255,255,255,0.35)',fontFamily:"'Inter',sans-serif"}}>{sectorData.length} sector{sectorData.length!==1?'es':''}</span>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+                {sectorData.map((d,i)=>{
+                  const pct=maxCount>0?(d.count/maxCount)*100:0;
+                  const col=SECT_COLORS[i%SECT_COLORS.length];
+                  return(
+                    <div key={d.sec}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'6px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                          <div style={{width:'8px',height:'8px',borderRadius:'2px',background:col,flexShrink:0}}/>
+                          <span style={{fontSize:'13px',fontWeight:'600',color:'rgba(255,255,255,0.8)',fontFamily:"'Inter',sans-serif"}}>{d.sec}</span>
+                          {d.activos>0&&<span style={{fontSize:'10px',background:'rgba(74,222,128,0.1)',border:'1px solid rgba(74,222,128,0.2)',color:'#4ade80',borderRadius:'100px',padding:'1px 7px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>{d.activos} activo{d.activos!==1?'s':''}</span>}
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                          {d.rev>0&&<span style={{fontSize:'12px',fontWeight:'700',color:`${col}cc`,fontFamily:"'Inter',sans-serif"}}>${d.rev.toLocaleString('es-CO')}</span>}
+                          <span style={{fontSize:'13px',fontWeight:'800',color:col,fontFamily:"'Inter',sans-serif",minWidth:'20px',textAlign:'right'}}>{d.count}</span>
+                        </div>
+                      </div>
+                      <div style={{height:'5px',background:'rgba(255,255,255,0.05)',borderRadius:'100px',overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,${col}88,${col})`,borderRadius:'100px',transition:'width .5s ease'}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Revenue by service breakdown */}
         {(()=>{
           const SVC_CFG={marketing:{l:'Marketing Digital',c:WARM,icon:'📣'},ia:{l:'Inteligencia Artificial',c:AI_A,icon:'🤖'},web:{l:'Página Web',c:WEB_A,icon:'🌐'}};
