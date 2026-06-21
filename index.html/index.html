@@ -3542,6 +3542,13 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const deleteClient=id=>{if(!confirm('¿Eliminar este cliente?'))return;persist(clients.filter(c=>c.id!==id));setSelectedClient(null);};
   const submitAddClient=()=>{
     if(!addForm.empresa.trim()){alert('Ingresa el nombre de la empresa.');return;}
+    const allNow=clients_storage.load();
+    const dupName=addForm.empresa.trim().toLowerCase();
+    const dup=allNow.find(c=>!c.archivado&&(c.empresa||'').toLowerCase().trim()===dupName);
+    if(dup){
+      const go=confirm(`Ya existe un cliente con el nombre "${dup.empresa}" (estado: ${dup.estado}).\n\n¿Crear de todas formas?`);
+      if(!go) return;
+    }
     const newC=makeClient({empresa:addForm.empresa.trim(),contacto:addForm.contacto.trim(),correo:addForm.correo.trim(),servicios:addForm.servicios,asignadoA:isAdmin?null:currentUser?.id});
     newC.telefono=addForm.telefono.trim();
     newC.estado=addForm.estado;
