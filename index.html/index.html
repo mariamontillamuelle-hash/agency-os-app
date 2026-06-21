@@ -4266,6 +4266,14 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                         </div>
                       )}
                     </div>
+                    <button onClick={e=>{
+                      e.stopPropagation();
+                      const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
+                      const all=clients_storage.load();
+                      const entry={fecha:now,tipo:'manual',descripcion:'📞 Contactado hoy'};
+                      clients_storage.save(all.map(x=>x.id===c.id?{...x,historial:[...(x.historial||[]),entry]}:x));
+                      setClients(prev=>prev.map(x=>x.id===c.id?{...x,historial:[...(x.historial||[]),entry]}:x));
+                    }} title="Registrar contacto hoy" style={{background:'rgba(74,222,128,0.07)',border:'1px solid rgba(74,222,128,0.18)',borderRadius:'6px',color:'rgba(74,222,128,0.7)',fontSize:'10px',padding:'4px 8px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:'600',whiteSpace:'nowrap',transition:'all .15s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(74,222,128,0.18)';e.currentTarget.style.color='#4ade80';}} onMouseLeave={e=>{e.currentTarget.style.background='rgba(74,222,128,0.07)';e.currentTarget.style.color='rgba(74,222,128,0.7)';}}>✓ Contactado</button>
                     <button onClick={e=>{e.stopPropagation();deleteClient(c.id);}} style={{background:'transparent',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'6px',color:'rgba(255,255,255,0.2)',fontSize:'11px',padding:'4px 8px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>×</button>
                   </div>
                 </div>
