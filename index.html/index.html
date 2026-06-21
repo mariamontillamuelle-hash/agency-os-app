@@ -3063,6 +3063,24 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                     </button>
                   ))}
                 </div>
+                {/* Note templates */}
+                {(()=>{
+                  const TPLS={nota:[{l:'Acuerdo',t:'Acuerdos de la reunión:\n• \n• \n\nPróximo paso: '},{l:'Feedback',t:'Feedback del cliente:\n\nLo que va bien: \n\nÁreas de mejora: '},{l:'Pendiente',t:'Pendiente de resolver:\n\n'},{l:'Idea',t:'💡 Idea / Oportunidad:\n\n'}],llamada:[{l:'Resumen llamada',t:'Resumen de llamada:\n\nTemas tratados:\n• \n\nDecisiones:\n• \n\nSiguiente llamada: '},{l:'No contesta',t:'No contesta. Se deja mensaje de voz. Reintentaré el '}],reunion:[{l:'Brief reunión',t:'Reunión realizada el [FECHA]\nAsistentes: \n\nAgenda:\n1. \n2. \n\nAcciones: \n'},{l:'Kick-off',t:'Kick-off del proyecto:\n\nObjetivos definidos: \n\nFecha de entrega estimada: \n\nResponsable: '}],email:[{l:'Propuesta enviada',t:'Propuesta enviada por correo el [FECHA].\n\nDetalles enviados:\n• \n\nEsperando respuesta antes del: '},{l:'Sin respuesta',t:'Sin respuesta al email enviado el [FECHA]. Se realiza seguimiento.'}]};
+                  const tpls=(TPLS[notaTipo]||[]);
+                  if(!tpls.length) return null;
+                  return(
+                    <div style={{display:'flex',gap:'5px',flexWrap:'wrap',marginBottom:'8px'}}>
+                      <span style={{fontSize:'9.5px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.08em',textTransform:'uppercase',alignSelf:'center',fontFamily:"'Inter',sans-serif",marginRight:'2px'}}>Plantillas:</span>
+                      {tpls.map(tp=>(
+                        <button key={tp.l} onClick={()=>setNotaText(t=>t?t+'\n\n'+tp.t:tp.t)} style={{padding:'3px 9px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.03)',color:'rgba(255,255,255,0.4)',cursor:'pointer',transition:'all .15s',whiteSpace:'nowrap'}}
+                          onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.25)';e.currentTarget.style.color='rgba(255,255,255,0.8)';}}
+                          onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.4)';}}>
+                          {tp.l}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
                 <textarea value={notaText} onChange={e=>setNotaText(e.target.value)} placeholder="Escribe una nota, resumen de llamada, acuerdo de reunión..." rows={3}
                   style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.09)',borderRadius:'8px',padding:'10px 14px',color:'#e5e5e5',fontSize:'13.5px',fontFamily:"'Inter',sans-serif",outline:'none',resize:'vertical',boxSizing:'border-box',marginBottom:'10px'}}
                   onKeyDown={e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();addNota();}}}/>
