@@ -2586,6 +2586,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           {client.telefono&&<a href={`https://wa.me/${client.telefono.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" style={{padding:'7px 14px',background:'rgba(37,211,102,0.1)',border:'1px solid rgba(37,211,102,0.25)',borderRadius:'8px',color:'#25d366',fontSize:'12px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif",textDecoration:'none',display:'flex',alignItems:'center',gap:'6px',transition:'all .15s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(37,211,102,0.2)'}} onMouseLeave={e=>{e.currentTarget.style.background='rgba(37,211,102,0.1)'}}><svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.098 21.9l4.85-1.272A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.96 7.96 0 01-4.065-1.112l-.29-.173-3.016.791.806-2.948-.19-.303A7.96 7.96 0 014 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8z"/></svg>WhatsApp</a>}
           {client.correo&&<a href={`mailto:${client.correo}`} style={{padding:'7px 14px',background:'rgba(56,189,248,0.1)',border:'1px solid rgba(56,189,248,0.25)',borderRadius:'8px',color:'#38bdf8',fontSize:'12px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif",textDecoration:'none',display:'flex',alignItems:'center',gap:'6px',transition:'all .15s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(56,189,248,0.2)'}} onMouseLeave={e=>{e.currentTarget.style.background='rgba(56,189,248,0.1)'}}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>Email</a>}
           <button onClick={()=>setEditModal(true)} style={{padding:'7px 16px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'rgba(255,255,255,0.6)',fontSize:'12px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>Editar</button>
+          {isAdmin&&<button onClick={()=>{const msg=client.archivado?`¿Restaurar "${client.empresa}"?`:`¿Archivar "${client.empresa}"? Se ocultará de la lista principal.`;if(!confirm(msg))return;onUpdate({...client,archivado:!client.archivado});if(!client.archivado)onBack();}} style={{padding:'7px 14px',background:client.archivado?'rgba(168,85,247,0.12)':'rgba(255,255,255,0.03)',border:`1px solid ${client.archivado?'rgba(168,85,247,0.3)':'rgba(255,255,255,0.07)'}`,borderRadius:'8px',color:client.archivado?GL_P3:'rgba(255,255,255,0.25)',fontSize:'12px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>{client.archivado?'Restaurar':'🗄 Archivar'}</button>}
         </div>
       </div>
 
@@ -3450,6 +3451,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   });
   const [filter,setFilter]=useState('Todos');
   const [search,setSearch]=useState('');
+  const [showArchived,setShowArchived]=useState(false);
   const [lastRefresh,setLastRefresh]=useState(null);
   const [viewMode,setViewMode]=useState('list'); // 'list' | 'kanban'
   const [svcFilter,setSvcFilter]=useState(''); // '' | 'marketing' | 'ia' | 'web'
@@ -3608,7 +3610,8 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     const matchEmp=!empFilter||c.asignadoA===empFilter;
     const matchTag=!tagFilter||(c.tags||[]).includes(tagFilter);
     const matchTier=!tierFilter||(clientTier(c)?.label===tierFilter);
-    return matchFilter&&matchSearch&&matchSvc&&matchEmp&&matchTag&&matchTier;
+    const matchArchived=showArchived?c.archivado===true:!c.archivado;
+    return matchFilter&&matchSearch&&matchSvc&&matchEmp&&matchTag&&matchTier&&matchArchived;
   }).sort((a,b)=>{
     if(sortBy==='monto') return (b.montoContrato||0)-(a.montoContrato||0);
     if(sortBy==='az') return a.empresa.localeCompare(b.empresa);
@@ -3840,6 +3843,11 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 13V5M4 8l3-3 3 3M2 1h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Importar
           </button>}
+          {isAdmin&&(()=>{const archivedCount=clients_storage.load().filter(c=>c.archivado).length;return archivedCount>0?(
+            <button onClick={()=>setShowArchived(s=>!s)} style={{display:'flex',alignItems:'center',gap:'5px',background:showArchived?'rgba(168,85,247,0.15)':'rgba(255,255,255,0.04)',border:`1px solid ${showArchived?'rgba(168,85,247,0.4)':'rgba(255,255,255,0.08)'}`,borderRadius:'7px',color:showArchived?GL_P3:'rgba(255,255,255,0.35)',fontSize:'12px',fontWeight:'600',padding:'6px 11px',cursor:'pointer',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>
+              {showArchived?'← Activos':'🗄 Archivados ('+archivedCount+')'}
+            </button>
+          ):null;})()}
           <button onClick={()=>{const all=clients_storage.load();const f=isAdmin?all:all.filter(c=>c.asignadoA===(currentUser&&currentUser.id));setClients(f);setSelectedClient(sel=>sel?f.find(c=>c.id===sel.id)||sel:null);setLastRefresh(new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));}}
             style={{display:'flex',alignItems:'center',gap:'6px',background:'rgba(74,222,128,0.08)',border:'1px solid rgba(74,222,128,0.25)',borderRadius:'7px',color:CL_A,fontSize:'12px',fontWeight:'600',padding:'6px 12px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10.5 6A4.5 4.5 0 112.1 3.6M1.5 1.5v2.4h2.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
