@@ -3621,6 +3621,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const [selectedIds,setSelectedIds]=useState(new Set());
   const [bulkAction,setBulkAction]=useState('');
   const [tagFilter,setTagFilter]=useState(''); // '' | tag string
+  const [sectorFilter,setSectorFilter]=useState(''); // '' | sector string
   const searchInputRef=useRef(null);
   // Keyboard shortcuts
   useEffect(()=>{
@@ -3764,6 +3765,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const FILTERS=['Todos',...CLIENT_ESTADOS];
   const allEmps=emp_storage.load().filter(e=>e.activo);
   const allTags=[...new Set(clients.flatMap(c=>c.tags||[]))].sort();
+  const allSectors=[...new Set(clients.map(c=>c.sector).filter(Boolean))].sort();
   const filtered=clients.filter(c=>{
     const matchFilter=filter==='Todos'||c.estado===filter;
     const matchSearch=!search||c.empresa.toLowerCase().includes(search.toLowerCase())||c.correo?.toLowerCase().includes(search.toLowerCase())||(c.contacto||'').toLowerCase().includes(search.toLowerCase());
@@ -3771,8 +3773,9 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     const matchEmp=!empFilter||c.asignadoA===empFilter;
     const matchTag=!tagFilter||(c.tags||[]).includes(tagFilter);
     const matchTier=!tierFilter||(clientTier(c)?.label===tierFilter);
+    const matchSector=!sectorFilter||(c.sector||'')===sectorFilter;
     const matchArchived=showArchived?c.archivado===true:!c.archivado;
-    return matchFilter&&matchSearch&&matchSvc&&matchEmp&&matchTag&&matchTier&&matchArchived;
+    return matchFilter&&matchSearch&&matchSvc&&matchEmp&&matchTag&&matchTier&&matchSector&&matchArchived;
   }).sort((a,b)=>{
     if(sortBy==='monto') return (b.montoContrato||0)-(a.montoContrato||0);
     if(sortBy==='az') return a.empresa.localeCompare(b.empresa);
@@ -4117,8 +4120,14 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
               ))}
             </div>
           )}
-          {(empFilter||svcFilter||filter!=='Todos'||search||tagFilter||tierFilter)&&(
-            <button onClick={()=>{setEmpFilter('');setSvcFilter('');setFilter('Todos');setSearch('');setTagFilter('');setTierFilter('');}} style={{padding:'6px 12px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',border:'1px solid rgba(248,113,113,0.3)',background:'rgba(248,113,113,0.08)',color:'#f87171',cursor:'pointer',fontWeight:'600',whiteSpace:'nowrap'}}>✕ Limpiar</button>
+          {allSectors.length>0&&(
+            <select value={sectorFilter} onChange={e=>setSectorFilter(e.target.value)} style={{padding:'6px 10px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'8px',border:`1px solid ${sectorFilter?'rgba(251,191,36,0.4)':'rgba(255,255,255,0.1)'}`,background:sectorFilter?'rgba(251,191,36,0.07)':'rgba(255,255,255,0.04)',color:sectorFilter?'#fbbf24':'rgba(255,255,255,0.6)',cursor:'pointer',outline:'none',transition:'all .15s'}}>
+              <option value=''>Todos los sectores</option>
+              {allSectors.map(s=><option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
+          {(empFilter||svcFilter||filter!=='Todos'||search||tagFilter||tierFilter||sectorFilter)&&(
+            <button onClick={()=>{setEmpFilter('');setSvcFilter('');setFilter('Todos');setSearch('');setTagFilter('');setTierFilter('');setSectorFilter('');}} style={{padding:'6px 12px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',border:'1px solid rgba(248,113,113,0.3)',background:'rgba(248,113,113,0.08)',color:'#f87171',cursor:'pointer',fontWeight:'600',whiteSpace:'nowrap'}}>✕ Limpiar</button>
           )}
         </div>
 
