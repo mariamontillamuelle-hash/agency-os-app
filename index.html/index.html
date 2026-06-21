@@ -6399,6 +6399,139 @@ function DashboardModule({onHome}){
   );
 }
 
+function GlobalTasksModule({onHome,currentUser}){
+  const {useState,useEffect,useMemo}=React;
+  const isAdmin=currentUser&&currentUser.role==='admin';
+  const [clients,setClients]=useState(()=>clients_storage.load());
+  const [filter,setFilter]=useState('pendientes'); // 'pendientes'|'vencidas'|'hoy'|'todas'|'recurrentes'
+  const [searchQ,setSearchQ]=useState('');
+  const [sortBy,setSortBy]=useState('fecha'); // 'fecha'|'prioridad'|'cliente'
+  const PRIO_ORDER={alta:0,media:1,baja:2};
+  const PRIO_C={alta:'#f87171',media:'#fbbf24',baja:'#34d399'};
+  const today=new Date();today.setHours(0,0,0,0);
+
+  const allTasks=useMemo(()=>{
+    const myClients=isAdmin?clients:clients.filter(c=>c.asignadoA===currentUser?.id);
+    const tasks=[];
+    myClients.forEach(c=>{
+      (c.tareas||[]).forEach(t=>{
+        tasks.push({...t,clientId:c.id,clientName:c.empresa,clientEstado:c.estado});
+      });
+    });
+    return tasks;
+  },[clients,isAdmin,currentUser]);
+
+  const filtered=useMemo(()=>{
+    let list=allTasks;
+    if(filter==='pendientes') list=list.filter(t=>!t.completada);
+    else if(filter==='vencidas') list=list.filter(t=>!t.completada&&t.fechaLimite&&new Date(t.fechaLimite)<today);
+    else if(filter==='hoy'){const ts=today.toISOString().split('T')[0];list=list.filter(t=>!t.completada&&t.fechaLimite===ts);}
+    else if(filter==='recurrentes') list=list.filter(t=>!t.completada&&t.recurrencia);
+    if(searchQ.trim()){const q=searchQ.toLowerCase();list=list.filter(t=>t.titulo.toLowerCase().includes(q)||t.clientName.toLowerCase().includes(q)||(t.responsable||'').toLowerCase().includes(q));}
+    if(sortBy==='fecha') list=[...list].sort((a,b)=>{if(!a.fechaLimite&&!b.fechaLimite)return 0;if(!a.fechaLimite)return 1;if(!b.fechaLimite)return -1;return new Date(a.fechaLimite)-new Date(b.fechaLimite);});
+    else if(sortBy==='prioridad') list=[...list].sort((a,b)=>(PRIO_ORDER[a.prioridad]||1)-(PRIO_ORDER[b.prioridad]||1));
+    else if(sortBy==='cliente') list=[...list].sort((a,b)=>a.clientName.localeCompare(b.clientName));
+    return list;
+  },[allTasks,filter,searchQ,sortBy,today]);
+
+  const toggleTask=(clientId,taskId)=>{
+    const updClients=clients.map(c=>{
+      if(c.id!==clientId) return c;
+      const t=c.tareas.find(x=>x.id===taskId);if(!t)return c;
+      const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
+      const newCompletada=!t.completada;
+      const nextDate=(dateStr,rec)=>{if(!dateStr||!rec)return '';const d=new Date(dateStr);if(rec==='semanal')d.setDate(d.getDate()+7);else if(rec==='mensual')d.setMonth(d.getMonth()+1);return d.toISOString().split('T')[0];};
+      let newTareas=c.tareas.map(x=>x.id===taskId?{...x,completada:newCompletada}:x);
+      let extraHist=[];
+      if(newCompletada&&t.recurrencia){
+        const sig={id:Date.now().toString(),titulo:t.titulo,prioridad:t.prioridad,fechaLimite:nextDate(t.fechaLimite,t.recurrencia),responsable:t.responsable||'',recurrencia:t.recurrencia,completada:false,createdAt:now};
+        newTareas=[sig,...newTareas];
+        extraHist=[{fecha:now,tipo:'tarea',descripcion:`🔁 Tarea recurrente regenerada: "${t.titulo}"`}];
+      }
+      const entry=newCompletada?{fecha:now,tipo:'tarea',descripcion:`✅ Tarea completada: "${t.titulo}"`}:null;
+      const newHist=[...(c.historial||[]),...(entry?[entry]:[]),...extraHist];
+      return {...c,tareas:newTareas,historial:newHist};
+    });
+    clients_storage.save(updClients);
+    setClients(updClients);
+  };
+
+  const counts={pendientes:allTasks.filter(t=>!t.completada).length,vencidas:allTasks.filter(t=>!t.completada&&t.fechaLimite&&new Date(t.fechaLimite)<today).length,hoy:(()=>{const ts=today.toISOString().split('T')[0];return allTasks.filter(t=>!t.completada&&t.fechaLimite===ts).length;})(),recurrentes:allTasks.filter(t=>!t.completada&&t.recurrencia).length,todas:allTasks.length};
+
+  const TABS=[{k:'pendientes',l:'Pendientes',c:'rgba(255,255,255,0.5)'},{k:'vencidas',l:'⚠️ Vencidas',c:'#f87171'},{k:'hoy',l:'🗓 Hoy',c:'#38bdf8'},{k:'recurrentes',l:'🔁 Recurrentes',c:GL_P3},{k:'todas',l:'Todas',c:'rgba(255,255,255,0.35)'}];
+
+  return(
+    <div style={{minHeight:'100vh',background:GL_BG,color:'#fff',fontFamily:"'Inter',sans-serif"}}>
+      {/* Header */}
+      <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'20px 32px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',flexWrap:'wrap',background:'rgba(255,255,255,0.01)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
+          <button onClick={onHome} style={{padding:'7px 14px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'8px',color:'rgba(255,255,255,0.45)',fontSize:'12px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>← Inicio</button>
+          <div>
+            <h1 style={{fontSize:'18px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',margin:0}}>Tareas Globales</h1>
+            <p style={{fontSize:'12px',color:'rgba(255,255,255,0.3)',margin:'2px 0 0'}}>Vista unificada de todas las tareas de clientes</p>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
+          <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Buscar tarea o cliente…"
+            style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'8px',padding:'7px 12px',color:'#fff',fontSize:'13px',outline:'none',fontFamily:"'Inter',sans-serif",width:'200px'}}/>
+          <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
+            style={{background:'#111',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'7px 10px',color:'rgba(255,255,255,0.5)',fontSize:'12px',outline:'none',fontFamily:"'Inter',sans-serif"}}>
+            <option value="fecha">Ordenar: Fecha</option>
+            <option value="prioridad">Ordenar: Prioridad</option>
+            <option value="cliente">Ordenar: Cliente</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={{padding:'28px 32px'}}>
+        {/* Summary KPIs */}
+        <div style={{display:'flex',gap:'10px',marginBottom:'24px',flexWrap:'wrap'}}>
+          {TABS.map(tab=>(
+            <button key={tab.k} onClick={()=>setFilter(tab.k)}
+              style={{padding:'8px 16px',background:filter===tab.k?`${tab.c}18`:'rgba(255,255,255,0.03)',border:`1px solid ${filter===tab.k?tab.c+'55':'rgba(255,255,255,0.08)'}`,borderRadius:'100px',color:filter===tab.k?tab.c:'rgba(255,255,255,0.4)',fontSize:'12px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",display:'flex',alignItems:'center',gap:'6px',transition:'all .15s'}}>
+              {tab.l}
+              <span style={{fontSize:'11px',padding:'1px 6px',background:filter===tab.k?`${tab.c}22`:'rgba(255,255,255,0.06)',borderRadius:'100px',color:filter===tab.k?tab.c:'rgba(255,255,255,0.3)'}}>{counts[tab.k]}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Task list */}
+        {filtered.length===0&&(
+          <div style={{padding:'60px',textAlign:'center',color:'rgba(255,255,255,0.2)',fontSize:'14px'}}>
+            {filter==='vencidas'?'✅ Sin tareas vencidas':filter==='hoy'?'Sin tareas para hoy':'Sin tareas en esta vista'}
+          </div>
+        )}
+        <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+          {filtered.map(t=>{
+            const overdue=!t.completada&&t.fechaLimite&&new Date(t.fechaLimite)<today;
+            const pc=PRIO_C[t.prioridad]||PRIO_C.media;
+            return(
+              <div key={t.id+t.clientId} style={{display:'flex',alignItems:'flex-start',gap:'12px',padding:'13px 16px',background:t.completada?'rgba(255,255,255,0.01)':'rgba(255,255,255,0.03)',border:`1px solid ${overdue?'rgba(248,113,113,0.25)':t.completada?'rgba(255,255,255,0.04)':'rgba(255,255,255,0.07)'}`,borderLeft:`3px solid ${t.completada?'rgba(255,255,255,0.08)':overdue?'#f87171':pc}`,borderRadius:'8px',transition:'all .15s',opacity:t.completada?0.45:1}}>
+                <button onClick={()=>toggleTask(t.clientId,t.id)}
+                  style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${t.completada?'#34d399':pc}`,background:t.completada?'#34d39922':'transparent',cursor:'pointer',flexShrink:0,marginTop:'2px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  {t.completada&&<svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5L8.5 2" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </button>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap',marginBottom:'4px'}}>
+                    <span style={{fontSize:'13.5px',color:t.completada?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.85)',textDecoration:t.completada?'line-through':'none',fontWeight:'500'}}>{t.titulo}</span>
+                  </div>
+                  <div style={{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}}>
+                    <span style={{fontSize:'11.5px',fontWeight:'700',color:'rgba(255,255,255,0.5)',padding:'1px 8px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'100px',whiteSpace:'nowrap'}}>{t.clientName}</span>
+                    <span style={{fontSize:'11px',padding:'1px 6px',background:`${pc}18`,border:`1px solid ${pc}33`,borderRadius:'4px',color:pc,fontWeight:'600'}}>{t.prioridad}</span>
+                    {t.fechaLimite&&<span style={{fontSize:'11px',color:overdue?'#f87171':'rgba(255,255,255,0.3)'}}>{overdue?'⚠️ ':''}{t.fechaLimite}</span>}
+                    {t.responsable&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.25)'}}>👤 {t.responsable}</span>}
+                    {t.recurrencia&&<span style={{fontSize:'11px',padding:'1px 6px',background:'rgba(168,85,247,0.12)',border:'1px solid rgba(168,85,247,0.25)',borderRadius:'4px',color:GL_P3,fontWeight:'600'}}>🔁 {t.recurrencia}</span>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HomeScreen({onSelect,currentUser}){
   const isAdmin=currentUser&&currentUser.role==='admin';
   // Load employee permissions if not admin
@@ -6496,7 +6629,7 @@ function HomeScreen({onSelect,currentUser}){
       </div>}
 
       {/* module cards */}
-      <div style={{display:'grid',gridTemplateColumns:isAdmin?'repeat(6,1fr)':'repeat(4,1fr)',gap:'14px',maxWidth:'1550px',width:'100%',position:'relative',zIndex:2}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:'14px',maxWidth:'1550px',width:'100%',position:'relative',zIndex:2}}>
 
         {/* MARKETING */}
         {empPerms.marketing&&<button onClick={()=>onSelect('marketing')} style={{all:'unset',cursor:'pointer',display:'block'}}>
@@ -6602,6 +6735,34 @@ function HomeScreen({onSelect,currentUser}){
           </div>
         </button>
         )}
+
+        {/* GLOBAL TASKS — all users */}
+        {empPerms.clients&&(()=>{
+          const allC=clients_storage.load();
+          const myC=isAdmin?allC:allC.filter(c=>c.asignadoA===currentUser?.id);
+          const pending=myC.flatMap(c=>(c.tareas||[]).filter(t=>!t.completada)).length;
+          const tod=new Date();tod.setHours(0,0,0,0);
+          const overdue=myC.flatMap(c=>(c.tareas||[]).filter(t=>!t.completada&&t.fechaLimite&&new Date(t.fechaLimite)<tod)).length;
+          const TC='#818cf8';
+          return(
+          <button onClick={()=>onSelect('tasks')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+            <div style={{padding:'32px 28px',background:'rgba(129,140,248,0.02)',border:'1px solid rgba(129,140,248,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
+              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(129,140,248,0.4)';e.currentTarget.style.background='rgba(129,140,248,0.06)';}}
+              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(129,140,248,0.14)';e.currentTarget.style.background='rgba(129,140,248,0.02)';}}>
+              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:'linear-gradient(90deg,#818cf8,transparent)'}}/>
+              {overdue>0&&<div style={{position:'absolute',top:'10px',right:'10px',minWidth:'18px',height:'18px',background:'#f87171',borderRadius:'9px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'10px',fontWeight:'700',color:'#fff',padding:'0 5px',fontFamily:"'Inter',sans-serif",boxShadow:'0 0 0 2px rgba(9,9,11,0.85)',zIndex:2,lineHeight:1}}>{overdue}</div>}
+              <div style={{width:'36px',height:'36px',background:'rgba(129,140,248,0.08)',border:'1px solid rgba(129,140,248,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
+                <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke={TC} strokeWidth="1.3"/><line x1="5" y1="7" x2="13" y2="7" stroke={TC} strokeWidth="1.3" strokeLinecap="round"/><line x1="5" y1="10" x2="10" y2="10" stroke={TC} strokeWidth="1.3" strokeLinecap="round"/><circle cx="14" cy="14" r="3.5" fill={GL_BG} stroke={TC} strokeWidth="1.2"/><path d="M12.5 14l1 1 2-1.5" stroke={TC} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:TC,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Vista Global</p>
+              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Tareas<br/>& Pendientes</h2>
+              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Vista unificada de todas las tareas de clientes. Filtra por vencidas, hoy o recurrentes.</p>
+              <p style={{fontSize:'11px',color:`${TC}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{pending} pendiente{pending!==1?'s':''}{overdue>0?` · ${overdue} vencida${overdue!==1?'s':''} ⚠️`:''}</p>
+              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:TC,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver tareas <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={TC} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            </div>
+          </button>
+          );
+        })()}
       </div>
 
       {/* recent activity strip */}
@@ -7051,6 +7212,9 @@ function App(){
 
   /* ── DASHBOARD module ── */
   if(module==='dashboard'&&isAdmin) return <DashboardModule onHome={goHome}/>;
+
+  /* ── GLOBAL TASKS module ── */
+  if(module==='tasks') return <GlobalTasksModule onHome={goHome} currentUser={currentUser}/>;
 
   /* ── Permission helper for employees ── */
   const empPerms=isAdmin?{marketing:true,ia:true,web:true,clients:true}:(()=>{
