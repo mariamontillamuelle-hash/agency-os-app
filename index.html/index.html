@@ -198,7 +198,8 @@ const GL_P2='#7c3aed';
 const GL_P3='#c084fc';
 const GL_BG='#09090b';
 
-const PLAN_DATA={
+const PKG_SETTINGS_KEY='pkg_settings_v1';
+let PLAN_DATA={
   Essential:{price:'1.200€',freq:'mes',features:['Estrategia de marketing digital','Parrilla de contenidos semanal','Edición y diseño de contenido','3 publicaciones semanales','Informe mensual de resultados']},
   Growth:{price:'1.700€',freq:'mes',features:['Todo lo incluido en Essential','4 publicaciones semanales','Automatización de mensajes Instagram','Diseño web / Optimización web / Sesión fotográfica con IA (una incluida)']},
   Authority:{price:'2.200€',freq:'mes',features:['Todo lo incluido en Growth','Publicaciones de lunes a sábado','Plataforma de Inteligencia Artificial','Bots automatizados avanzados','Email Marketing integrado','Gestión de bases de datos y CRM']},
@@ -1132,7 +1133,7 @@ const AI_A='#38bdf8';   // sky-400 (main accent)
 const AI_A2='#818cf8';  // indigo-400 (secondary)
 const AI_DK='#0a0f1a';  // dark card bg
 
-const AI_PKGS=[
+let AI_PKGS=[
   {id:'conector',name:'Conector IA',tag:'Comunicación y automatización inteligente',color:AI_A,
    services:['Bot de Texto','Bot de Llamadas','Automatizaciones','Email Marketing','Recordatorios','Constructor Landing Pages','Programación Redes Sociales'],
    impl:400,monthly:250,
@@ -1151,12 +1152,14 @@ const AI_PKGS=[
    note:'Aplicación o herramienta digital completamente a medida para resolver el problema específico de tu negocio.'},
 ];
 
-const AI_COMBO={
+let AI_COMBO={
   'conector+fidelizacion':{impl:550},
   'conector+web3d':{impl:750},
   'fidelizacion+web3d':{impl:750},
   'conector+fidelizacion+web3d':{impl:950},
 };
+/* ── Load saved pricing settings ── */
+(()=>{try{const s=JSON.parse(localStorage.getItem(PKG_SETTINGS_KEY)||'null');if(s){if(s.planData)PLAN_DATA=s.planData;if(s.aiPkgs)AI_PKGS=s.aiPkgs;if(s.aiCombo)AI_COMBO=s.aiCombo;}}catch{}})();
 
 function calcAIPrice(pkgs=[],appImpl='',fidelClientes='<=500'){
   const nonApp=[...pkgs].filter(id=>id!=='app').sort();
@@ -6722,6 +6725,194 @@ function GlobalTasksModule({onHome,currentUser}){
   );
 }
 
+/* ── PRICING MODULE ── */
+function PricingModule({onHome}){
+  const mkPlanState=()=>({
+    Essential:{...PLAN_DATA.Essential,features:[...PLAN_DATA.Essential.features]},
+    Growth:{...PLAN_DATA.Growth,features:[...PLAN_DATA.Growth.features]},
+    Authority:{...PLAN_DATA.Authority,features:[...PLAN_DATA.Authority.features]},
+  });
+  const mkAiState=()=>AI_PKGS.map(p=>({...p,services:[...p.services]}));
+  const mkComboState=()=>({...AI_COMBO});
+
+  const [tab,setTab]=React.useState('marketing');
+  const [plans,setPlans]=React.useState(mkPlanState);
+  const [aiPkgs,setAiPkgs]=React.useState(mkAiState);
+  const [combos,setCombos]=React.useState(mkComboState);
+  const [saved,setSaved]=React.useState(false);
+
+  const savePricing=()=>{
+    // build clean PLAN_DATA shape
+    const planData={};
+    Object.keys(plans).forEach(k=>{planData[k]={...plans[k],features:[...plans[k].features]};});
+    // build AI_PKGS array
+    const aiArr=aiPkgs.map(p=>({...p,services:[...p.services]}));
+    // update globals immediately so proposals use new prices
+    PLAN_DATA=planData;
+    AI_PKGS=aiArr;
+    AI_COMBO={...combos};
+    try{localStorage.setItem(PKG_SETTINGS_KEY,JSON.stringify({planData,aiPkgs:aiArr,aiCombo:{...combos}}));}catch{}
+    setSaved(true);
+    setTimeout(()=>setSaved(false),2500);
+  };
+
+  const IN={background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'7px',padding:'8px 11px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",width:'100%',boxSizing:'border-box'};
+  const LABEL={fontSize:'11px',color:'rgba(255,255,255,0.4)',fontFamily:"'Inter',sans-serif",marginBottom:'4px',textTransform:'uppercase',letterSpacing:'.06em'};
+  const PLAN_COLORS={Essential:GL_P,Growth:'#38bdf8',Authority:'#4ade80'};
+
+  /* Marketing tab */
+  const updatePlan=(plan,field,val)=>setPlans(p=>({...p,[plan]:{...p[plan],[field]:val}}));
+  const updateFeature=(plan,i,val)=>setPlans(p=>{const f=[...p[plan].features];f[i]=val;return{...p,[plan]:{...p[plan],features:f}};});
+  const addFeature=(plan)=>setPlans(p=>({...p,[plan]:{...p[plan],features:[...p[plan].features,'']}}));
+  const removeFeature=(plan,i)=>setPlans(p=>{const f=p[plan].features.filter((_,j)=>j!==i);return{...p,[plan]:{...p[plan],features:f}};});
+
+  /* AI tab */
+  const updateAi=(idx,field,val)=>setAiPkgs(a=>{const n=[...a];n[idx]={...n[idx],[field]:val};return n;});
+  const updateService=(idx,si,val)=>setAiPkgs(a=>{const n=[...a];const s=[...n[idx].services];s[si]=val;n[idx]={...n[idx],services:s};return n;});
+  const addService=(idx)=>setAiPkgs(a=>{const n=[...a];n[idx]={...n[idx],services:[...n[idx].services,'']};return n;});
+  const removeService=(idx,si)=>setAiPkgs(a=>{const n=[...a];n[idx]={...n[idx],services:n[idx].services.filter((_,j)=>j!==si)};return n;});
+
+  const MKT=tab==='marketing';
+
+  return(
+    <div style={{minHeight:'100vh',background:GL_BG,color:'#fff',fontFamily:"'Inter',sans-serif"}}>
+      {/* header */}
+      <div style={{borderBottom:'1px solid rgba(255,255,255,0.07)',padding:'18px 28px',display:'flex',alignItems:'center',gap:'16px',position:'sticky',top:0,background:GL_BG,zIndex:10}}>
+        <button onClick={onHome} style={{background:'none',border:'none',color:'rgba(255,255,255,0.5)',cursor:'pointer',fontSize:'13px',display:'flex',alignItems:'center',gap:'6px',padding:'6px 10px',borderRadius:'6px',transition:'background .15s'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.06)'} onMouseLeave={e=>e.currentTarget.style.background='none'}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Inicio
+        </button>
+        <div style={{width:'1px',height:'20px',background:'rgba(255,255,255,0.1)'}}/>
+        <div style={{width:'32px',height:'32px',borderRadius:'8px',background:`${GL_P}18`,border:`1px solid ${GL_P}33`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={GL_P} strokeWidth="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <div>
+          <h1 style={{fontSize:'15px',fontWeight:'700',margin:0}}>Configuración de Precios</h1>
+          <p style={{fontSize:'11px',color:'rgba(255,255,255,0.35)',margin:0}}>Marketing & IA — los cambios se aplican a nuevas propuestas</p>
+        </div>
+        <div style={{marginLeft:'auto',display:'flex',gap:'10px',alignItems:'center'}}>
+          {saved&&<span style={{fontSize:'12px',color:'#4ade80',display:'flex',alignItems:'center',gap:'5px'}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>Guardado
+          </span>}
+          <button onClick={savePricing} style={{padding:'9px 22px',background:GL_P,border:'none',borderRadius:'8px',color:'#fff',fontSize:'13px',fontWeight:'600',cursor:'pointer'}}>
+            Guardar cambios
+          </button>
+        </div>
+      </div>
+
+      {/* tabs */}
+      <div style={{padding:'20px 28px 0'}}>
+        <div style={{display:'flex',gap:'4px',background:'rgba(255,255,255,0.04)',borderRadius:'9px',padding:'4px',width:'fit-content'}}>
+          {[{k:'marketing',l:'📣 Marketing'},{k:'ia',l:'🤖 IA'}].map(t=>(
+            <button key={t.k} onClick={()=>setTab(t.k)} style={{padding:'8px 20px',borderRadius:'6px',border:'none',cursor:'pointer',fontSize:'13px',fontWeight:'600',fontFamily:"'Inter',sans-serif",background:tab===t.k?GL_P:'transparent',color:tab===t.k?'#fff':'rgba(255,255,255,0.45)',transition:'all .15s'}}>
+              {t.l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{padding:'24px 28px',maxWidth:'960px'}}>
+        {/* ── MARKETING TAB ── */}
+        {MKT&&(
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'18px'}}>
+            {Object.keys(plans).map(pname=>{
+              const p=plans[pname];
+              const col=PLAN_COLORS[pname]||GL_P;
+              return(
+                <div key={pname} style={{background:'rgba(255,255,255,0.03)',border:`1px solid ${col}33`,borderTop:`3px solid ${col}`,borderRadius:'12px',padding:'20px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'16px'}}>
+                    <div style={{width:'8px',height:'8px',borderRadius:'50%',background:col}}/>
+                    <span style={{fontSize:'14px',fontWeight:'700',color:col}}>{pname}</span>
+                  </div>
+                  <div style={{marginBottom:'14px'}}>
+                    <div style={LABEL}>Precio / mes</div>
+                    <input value={p.price} onChange={e=>updatePlan(pname,'price',e.target.value)} style={IN} placeholder="ej: 1.200€"/>
+                  </div>
+                  <div>
+                    <div style={{...LABEL,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span>Características</span>
+                      <button onClick={()=>addFeature(pname)} style={{background:`${col}18`,border:`1px solid ${col}44`,borderRadius:'4px',color:col,fontSize:'11px',cursor:'pointer',padding:'2px 8px',fontFamily:"'Inter',sans-serif"}}>+ Añadir</button>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:'6px',marginTop:'6px'}}>
+                      {p.features.map((f,i)=>(
+                        <div key={i} style={{display:'flex',gap:'6px',alignItems:'center'}}>
+                          <input value={f} onChange={e=>updateFeature(pname,i,e.target.value)} style={{...IN,flex:1,padding:'6px 9px',fontSize:'12px'}}/>
+                          <button onClick={()=>removeFeature(pname,i)} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:'5px',color:'#f87171',cursor:'pointer',padding:'5px 8px',flexShrink:0,fontSize:'13px',lineHeight:1}}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── IA TAB ── */}
+        {!MKT&&(
+          <div style={{display:'flex',flexDirection:'column',gap:'18px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'18px'}}>
+              {aiPkgs.map((pkg,idx)=>(
+                <div key={pkg.id} style={{background:'rgba(255,255,255,0.03)',border:`1px solid ${pkg.color}33`,borderTop:`3px solid ${pkg.color}`,borderRadius:'12px',padding:'20px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'16px'}}>
+                    <div style={{width:'8px',height:'8px',borderRadius:'50%',background:pkg.color}}/>
+                    <span style={{fontSize:'14px',fontWeight:'700',color:pkg.color}}>{pkg.name}</span>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'12px'}}>
+                    <div>
+                      <div style={LABEL}>Implementación (€)</div>
+                      <input value={pkg.impl??''} onChange={e=>updateAi(idx,'impl',e.target.value===''?null:Number(e.target.value))} type="number" style={IN} placeholder="—"/>
+                    </div>
+                    <div>
+                      <div style={LABEL}>Mensual (€)</div>
+                      <input value={pkg.monthly??''} onChange={e=>updateAi(idx,'monthly',e.target.value===''?null:Number(e.target.value))} type="number" style={IN} placeholder="—"/>
+                    </div>
+                  </div>
+                  <div style={{marginBottom:'10px'}}>
+                    <div style={LABEL}>Tag / subtítulo</div>
+                    <input value={pkg.tag} onChange={e=>updateAi(idx,'tag',e.target.value)} style={IN}/>
+                  </div>
+                  <div style={{marginBottom:'12px'}}>
+                    <div style={LABEL}>Descripción</div>
+                    <textarea value={pkg.note} onChange={e=>updateAi(idx,'note',e.target.value)} rows={2} style={{...IN,resize:'vertical',lineHeight:'1.5'}}/>
+                  </div>
+                  <div>
+                    <div style={{...LABEL,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span>Servicios incluidos</span>
+                      <button onClick={()=>addService(idx)} style={{background:`${pkg.color}18`,border:`1px solid ${pkg.color}44`,borderRadius:'4px',color:pkg.color,fontSize:'11px',cursor:'pointer',padding:'2px 8px',fontFamily:"'Inter',sans-serif"}}>+ Añadir</button>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:'5px',marginTop:'6px'}}>
+                      {pkg.services.map((s,si)=>(
+                        <div key={si} style={{display:'flex',gap:'6px',alignItems:'center'}}>
+                          <input value={s} onChange={e=>updateService(idx,si,e.target.value)} style={{...IN,flex:1,padding:'5px 9px',fontSize:'12px'}}/>
+                          <button onClick={()=>removeService(idx,si)} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:'5px',color:'#f87171',cursor:'pointer',padding:'5px 8px',flexShrink:0,fontSize:'13px',lineHeight:1}}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Combo prices */}
+            <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px',padding:'20px'}}>
+              <h3 style={{fontSize:'13px',fontWeight:'700',color:'rgba(255,255,255,0.7)',margin:'0 0 14px',textTransform:'uppercase',letterSpacing:'.06em'}}>Descuentos Combo — Implementación (€)</h3>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:'12px'}}>
+                {Object.keys(combos).map(key=>(
+                  <div key={key}>
+                    <div style={{...LABEL,marginBottom:'5px'}}>{key.split('+').join(' + ')}</div>
+                    <input type="number" value={combos[key].impl??''} onChange={e=>setCombos(c=>({...c,[key]:{impl:Number(e.target.value)}}))} style={IN}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function HomeScreen({onSelect,currentUser}){
   const isAdmin=currentUser&&currentUser.role==='admin';
   // Load employee permissions if not admin
@@ -6949,6 +7140,27 @@ function HomeScreen({onSelect,currentUser}){
               <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Vista unificada de todas las tareas de clientes. Filtra por vencidas, hoy o recurrentes.</p>
               <p style={{fontSize:'11px',color:`${TC}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{pending} pendiente{pending!==1?'s':''}{overdue>0?` · ${overdue} vencida${overdue!==1?'s':''} ⚠️`:''}</p>
               <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:TC,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver tareas <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={TC} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            </div>
+          </button>
+          );
+        })()}
+
+        {/* Pricing card — admin only */}
+        {isAdmin&&(()=>{
+          const PC=GL_P;
+          return(
+          <button onClick={()=>onSelect('pricing')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+            <div style={{padding:'32px 28px',background:`rgba(168,85,247,0.02)`,border:`1px solid rgba(168,85,247,0.14)`,borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
+              onMouseOver={e=>{e.currentTarget.style.border=`1px solid rgba(168,85,247,0.4)`;e.currentTarget.style.background='rgba(168,85,247,0.06)';}}
+              onMouseOut={e=>{e.currentTarget.style.border=`1px solid rgba(168,85,247,0.14)`;e.currentTarget.style.background='rgba(168,85,247,0.02)';}}>
+              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${PC},transparent)`}}/>
+              <div style={{width:'36px',height:'36px',background:`rgba(168,85,247,0.08)`,border:`1px solid rgba(168,85,247,0.25)`,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={PC} strokeWidth="1.6"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              </div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:PC,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Admin</p>
+              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Precios<br/>& Paquetes</h2>
+              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Edita precios, características y servicios de los paquetes de Marketing e IA.</p>
+              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:PC,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Editar precios <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={PC} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
             </div>
           </button>
           );
@@ -7405,6 +7617,9 @@ function App(){
 
   /* ── GLOBAL TASKS module ── */
   if(module==='tasks') return <GlobalTasksModule onHome={goHome} currentUser={currentUser}/>;
+
+  /* ── PRICING module ── */
+  if(module==='pricing'&&isAdmin) return <PricingModule onHome={goHome}/>;
 
   /* ── Permission helper for employees ── */
   const empPerms=isAdmin?{marketing:true,ia:true,web:true,clients:true}:(()=>{
