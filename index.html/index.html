@@ -6151,6 +6151,64 @@ function DashboardModule({onHome}){
           );
         })()}
 
+        {/* Win/Loss report */}
+        {(()=>{
+          const finalized=clients.filter(c=>c.estado==='Finalizado'&&c.closeReason);
+          if(finalized.length===0) return null;
+          const won=finalized.filter(c=>c.closeReason.startsWith('✅'));
+          const lost=finalized.filter(c=>c.closeReason.startsWith('❌'));
+          const wonRev=won.reduce((s,c)=>s+(c.montoContrato||0),0);
+          const lostRev=lost.reduce((s,c)=>s+(c.montoContrato||0),0);
+          const winRate=finalized.length>0?Math.round((won.length/finalized.length)*100):0;
+          // Extract reason texts (after " — ")
+          const lostReasons=lost.map(c=>c.closeReason.replace(/^[^—]+—\s*/,'')).filter(Boolean);
+          const reasonCounts={};lostReasons.forEach(r=>{reasonCounts[r]=(reasonCounts[r]||0)+1;});
+          const topReasons=Object.entries(reasonCounts).sort((a,b)=>b[1]-a[1]).slice(0,4);
+          return(
+            <div className="glass" style={{padding:'24px',marginTop:'20px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'20px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0}}>Análisis Ganados / Perdidos</p>
+                <span style={{fontSize:'12px',fontWeight:'700',color:'rgba(255,255,255,0.35)',fontFamily:"'Inter',sans-serif"}}>{finalized.length} deal{finalized.length!==1?'s':''} cerrados</span>
+              </div>
+              <div style={{display:'flex',gap:'12px',marginBottom:'20px',flexWrap:'wrap'}}>
+                {[{l:'Tasa de éxito',v:`${winRate}%`,c:winRate>=60?'#4ade80':winRate>=40?'#fbbf24':'#f87171',sub:`${won.length} ganados de ${finalized.length}`},{l:'Ganados',v:won.length,c:'#4ade80',sub:wonRev>0?`$${wonRev.toLocaleString('es-CO')}`:'Sin monto'},{l:'Perdidos',v:lost.length,c:'#f87171',sub:lostRev>0?`$${lostRev.toLocaleString('es-CO')}`:'Sin monto'}].map(k=>(
+                  <div key={k.l} style={{flex:1,minWidth:'90px',background:'rgba(255,255,255,0.02)',border:`1px solid ${k.c}22`,borderRadius:'10px',padding:'14px 16px'}}>
+                    <p style={{fontSize:'10px',fontWeight:'600',color:'rgba(255,255,255,0.3)',letterSpacing:'.08em',textTransform:'uppercase',margin:'0 0 5px',fontFamily:"'Inter',sans-serif"}}>{k.l}</p>
+                    <p style={{fontSize:'22px',fontWeight:'800',color:k.c,margin:'0 0 2px',fontFamily:"'Inter',sans-serif"}}>{k.v}</p>
+                    <p style={{fontSize:'10.5px',color:'rgba(255,255,255,0.25)',margin:0,fontFamily:"'Inter',sans-serif"}}>{k.sub}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Win/loss bar */}
+              {finalized.length>0&&(
+                <div style={{marginBottom:topReasons.length>0?'20px':0}}>
+                  <div style={{height:'10px',background:'rgba(255,255,255,0.05)',borderRadius:'100px',overflow:'hidden',display:'flex'}}>
+                    <div style={{height:'100%',width:`${winRate}%`,background:'linear-gradient(90deg,rgba(74,222,128,0.7),#4ade80)',borderRadius:'100px 0 0 100px',transition:'width .5s ease'}}/>
+                    <div style={{height:'100%',flex:1,background:'linear-gradient(90deg,rgba(248,113,113,0.5),rgba(248,113,113,0.7))'}}/>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between',marginTop:'5px'}}>
+                    <span style={{fontSize:'10.5px',color:'#4ade8099',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>✅ {winRate}% ganados</span>
+                    <span style={{fontSize:'10.5px',color:'#f8717199',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>{100-winRate}% perdidos ❌</span>
+                  </div>
+                </div>
+              )}
+              {topReasons.length>0&&(
+                <div>
+                  <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',margin:'0 0 10px',fontFamily:"'Inter',sans-serif"}}>Razones de pérdida frecuentes</p>
+                  <div style={{display:'flex',flexDirection:'column',gap:'7px'}}>
+                    {topReasons.map(([reason,count])=>(
+                      <div key={reason} style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                        <span style={{fontSize:'12px',color:'rgba(255,255,255,0.6)',fontFamily:"'Inter',sans-serif",flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{reason}</span>
+                        <span style={{fontSize:'11px',fontWeight:'700',color:'#f87171',background:'rgba(248,113,113,0.1)',borderRadius:'100px',padding:'1px 8px',fontFamily:"'Inter',sans-serif",flexShrink:0}}>{count}×</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Revenue by service breakdown */}
         {(()=>{
           const SVC_CFG={marketing:{l:'Marketing Digital',c:WARM,icon:'📣'},ia:{l:'Inteligencia Artificial',c:AI_A,icon:'🤖'},web:{l:'Página Web',c:WEB_A,icon:'🌐'}};
