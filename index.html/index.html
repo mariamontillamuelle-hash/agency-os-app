@@ -322,6 +322,10 @@ function FormView({initial,editingId,onGenerate,onLibrary,savedCount,onHome}){
 /* ── LIBRARY VIEW ── */
 function LibraryView({saved:savedProp,onView,onEdit,onDelete,onNew,onBack,onHome}){
   const [saved,setSaved]=useState(savedProp);
+  const convertedEmpresaSet=React.useMemo(()=>{
+    const cls=clients_storage.load();
+    return new Set(cls.filter(c=>c.proposalType).map(c=>(c.proposalData?.empresa||c.empresa||'').toLowerCase().trim()));
+  },[]);
   const duplicateProp=(s)=>{
     const copy={...s,id:Date.now().toString()+Math.random().toString(36).slice(2,5),empresa:s.empresa+' (Copia)',fechaGuardado:new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'}),status:''};
     if(copy.formData) copy.formData={...copy.formData,empresa:copy.empresa};
@@ -358,6 +362,7 @@ function LibraryView({saved:savedProp,onView,onEdit,onDelete,onNew,onBack,onHome
           <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
             {[...saved].reverse().map(s=>{
               const st=PROP_STATUS.find(x=>x.k===(s.status||''))||PROP_STATUS[0];
+              const isConverted=convertedEmpresaSet.has((s.empresa||'').toLowerCase().trim());
               return(<div key={s.id} className="lib-card">
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'16px'}}>
                   <div style={{flex:1,minWidth:0}}>
@@ -365,6 +370,7 @@ function LibraryView({saved:savedProp,onView,onEdit,onDelete,onNew,onBack,onHome
                       <p style={{fontSize:'16px',fontWeight:'700',color:'#fff'}}>{s.empresa}</p>
                       <span className="tag">{s.clientName}</span>
                       {s.planes&&s.planes.map(p=><span key={p} className="tag" style={{background:'rgba(255,255,255,0.06)',color:'#999'}}>Plan {p}</span>)}
+                      {isConverted&&<span style={{display:'inline-flex',alignItems:'center',gap:'4px',padding:'2px 9px',background:'rgba(74,222,128,0.1)',border:'1px solid rgba(74,222,128,0.3)',borderRadius:'100px',fontSize:'10.5px',fontWeight:'700',color:'#4ade80',fontFamily:"'Inter',sans-serif"}}>✓ Cliente creado</span>}
                       {/* STATUS BADGE */}
                       <div style={{position:'relative'}} onClick={e=>e.stopPropagation()}>
                         <div onClick={()=>setOpenStatusId(openStatusId===s.id?null:s.id)} style={{display:'flex',alignItems:'center',gap:'5px',padding:'3px 10px',borderRadius:'100px',border:`1px solid ${st.c}44`,background:`${st.c}12`,cursor:'pointer',userSelect:'none'}}>
