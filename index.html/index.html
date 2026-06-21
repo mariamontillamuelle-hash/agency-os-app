@@ -4064,8 +4064,37 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     setShowImportCSV(false);setCsvText('');setCsvPreview(null);setCsvImporting(false);
   };
 
+  // Contract expiry alerts (active clients expiring within 7 days)
+  const expiryAlerts=React.useMemo(()=>{
+    const now=new Date();now.setHours(0,0,0,0);
+    const in7=new Date(now.getTime()+7*24*60*60*1000);
+    return clients.filter(c=>c.estado==='Activo'&&c.fechaVencimiento&&!c.archivado).map(c=>{
+      const d=new Date(c.fechaVencimiento);
+      const days=Math.round((d-now)/(1000*60*60*24));
+      return{...c,daysLeft:days};
+    }).filter(c=>c.daysLeft<=7).sort((a,b)=>a.daysLeft-b.daysLeft);
+  },[clients]);
+
   return(
     <div style={{minHeight:'100vh',background:'#080808',paddingBottom:'60px'}}>
+      {/* Contract Expiry Alert Banner */}
+      {expiryAlerts.length>0&&(
+        <div style={{background:'linear-gradient(135deg,rgba(251,191,36,0.12),rgba(251,146,60,0.08))',borderBottom:'1px solid rgba(251,191,36,0.25)',padding:'10px 28px',display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'8px',flexShrink:0}}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#fbbf24" strokeWidth="1.4"/><line x1="8" y1="4.5" x2="8" y2="8.5" stroke="#fbbf24" strokeWidth="1.4" strokeLinecap="round"/><circle cx="8" cy="11" r=".8" fill="#fbbf24"/></svg>
+            <span style={{fontSize:'12px',fontWeight:'700',color:'#fbbf24',fontFamily:"'Inter',sans-serif"}}>Contratos por vencer:</span>
+          </div>
+          <div style={{display:'flex',gap:'8px',flexWrap:'wrap',flex:1}}>
+            {expiryAlerts.map(c=>(
+              <button key={c.id} onClick={()=>setSelectedClient(c)}
+                style={{display:'flex',alignItems:'center',gap:'6px',padding:'4px 10px',background:c.daysLeft<=0?'rgba(248,113,113,0.15)':c.daysLeft<=3?'rgba(251,146,60,0.15)':'rgba(251,191,36,0.1)',border:`1px solid ${c.daysLeft<=0?'rgba(248,113,113,0.4)':c.daysLeft<=3?'rgba(251,146,60,0.4)':'rgba(251,191,36,0.3)'}`,borderRadius:'100px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>
+                <span style={{fontSize:'12px',fontWeight:'600',color:c.daysLeft<=0?'#f87171':c.daysLeft<=3?'#fb923c':'#fbbf24'}}>{c.empresa}</span>
+                <span style={{fontSize:'11px',color:'rgba(255,255,255,0.4)'}}>{c.daysLeft<=0?'vencido':`${c.daysLeft}d`}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Won/Lost Reason Modal */}
       {showReasonModal&&(
         <div onClick={()=>setShowReasonModal(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:9100,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(8px)'}}>
