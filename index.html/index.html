@@ -2039,6 +2039,7 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
     rating:0,
     followUpDate:'',
     tags:[],
+    expiryPropuesta:'',
   };
 }
 
@@ -2542,7 +2543,7 @@ function ProjectChecklist({project,onUpdate}){
 function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [tab,setTab]=useState('overview');
   const [editModal,setEditModal]=useState(false);
-  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,telefono:client.telefono||'',estado:client.estado,fechaVencimiento:client.fechaVencimiento||'',followUpDate:client.followUpDate||''});
+  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,telefono:client.telefono||'',estado:client.estado,fechaVencimiento:client.fechaVencimiento||'',followUpDate:client.followUpDate||'',expiryPropuesta:client.expiryPropuesta||''});
   const [addingProject,setAddingProject]=useState(false);
   const [newProj,setNewProj]=useState({nombre:'',tipo:'marketing',estado:'En progreso'});
   const [editMonto,setEditMonto]=useState(false);
@@ -2670,6 +2671,11 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                 {(()=>{
                   const items=[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—',href:client.correo?`mailto:${client.correo}`:null},{l:'Teléfono',v:client.telefono||'—',href:client.telefono?`https://wa.me/${client.telefono.replace(/\D/g,'')}`:null},{l:'Cliente desde',v:client.createdAt},{l:'Estado',v:null}];
                   if(client.fechaPropuesta) items.push({l:'Propuesta enviada',v:client.fechaPropuesta});
+                  if(client.expiryPropuesta){
+                    const ep=new Date(client.expiryPropuesta);const now3=new Date();const epDays=Math.round((ep-now3)/(1000*60*60*24));
+                    const epLabel=`${ep.toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'})}${epDays<0?' ❌ vencida':epDays===0?' ⚠️ hoy':epDays<=7?' ⏳ '+epDays+'d':''}`;
+                    items.push({l:'Vence propuesta',v:epLabel});
+                  }
                   if(client.fechaAceptacion) items.push({l:'Propuesta aceptada',v:client.fechaAceptacion});
                   if(client.fechaCierre) items.push({l:'Fecha de cierre',v:client.fechaCierre});
                   if(client.followUpDate){
@@ -3465,7 +3471,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           <div style={{background:'#111',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'400px'}}>
             <h3 style={{fontSize:'17px',fontWeight:'800',color:'#fff',marginBottom:'20px'}}>Editar Cliente</h3>
             <div style={{display:'flex',flexDirection:'column',gap:'14px',marginBottom:'20px'}}>
-              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'},{k:'telefono',l:'Teléfono',ph:'+57 300 000 0000'},{k:'fechaVencimiento',l:'Fecha venc. contrato',ph:'',type:'date'},{k:'followUpDate',l:'Próximo seguimiento',ph:'',type:'date'}].map(f=>(
+              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'},{k:'telefono',l:'Teléfono',ph:'+57 300 000 0000'},{k:'expiryPropuesta',l:'Vencimiento propuesta',ph:'',type:'date'},{k:'fechaVencimiento',l:'Fecha venc. contrato',ph:'',type:'date'},{k:'followUpDate',l:'Próximo seguimiento',ph:'',type:'date'}].map(f=>(
                 <div key={f.k}>
                   <label style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.35)',letterSpacing:'.1em',textTransform:'uppercase',display:'block',marginBottom:'6px',fontFamily:"'Inter',sans-serif"}}>{f.l}</label>
                   <input type={f.type||'text'} value={editData[f.k]||''} onChange={e=>setEditData(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
@@ -4249,6 +4255,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                       <span style={{fontSize:'10px',color:'#fbbf24'}}>★</span>
                       <span style={{fontSize:'10px',fontWeight:'700',color:'#fbbf24',fontFamily:"'Inter',sans-serif"}}>{c.rating}</span>
                     </span>}
+                    {(()=>{if(!c.expiryPropuesta||c.estado!=='Propuesta enviada')return null;const ep=new Date(c.expiryPropuesta);const epDays=Math.round((ep-new Date())/(1000*60*60*24));if(epDays>7)return null;const expired=epDays<0;return(<span title={expired?'Propuesta vencida':'Propuesta expira pronto'} style={{display:'inline-flex',alignItems:'center',gap:'3px',padding:'2px 8px',borderRadius:'100px',background:expired?'rgba(248,113,113,0.12)':'rgba(251,191,36,0.1)',border:`1px solid ${expired?'rgba(248,113,113,0.35)':'rgba(251,191,36,0.3)'}`,cursor:'default'}}><span style={{fontSize:'10px'}}>{expired?'❌':'⏳'}</span><span style={{fontSize:'10px',fontWeight:'700',color:expired?'#f87171':'#fbbf24',fontFamily:"'Inter',sans-serif"}}>{expired?'Vencida':epDays===0?'Hoy':epDays+'d'}</span></span>);})()}
                     {(()=>{const li=lastInteraction(c);if(!li)return null;return(<span title={`Última interacción: hace ${li.days===0?'hoy':li.days===1?'1 día':li.days+' días'}`} style={{display:'inline-flex',alignItems:'center',gap:'3px',padding:'2px 7px',borderRadius:'100px',background:li.bg,border:`1px solid ${li.border}`,cursor:'default'}}>
                       <svg width="8" height="8" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke={li.color} strokeWidth="1.5"/><polyline points="8,4 8,8 11,10" stroke={li.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       <span style={{fontSize:'10px',fontWeight:'600',color:li.color,fontFamily:"'Inter',sans-serif"}}>{li.label}</span>
