@@ -2034,6 +2034,7 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
     montoContrato:0,
     esRecurrente:false,
     montoMensual:0,
+    sector:'',
     comisionPagada:false,
     notas:[],
     tareas:[],
@@ -2545,7 +2546,7 @@ function ProjectChecklist({project,onUpdate}){
 function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [tab,setTab]=useState('overview');
   const [editModal,setEditModal]=useState(false);
-  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,telefono:client.telefono||'',estado:client.estado,fechaVencimiento:client.fechaVencimiento||'',followUpDate:client.followUpDate||'',expiryPropuesta:client.expiryPropuesta||''});
+  const [editData,setEditData]=useState({contacto:client.contacto,correo:client.correo,telefono:client.telefono||'',sector:client.sector||'',estado:client.estado,fechaVencimiento:client.fechaVencimiento||'',followUpDate:client.followUpDate||'',expiryPropuesta:client.expiryPropuesta||''});
   const [addingProject,setAddingProject]=useState(false);
   const [newProj,setNewProj]=useState({nombre:'',tipo:'marketing',estado:'En progreso'});
   const [editMonto,setEditMonto]=useState(false);
@@ -2671,7 +2672,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
                 {(()=>{
-                  const items=[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—',href:client.correo?`mailto:${client.correo}`:null},{l:'Teléfono',v:client.telefono||'—',href:client.telefono?`https://wa.me/${client.telefono.replace(/\D/g,'')}`:null},{l:'Cliente desde',v:client.createdAt},{l:'Estado',v:null}];
+                  const items=[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—',href:client.correo?`mailto:${client.correo}`:null},{l:'Teléfono',v:client.telefono||'—',href:client.telefono?`https://wa.me/${client.telefono.replace(/\D/g,'')}`:null},...(client.sector?[{l:'Sector',v:client.sector}]:[]),{l:'Cliente desde',v:client.createdAt},{l:'Estado',v:null}];
                   if(client.fechaPropuesta) items.push({l:'Propuesta enviada',v:client.fechaPropuesta});
                   if(client.expiryPropuesta){
                     const ep=new Date(client.expiryPropuesta);const now3=new Date();const epDays=Math.round((ep-now3)/(1000*60*60*24));
@@ -3517,7 +3518,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           <div style={{background:'#111',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'16px',padding:'32px',width:'100%',maxWidth:'400px'}}>
             <h3 style={{fontSize:'17px',fontWeight:'800',color:'#fff',marginBottom:'20px'}}>Editar Cliente</h3>
             <div style={{display:'flex',flexDirection:'column',gap:'14px',marginBottom:'20px'}}>
-              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'},{k:'telefono',l:'Teléfono',ph:'+57 300 000 0000'},{k:'expiryPropuesta',l:'Vencimiento propuesta',ph:'',type:'date'},{k:'fechaVencimiento',l:'Fecha venc. contrato',ph:'',type:'date'},{k:'followUpDate',l:'Próximo seguimiento',ph:'',type:'date'}].map(f=>(
+              {[{k:'contacto',l:'Contacto',ph:'Nombre'},{k:'correo',l:'Correo',ph:'email@empresa.com'},{k:'telefono',l:'Teléfono',ph:'+57 300 000 0000'},{k:'sector',l:'Sector / Industria',ph:'Salud, Moda, Tecnología…'},{k:'expiryPropuesta',l:'Vencimiento propuesta',ph:'',type:'date'},{k:'fechaVencimiento',l:'Fecha venc. contrato',ph:'',type:'date'},{k:'followUpDate',l:'Próximo seguimiento',ph:'',type:'date'}].map(f=>(
                 <div key={f.k}>
                   <label style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.35)',letterSpacing:'.1em',textTransform:'uppercase',display:'block',marginBottom:'6px',fontFamily:"'Inter',sans-serif"}}>{f.l}</label>
                   <input type={f.type||'text'} value={editData[f.k]||''} onChange={e=>setEditData(p=>({...p,[f.k]:e.target.value}))} placeholder={f.ph}
@@ -3612,7 +3613,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const [quickTaskTitle,setQuickTaskTitle]=useState('');
   const [quickTaskPrio,setQuickTaskPrio]=useState('media');
   const [showAddClient,setShowAddClient]=useState(false);
-  const [addForm,setAddForm]=useState({empresa:'',contacto:'',correo:'',telefono:'',servicios:[],estado:'Lead',montoContrato:0});
+  const [addForm,setAddForm]=useState({empresa:'',contacto:'',correo:'',telefono:'',sector:'',servicios:[],estado:'Lead',montoContrato:0});
   const [showImportCSV,setShowImportCSV]=useState(false);
   const [csvText,setCsvText]=useState('');
   const [csvPreview,setCsvPreview]=useState(null);
@@ -3703,6 +3704,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     }
     const newC=makeClient({empresa:addForm.empresa.trim(),contacto:addForm.contacto.trim(),correo:addForm.correo.trim(),servicios:addForm.servicios,asignadoA:isAdmin?null:currentUser?.id});
     newC.telefono=addForm.telefono.trim();
+    newC.sector=addForm.sector.trim();
     newC.estado=addForm.estado;
     newC.montoContrato=Number(addForm.montoContrato)||0;
     const all=clients_storage.load();
@@ -3710,7 +3712,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     const fresh=clients_storage.load();
     setClients(isAdmin?fresh:fresh.filter(c=>c.asignadoA===(currentUser&&currentUser.id)));
     setShowAddClient(false);
-    setAddForm({empresa:'',contacto:'',correo:'',telefono:'',servicios:[],estado:'Lead',montoContrato:0});
+    setAddForm({empresa:'',contacto:'',correo:'',telefono:'',sector:'',servicios:[],estado:'Lead',montoContrato:0});
     setSelectedClient(newC);
   };
   const quickStatus=(id,estado)=>{
@@ -3863,6 +3865,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                 <div><label className="lbl">Teléfono</label><input className="input-f" value={addForm.telefono} onChange={e=>setAddForm(f=>({...f,telefono:e.target.value}))} placeholder="+57 300 000 0000"/></div>
               </div>
               <div><label className="lbl">Correo</label><input className="input-f" type="email" value={addForm.correo} onChange={e=>setAddForm(f=>({...f,correo:e.target.value}))} placeholder="cliente@empresa.com"/></div>
+              <div><label className="lbl">Sector / Industria</label><input className="input-f" value={addForm.sector||''} onChange={e=>setAddForm(f=>({...f,sector:e.target.value}))} placeholder="Salud, Moda, Educación, Tecnología…"/></div>
               <div>
                 <label className="lbl">Servicios</label>
                 <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
@@ -4294,6 +4297,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                   <div style={{display:'flex',alignItems:'center',gap:'10px',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
                     {c.servicios?.map(s=><span key={s} style={{fontSize:'10.5px',fontWeight:'600',color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.05)',padding:'3px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif"}}>{SVC_LABELS[s]||s}</span>)}
                     {(c.tags||[]).map(tag=><span key={tag} onClick={e=>{e.stopPropagation();setTagFilter(tag);}} style={{fontSize:'10px',fontWeight:'600',color:GL_P3,background:'rgba(192,132,252,0.1)',border:'1px solid rgba(192,132,252,0.2)',padding:'2px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>#{tag}</span>)}
+                    {c.sector&&<span style={{fontSize:'10px',fontWeight:'600',color:'rgba(255,255,255,0.35)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',padding:'2px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif",cursor:'default'}}>{c.sector}</span>}
                     {proyTotal>0&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{proyDone}/{proyTotal} proyectos</span>}
                     {(()=>{const tier=clientTier(c);if(!tier)return null;return(<span title={`Tier: ${tier.label} — $${(c.montoContrato||0).toLocaleString('es-CO')}`} style={{display:'inline-flex',alignItems:'center',gap:'3px',padding:'2px 8px',borderRadius:'100px',background:tier.bg,border:`1px solid ${tier.border}`,cursor:'default',flexShrink:0}}><span style={{fontSize:'9px',color:tier.color}}>{tier.icon}</span><span style={{fontSize:'10px',fontWeight:'700',color:tier.color,fontFamily:"'Inter',sans-serif"}}>{tier.label}</span></span>);})()}
                     {(()=>{const h=clientHealth(c);return(<span title={`Salud: ${h.label} (${h.score}/100)\n${h.signals.join(' · ')}`} style={{display:'inline-flex',alignItems:'center',gap:'4px',padding:'2px 8px',borderRadius:'100px',background:`${h.color}14`,border:`1px solid ${h.color}40`,cursor:'default'}}>
