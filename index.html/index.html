@@ -5838,6 +5838,48 @@ function DashboardModule({onHome}){
             </div>
           );
         })()}
+        {/* Conversion Funnel */}
+        {(()=>{
+          const STAGES=['Lead','Propuesta enviada','Propuesta aceptada','Activo','Finalizado'];
+          const COLORS=['#9e9e9e','#fb923c','#38bdf8','#4ade80','#a78bfa'];
+          const counts=STAGES.map(s=>clients.filter(c=>c.estado===s).length);
+          const total=counts[0]||1;
+          if(clients.length===0) return null;
+          return(
+            <div className="glass" style={{padding:'24px',marginTop:'20px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'20px'}}>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',margin:0}}>Embudo de Conversión</p>
+                <span style={{fontSize:'11px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>{clients.length} clientes en total</span>
+              </div>
+              <div style={{display:'flex',alignItems:'flex-end',gap:'6px',height:'100px',marginBottom:'12px'}}>
+                {STAGES.map((s,i)=>{
+                  const pct=counts[0]>0?Math.round((counts[i]/counts[0])*100):0;
+                  const h=Math.max(8,Math.round((counts[i]/Math.max(...counts))*100));
+                  const conv=i>0&&counts[i-1]>0?Math.round((counts[i]/counts[i-1])*100):null;
+                  return(
+                    <div key={s} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'6px'}}>
+                      {conv!==null&&<span style={{fontSize:'9px',color:conv>=50?'#4ade80':conv>=25?'#fbbf24':'#f87171',fontWeight:'700',fontFamily:"'Inter',sans-serif",whiteSpace:'nowrap'}}>↓ {conv}%</span>}
+                      {conv===null&&<span style={{fontSize:'9px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>inicio</span>}
+                      <div style={{width:'100%',background:`${COLORS[i]}22`,border:`1px solid ${COLORS[i]}44`,borderRadius:'6px 6px 0 0',height:`${h}%`,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:'4px',transition:'height .4s ease',position:'relative',overflow:'hidden'}}>
+                        <div style={{position:'absolute',bottom:0,left:0,right:0,height:`${h}%`,background:`linear-gradient(180deg,${COLORS[i]}44,${COLORS[i]}22)`,borderRadius:'6px 6px 0 0'}}/>
+                        <span style={{fontSize:'14px',fontWeight:'800',color:COLORS[i],fontFamily:"'Inter',sans-serif",position:'relative',zIndex:1}}>{counts[i]}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{display:'flex',gap:'6px'}}>
+                {STAGES.map((s,i)=>(
+                  <div key={s} style={{flex:1,textAlign:'center'}}>
+                    <div style={{fontSize:'9px',fontWeight:'700',color:COLORS[i],fontFamily:"'Inter',sans-serif",letterSpacing:'.04em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s}</div>
+                    <div style={{fontSize:'9px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>{counts[0]>0?Math.round((counts[i]/counts[0])*100):0}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Revenue by service breakdown */}
         {(()=>{
           const SVC_CFG={marketing:{l:'Marketing Digital',c:WARM,icon:'📣'},ia:{l:'Inteligencia Artificial',c:AI_A,icon:'🤖'},web:{l:'Página Web',c:WEB_A,icon:'🌐'}};
