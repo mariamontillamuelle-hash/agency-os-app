@@ -2043,6 +2043,8 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
     followUpDate:'',
     tags:[],
     expiryPropuesta:'',
+    closeReason:'',
+    fechaFin:'',
   };
 }
 
@@ -2672,7 +2674,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
                 {(()=>{
-                  const items=[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—',href:client.correo?`mailto:${client.correo}`:null},{l:'Teléfono',v:client.telefono||'—',href:client.telefono?`https://wa.me/${client.telefono.replace(/\D/g,'')}`:null},...(client.sector?[{l:'Sector',v:client.sector}]:[]),{l:'Cliente desde',v:client.createdAt},{l:'Estado',v:null}];
+                  const items=[{l:'Empresa',v:client.empresa},{l:'Contacto',v:client.contacto||'—'},{l:'Correo',v:client.correo||'—',href:client.correo?`mailto:${client.correo}`:null},{l:'Teléfono',v:client.telefono||'—',href:client.telefono?`https://wa.me/${client.telefono.replace(/\D/g,'')}`:null},...(client.sector?[{l:'Sector',v:client.sector}]:[]),{l:'Cliente desde',v:client.createdAt},...(client.fechaFin?[{l:'Fecha fin',v:client.fechaFin}]:[]),...(client.closeReason?[{l:'Motivo cierre',v:client.closeReason}]:[]),{l:'Estado',v:null}];
                   if(client.fechaPropuesta) items.push({l:'Propuesta enviada',v:client.fechaPropuesta});
                   if(client.expiryPropuesta){
                     const ep=new Date(client.expiryPropuesta);const now3=new Date();const epDays=Math.round((ep-now3)/(1000*60*60*24));
@@ -3622,6 +3624,9 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const [bulkAction,setBulkAction]=useState('');
   const [tagFilter,setTagFilter]=useState(''); // '' | tag string
   const [sectorFilter,setSectorFilter]=useState(''); // '' | sector string
+  const [showReasonModal,setShowReasonModal]=useState(null); // null | {id, estado, prevEstado}
+  const [reasonType,setReasonType]=useState('won'); // 'won' | 'lost'
+  const [reasonText,setReasonText]=useState('');
   const searchInputRef=useRef(null);
   // Keyboard shortcuts
   useEffect(()=>{
@@ -3716,7 +3721,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     setAddForm({empresa:'',contacto:'',correo:'',telefono:'',sector:'',servicios:[],estado:'Lead',montoContrato:0});
     setSelectedClient(newC);
   };
-  const quickStatus=(id,estado)=>{
+  const applyQuickStatus=(id,estado,reason)=>{
     const all=clients_storage.load();
     const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
     const updated=all.map(c=>{
@@ -3725,6 +3730,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
       if(estado==='Propuesta enviada'&&!c.fechaPropuesta) dateFields.fechaPropuesta=now;
       if(estado==='Propuesta aceptada'&&!c.fechaAceptacion) dateFields.fechaAceptacion=now;
       if(estado==='Activo'&&!c.fechaCierre) dateFields.fechaCierre=now;
+      if(estado==='Finalizado'&&!c.fechaFin) dateFields.fechaFin=now;
       let extraTareas=[];let onboardingEntry=null;
       if(estado==='Activo'&&c.estado!=='Activo'&&c.estado!=='Finalizado'){
         const existing=(c.tareas||[]).map(t=>t.titulo.toLowerCase());
@@ -3733,10 +3739,23 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
       }
       const newTareas=extraTareas.length>0?[...extraTareas,...(c.tareas||[])]:(c.tareas||[]);
       const newHist=onboardingEntry?[...(c.historial||[]),onboardingEntry]:(c.historial||[]);
-      return{...c,estado,...dateFields,tareas:newTareas,historial:[...newHist,{fecha:now,descripcion:`Estado cambiado a ${estado}.`}]};
+      const histEntry={fecha:now,descripcion:`Estado cambiado a ${estado}.`};
+      const reasonEntry=reason?{fecha:now,tipo:'cierre',descripcion:reason}:null;
+      const finalHist=reasonEntry?[...newHist,histEntry,reasonEntry]:[...newHist,histEntry];
+      const closeFields=reason?{closeReason:reason}:{};
+      return{...c,estado,...dateFields,...closeFields,tareas:newTareas,historial:finalHist};
     });
     clients_storage.save(updated);
     setClients(isAdmin?updated:updated.filter(c=>c.asignadoA===(currentUser&&currentUser.id)));
+  };
+  const quickStatus=(id,estado)=>{
+    const cur=clients.find(c=>c.id===id);
+    if(estado==='Finalizado'&&cur&&cur.estado!=='Finalizado'){
+      setReasonType('won');setReasonText('');
+      setShowReasonModal({id,estado,prevEstado:cur.estado});
+    } else {
+      applyQuickStatus(id,estado,null);
+    }
   };
 
   if(selectedClient){
@@ -3853,6 +3872,45 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
 
   return(
     <div style={{minHeight:'100vh',background:'#080808',paddingBottom:'60px'}}>
+      {/* Won/Lost Reason Modal */}
+      {showReasonModal&&(
+        <div onClick={()=>setShowReasonModal(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:9100,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(8px)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:'420px',background:'#141414',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'16px',overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,0.9)'}}>
+            <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
+              <p style={{fontSize:'15px',fontWeight:'700',color:'#fff',fontFamily:"'Inter',sans-serif",margin:0}}>Marcar como Finalizado</p>
+              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',fontFamily:"'Inter',sans-serif",margin:'4px 0 0'}}>{(clients.find(c=>c.id===showReasonModal.id)||{}).empresa}</p>
+            </div>
+            <div style={{padding:'20px 24px',display:'flex',flexDirection:'column',gap:'16px'}}>
+              <div>
+                <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.35)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'10px'}}>Resultado</p>
+                <div style={{display:'flex',gap:'8px'}}>
+                  {[{k:'won',l:'✅ Ganado / Completado',c:'#4ade80'},{k:'lost',l:'❌ Perdido / Cancelado',c:'#f87171'}].map(opt=>(
+                    <button key={opt.k} onClick={()=>setReasonType(opt.k)}
+                      style={{flex:1,padding:'10px 12px',fontSize:'12.5px',fontWeight:'700',fontFamily:"'Inter',sans-serif",borderRadius:'10px',cursor:'pointer',border:`1px solid ${reasonType===opt.k?opt.c+'66':'rgba(255,255,255,0.1)'}`,background:reasonType===opt.k?opt.c+'15':'transparent',color:reasonType===opt.k?opt.c:'rgba(255,255,255,0.4)',transition:'all .15s'}}>
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.35)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",display:'block',marginBottom:'7px'}}>Motivo (opcional)</label>
+                <textarea className="input-f" value={reasonText} onChange={e=>setReasonText(e.target.value)} placeholder={reasonType==='won'?'Ej: Proyecto completado con éxito, renovación pendiente…':'Ej: Presupuesto, eligió otra agencia, sin respuesta…'} style={{minHeight:'72px',resize:'vertical'}} autoFocus/>
+              </div>
+              <div style={{display:'flex',gap:'8px',paddingTop:'4px'}}>
+                <button onClick={()=>setShowReasonModal(null)} style={{flex:1,padding:'10px',fontSize:'13px',fontFamily:"'Inter',sans-serif",borderRadius:'9px',border:'1px solid rgba(255,255,255,0.1)',background:'transparent',color:'rgba(255,255,255,0.4)',cursor:'pointer',fontWeight:'500'}}>Cancelar</button>
+                <button onClick={()=>{
+                  const typeLabel=reasonType==='won'?'✅ Ganado':'❌ Perdido';
+                  const reason=`${typeLabel}${reasonText.trim()?` — ${reasonText.trim()}`:''}`;
+                  applyQuickStatus(showReasonModal.id,showReasonModal.estado,reason);
+                  setShowReasonModal(null);setReasonText('');
+                }} style={{flex:2,padding:'10px',fontSize:'13px',fontWeight:'700',fontFamily:"'Inter',sans-serif",borderRadius:'9px',border:'none',background:reasonType==='won'?'rgba(74,222,128,0.15)':'rgba(248,113,113,0.15)',color:reasonType==='won'?'#4ade80':'#f87171',cursor:'pointer',transition:'all .15s'}}>
+                  Confirmar cierre
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Add Client Modal */}
       {showAddClient&&(
         <div onClick={()=>setShowAddClient(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(8px)'}}>
