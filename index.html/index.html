@@ -2563,7 +2563,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [notaText,setNotaText]=useState('');
   const [notaTipo,setNotaTipo]=useState('nota');
   // Tareas
-  const [tareaForm,setTareaForm]=useState({titulo:'',prioridad:'media',fechaLimite:'',responsable:''});
+  const [tareaForm,setTareaForm]=useState({titulo:'',prioridad:'media',fechaLimite:'',responsable:'',recurrencia:''});
   const [addingTarea,setAddingTarea]=useState(false);
   const [renewalFlash,setRenewalFlash]=useState(false);
   const [copyFlash,setCopyFlash]=useState(false);
@@ -3125,16 +3125,29 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
             const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
             const entry={fecha:now,tipo:'tarea',descripcion:`📋 Nueva tarea creada: "${tareaForm.titulo}"`};
             onUpdate({...client,tareas:[nueva,...tareas],historial:[...(client.historial||[]),entry]});
-            setTareaForm({titulo:'',prioridad:'media',fechaLimite:'',responsable:''});
+            setTareaForm({titulo:'',prioridad:'media',fechaLimite:'',responsable:'',recurrencia:''});
             setAddingTarea(false);
+          };
+          const nextRecurDate=(dateStr,rec)=>{
+            if(!dateStr||!rec)return '';
+            const d=new Date(dateStr);
+            if(rec==='semanal')d.setDate(d.getDate()+7);
+            else if(rec==='mensual')d.setMonth(d.getMonth()+1);
+            return d.toISOString().split('T')[0];
           };
           const toggleTarea=id=>{
             const t=tareas.find(x=>x.id===id);if(!t)return;
             const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
             const newCompletada=!t.completada;
-            const newTareas=tareas.map(x=>x.id===id?{...x,completada:newCompletada}:x);
+            let newTareas=tareas.map(x=>x.id===id?{...x,completada:newCompletada}:x);
+            let extraHistory=[];
+            if(newCompletada&&t.recurrencia){
+              const siguiente={id:Date.now().toString(),titulo:t.titulo,prioridad:t.prioridad,fechaLimite:nextRecurDate(t.fechaLimite,t.recurrencia),responsable:t.responsable||'',recurrencia:t.recurrencia,completada:false,createdAt:now};
+              newTareas=[siguiente,...newTareas];
+              extraHistory=[{fecha:now,tipo:'tarea',descripcion:`🔁 Tarea recurrente regenerada: "${t.titulo}"`}];
+            }
             const entry=newCompletada?{fecha:now,tipo:'tarea',descripcion:`✅ Tarea completada: "${t.titulo}"`}:null;
-            const newHist=entry?[...(client.historial||[]),entry]:(client.historial||[]);
+            const newHist=[...(client.historial||[]),...(entry?[entry]:[]),...extraHistory];
             onUpdate({...client,tareas:newTareas,historial:newHist});
           };
           const deleteTarea=id=>{if(!confirm('¿Eliminar tarea?'))return;onUpdate({...client,tareas:tareas.filter(t=>t.id!==id)});};
@@ -3169,10 +3182,19 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                       <input type="date" value={tareaForm.fechaLimite} onChange={e=>setTareaForm(p=>({...p,fechaLimite:e.target.value}))}
                         style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none',boxSizing:'border-box'}}/>
                     </div>
-                    <div style={{gridColumn:'1/-1'}}>
+                    <div>
                       <label style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.3)',display:'block',marginBottom:'5px',fontFamily:"'Inter',sans-serif"}}>Responsable</label>
                       <input value={tareaForm.responsable} onChange={e=>setTareaForm(p=>({...p,responsable:e.target.value}))} placeholder="Nombre del responsable"
                         style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'9px 12px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none',boxSizing:'border-box'}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:'11px',fontWeight:'600',color:'rgba(255,255,255,0.3)',display:'block',marginBottom:'5px',fontFamily:"'Inter',sans-serif"}}>Recurrencia</label>
+                      <select value={tareaForm.recurrencia} onChange={e=>setTareaForm(p=>({...p,recurrencia:e.target.value}))}
+                        style={{width:'100%',background:'#1a1a1a',border:`1px solid ${tareaForm.recurrencia?'rgba(168,85,247,0.4)':'rgba(255,255,255,0.1)'}`,borderRadius:'8px',padding:'9px 12px',color:tareaForm.recurrencia?GL_P3:'rgba(255,255,255,0.5)',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none'}}>
+                        <option value="">Sin recurrencia</option>
+                        <option value="semanal">🔁 Semanal</option>
+                        <option value="mensual">🔁 Mensual</option>
+                      </select>
                     </div>
                   </div>
                   <div style={{display:'flex',gap:'8px',justifyContent:'flex-end'}}>
@@ -3197,6 +3219,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                               <span style={{fontSize:'11px',padding:'1px 7px',background:`${p.c}22`,border:`1px solid ${p.c}44`,borderRadius:'4px',color:p.c,fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>{p.l}</span>
                               {t.fechaLimite&&<span style={{fontSize:'11px',color:overdue?'#f87171':'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{overdue?'⚠️ Vencida: ':''}{t.fechaLimite}</span>}
                               {t.responsable&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>👤 {t.responsable}</span>}
+                              {t.recurrencia&&<span style={{fontSize:'11px',padding:'1px 7px',background:'rgba(168,85,247,0.15)',border:'1px solid rgba(168,85,247,0.3)',borderRadius:'4px',color:GL_P3,fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>🔁 {t.recurrencia}</span>}
                             </div>
                           </div>
                           {isAdmin&&<button onClick={()=>deleteTarea(t.id)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.2)',cursor:'pointer',fontSize:'16px',padding:'0',flexShrink:0}} title="Eliminar">×</button>}
