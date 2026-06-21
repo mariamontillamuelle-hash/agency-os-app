@@ -1995,6 +1995,13 @@ function lastInteraction(c){
   return{days,label,color,bg,border};
 }
 
+function clientTier(c){
+  const m=c.montoContrato||0;
+  if(m>=3000) return{label:'VIP',color:'#f59e0b',bg:'rgba(245,158,11,0.1)',border:'rgba(245,158,11,0.3)',icon:'★'};
+  if(m>=1000) return{label:'Estándar',color:GL_P3,bg:'rgba(192,132,252,0.08)',border:'rgba(192,132,252,0.25)',icon:'◆'};
+  if(m>0)     return{label:'Básico',color:'rgba(255,255,255,0.4)',bg:'rgba(255,255,255,0.04)',border:'rgba(255,255,255,0.1)',icon:'·'};
+  return null;
+}
 function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=null,proposalData=null,asignadoA=null}){
   const now=new Date();
   const proyectos=servicios.filter(s=>s==='web').map(()=>({
@@ -2567,6 +2574,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           <div style={{width:'1px',height:'18px',background:'rgba(255,255,255,0.08)'}}/>
           <h1 style={{fontSize:'16px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em'}}>{client.empresa}</h1>
           <EstadoBadge estado={client.estado}/>
+          {(()=>{const tier=clientTier(client);if(!tier)return null;return(<span style={{display:'inline-flex',alignItems:'center',gap:'3px',padding:'3px 9px',borderRadius:'100px',background:tier.bg,border:`1px solid ${tier.border}`}}><span style={{fontSize:'9px',color:tier.color}}>{tier.icon}</span><span style={{fontSize:'10.5px',fontWeight:'700',color:tier.color,fontFamily:"'Inter',sans-serif"}}>{tier.label}</span></span>);})()}
         </div>
         <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
           {client.telefono&&<a href={`https://wa.me/${client.telefono.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" style={{padding:'7px 14px',background:'rgba(37,211,102,0.1)',border:'1px solid rgba(37,211,102,0.25)',borderRadius:'8px',color:'#25d366',fontSize:'12px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif",textDecoration:'none',display:'flex',alignItems:'center',gap:'6px',transition:'all .15s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(37,211,102,0.2)'}} onMouseLeave={e=>{e.currentTarget.style.background='rgba(37,211,102,0.1)'}}><svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2.098 21.9l4.85-1.272A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.96 7.96 0 01-4.065-1.112l-.29-.173-3.016.791.806-2.948-.19-.303A7.96 7.96 0 014 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8z"/></svg>WhatsApp</a>}
@@ -3439,6 +3447,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const [lastRefresh,setLastRefresh]=useState(null);
   const [viewMode,setViewMode]=useState('list'); // 'list' | 'kanban'
   const [svcFilter,setSvcFilter]=useState(''); // '' | 'marketing' | 'ia' | 'web'
+  const [tierFilter,setTierFilter]=useState(''); // '' | 'VIP' | 'Estándar' | 'Básico'
   const [empFilter,setEmpFilter]=useState(''); // '' | empId
   const [sortBy,setSortBy]=useState('reciente'); // 'reciente' | 'monto' | 'az'
   const [statusMenuId,setStatusMenuId]=useState(null);
@@ -3592,7 +3601,8 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     const matchSvc=!svcFilter||(c.servicios||[]).includes(svcFilter);
     const matchEmp=!empFilter||c.asignadoA===empFilter;
     const matchTag=!tagFilter||(c.tags||[]).includes(tagFilter);
-    return matchFilter&&matchSearch&&matchSvc&&matchEmp&&matchTag;
+    const matchTier=!tierFilter||(clientTier(c)?.label===tierFilter);
+    return matchFilter&&matchSearch&&matchSvc&&matchEmp&&matchTag&&matchTier;
   }).sort((a,b)=>{
     if(sortBy==='monto') return (b.montoContrato||0)-(a.montoContrato||0);
     if(sortBy==='az') return a.empresa.localeCompare(b.empresa);
@@ -3902,6 +3912,11 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
               <button key={s.k} onClick={()=>setSvcFilter(s.k)} style={{padding:'6px 11px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',cursor:'pointer',border:`1px solid ${svcFilter===s.k?(s.c?s.c+'66':'rgba(255,255,255,0.3)'):'rgba(255,255,255,0.07)'}`,background:svcFilter===s.k?(s.c?s.c+'18':'rgba(255,255,255,0.05)'):'transparent',color:svcFilter===s.k?(s.c||'#fff'):'rgba(255,255,255,0.3)',fontWeight:svcFilter===s.k?'700':'400',transition:'all .15s'}}>{s.l}</button>
             ))}
           </div>
+          <div style={{display:'flex',gap:'5px'}}>
+            {[{k:'',l:'Todos',c:null},{k:'VIP',l:'★ VIP',c:'#f59e0b'},{k:'Estándar',l:'◆ Est.',c:GL_P3},{k:'Básico',l:'· Básico',c:'rgba(255,255,255,0.4)'}].map(s=>(
+              <button key={s.k} onClick={()=>setTierFilter(s.k)} style={{padding:'6px 11px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',cursor:'pointer',border:`1px solid ${tierFilter===s.k?(s.c||'rgba(255,255,255,0.3)')+'66':'rgba(255,255,255,0.07)'}`,background:tierFilter===s.k?(s.c?s.c+'18':'rgba(255,255,255,0.05)'):'transparent',color:tierFilter===s.k?(s.c||'#fff'):'rgba(255,255,255,0.3)',fontWeight:tierFilter===s.k?'700':'400',transition:'all .15s'}}>{s.l}</button>
+            ))}
+          </div>
           {isAdmin&&allEmps.length>0&&(
             <select value={empFilter} onChange={e=>setEmpFilter(e.target.value)} style={{padding:'6px 10px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'8px',border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.6)',cursor:'pointer',outline:'none'}}>
               <option value=''>Todos los asesores</option>
@@ -3924,8 +3939,8 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
               ))}
             </div>
           )}
-          {(empFilter||svcFilter||filter!=='Todos'||search||tagFilter)&&(
-            <button onClick={()=>{setEmpFilter('');setSvcFilter('');setFilter('Todos');setSearch('');setTagFilter('');}} style={{padding:'6px 12px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',border:'1px solid rgba(248,113,113,0.3)',background:'rgba(248,113,113,0.08)',color:'#f87171',cursor:'pointer',fontWeight:'600',whiteSpace:'nowrap'}}>✕ Limpiar</button>
+          {(empFilter||svcFilter||filter!=='Todos'||search||tagFilter||tierFilter)&&(
+            <button onClick={()=>{setEmpFilter('');setSvcFilter('');setFilter('Todos');setSearch('');setTagFilter('');setTierFilter('');}} style={{padding:'6px 12px',fontSize:'11px',fontFamily:"'Inter',sans-serif",borderRadius:'100px',border:'1px solid rgba(248,113,113,0.3)',background:'rgba(248,113,113,0.08)',color:'#f87171',cursor:'pointer',fontWeight:'600',whiteSpace:'nowrap'}}>✕ Limpiar</button>
           )}
         </div>
 
@@ -4105,6 +4120,7 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                     {c.servicios?.map(s=><span key={s} style={{fontSize:'10.5px',fontWeight:'600',color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.05)',padding:'3px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif"}}>{SVC_LABELS[s]||s}</span>)}
                     {(c.tags||[]).map(tag=><span key={tag} onClick={e=>{e.stopPropagation();setTagFilter(tag);}} style={{fontSize:'10px',fontWeight:'600',color:GL_P3,background:'rgba(192,132,252,0.1)',border:'1px solid rgba(192,132,252,0.2)',padding:'2px 8px',borderRadius:'100px',fontFamily:"'Inter',sans-serif",cursor:'pointer'}}>#{tag}</span>)}
                     {proyTotal>0&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>{proyDone}/{proyTotal} proyectos</span>}
+                    {(()=>{const tier=clientTier(c);if(!tier)return null;return(<span title={`Tier: ${tier.label} — $${(c.montoContrato||0).toLocaleString('es-CO')}`} style={{display:'inline-flex',alignItems:'center',gap:'3px',padding:'2px 8px',borderRadius:'100px',background:tier.bg,border:`1px solid ${tier.border}`,cursor:'default',flexShrink:0}}><span style={{fontSize:'9px',color:tier.color}}>{tier.icon}</span><span style={{fontSize:'10px',fontWeight:'700',color:tier.color,fontFamily:"'Inter',sans-serif"}}>{tier.label}</span></span>);})()}
                     {(()=>{const h=clientHealth(c);return(<span title={`Salud: ${h.label} (${h.score}/100)\n${h.signals.join(' · ')}`} style={{display:'inline-flex',alignItems:'center',gap:'4px',padding:'2px 8px',borderRadius:'100px',background:`${h.color}14`,border:`1px solid ${h.color}40`,cursor:'default'}}>
                       <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill={h.color}/></svg>
                       <span style={{fontSize:'10.5px',fontWeight:'700',color:h.color,fontFamily:"'Inter',sans-serif"}}>{h.score}</span>
