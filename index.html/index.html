@@ -2032,6 +2032,8 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
     proposalData,
     asignadoA,
     montoContrato:0,
+    esRecurrente:false,
+    montoMensual:0,
     comisionPagada:false,
     notas:[],
     tareas:[],
@@ -2766,6 +2768,29 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                       <button onClick={()=>{setMontoVal(client.montoContrato||0);setEditMonto(true);}} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'6px',color:'rgba(255,255,255,0.3)',fontSize:'11px',padding:'4px 8px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>Editar</button>
                     </div>
                   )}
+                </div>
+                <div style={{paddingTop:'10px',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'8px'}}>
+                    <p style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',margin:0,fontFamily:"'Inter',sans-serif"}}>Ingreso recurrente (MRR)</p>
+                    <button onClick={()=>onUpdate({...client,esRecurrente:!client.esRecurrente})} style={{padding:'3px 10px',background:client.esRecurrente?'rgba(52,211,153,0.12)':'rgba(255,255,255,0.04)',border:`1px solid ${client.esRecurrente?'rgba(52,211,153,0.3)':'rgba(255,255,255,0.1)'}`,borderRadius:'100px',color:client.esRecurrente?'#34d399':'rgba(255,255,255,0.3)',fontSize:'11px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",transition:'all .15s'}}>{client.esRecurrente?'✓ Recurrente':'Sin MRR'}</button>
+                  </div>
+                  {client.esRecurrente&&(()=>{
+                    const [editMRR,setEditMRR]=React.useState(false);
+                    const [mrrVal,setMrrVal]=React.useState(client.montoMensual||0);
+                    return editMRR?(
+                      <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
+                        <span style={{fontSize:'11px',color:'rgba(255,255,255,0.4)',fontFamily:"'Inter',sans-serif"}}>$/mes</span>
+                        <input type="number" value={mrrVal} onChange={e=>setMrrVal(Number(e.target.value))} style={{flex:1,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(52,211,153,0.35)',borderRadius:'7px',padding:'6px 10px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none'}}/>
+                        <button onClick={()=>{onUpdate({...client,montoMensual:mrrVal});setEditMRR(false);}} style={{padding:'6px 12px',background:'rgba(52,211,153,0.15)',border:'1px solid rgba(52,211,153,0.35)',borderRadius:'7px',color:'#34d399',fontSize:'12px',fontWeight:'700',cursor:'pointer'}}>✓</button>
+                        <button onClick={()=>{setMrrVal(client.montoMensual||0);setEditMRR(false);}} style={{padding:'6px 10px',background:'transparent',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'7px',color:'rgba(255,255,255,0.3)',fontSize:'12px',cursor:'pointer'}}>✕</button>
+                      </div>
+                    ):(
+                      <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                        <span style={{fontSize:'18px',fontWeight:'800',color:'#34d399',fontFamily:"'Inter',sans-serif"}}>${(client.montoMensual||0).toLocaleString('es-CO')}/mes</span>
+                        <button onClick={()=>{setMrrVal(client.montoMensual||0);setEditMRR(true);}} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'6px',color:'rgba(255,255,255,0.3)',fontSize:'11px',padding:'3px 7px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>Editar</button>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div style={{paddingTop:'10px',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
                   <p style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',marginBottom:'4px',fontFamily:"'Inter',sans-serif"}}>Comisión del vendedor (50%)</p>
@@ -5263,6 +5288,7 @@ function DashboardModule({onHome}){
   const totalMonto=clients.reduce((s,c)=>s+(c.montoContrato||0),0);
   const comisionesPend=clients.filter(c=>!c.comisionPagada&&(c.montoContrato||0)>0).reduce((s,c)=>s+(c.montoContrato||0)*0.5,0);
   const comisionesPagas=clients.filter(c=>c.comisionPagada).reduce((s,c)=>s+(c.montoContrato||0)*0.5,0);
+  const mrr=clients.filter(c=>c.esRecurrente&&(c.montoMensual||0)>0&&c.estado==='Activo').reduce((s,c)=>s+(c.montoMensual||0),0);
 
   // Pipeline
   const STAGES=['Lead','Propuesta enviada','Propuesta aceptada','Activo','Finalizado'];
@@ -5309,9 +5335,10 @@ function DashboardModule({onHome}){
 
       <div style={{maxWidth:'1200px',margin:'0 auto',padding:'32px'}}>
         {/* KPI row */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'14px',marginBottom:'24px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:'14px',marginBottom:'24px'}}>
           {[
             {l:'Ingresos totales',v:`$${totalMonto.toLocaleString('es-CO')}`,c:DB_A,sub:`${clients.length} clientes`},
+            {l:'MRR',v:mrr>0?`$${mrr.toLocaleString('es-CO')}/mes`:'—',c:'#34d399',sub:`${clients.filter(c=>c.esRecurrente&&c.estado==='Activo').length} recurrentes`},
             {l:'Comisiones pendientes',v:`$${comisionesPend.toLocaleString('es-CO')}`,c:'#f472b6',sub:'Por pagar al equipo'},
             {l:'Comisiones pagadas',v:`$${comisionesPagas.toLocaleString('es-CO')}`,c:'#34d399',sub:'Historial pagado'},
             {l:'Tasa de conversión',v:`${convRate}%`,c:CL_A,sub:'Lead → Activo/Finalizado'},
