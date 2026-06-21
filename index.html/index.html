@@ -3608,6 +3608,9 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
   const [empFilter,setEmpFilter]=useState(''); // '' | empId
   const [sortBy,setSortBy]=useState('reciente'); // 'reciente' | 'monto' | 'az'
   const [statusMenuId,setStatusMenuId]=useState(null);
+  const [quickTaskId,setQuickTaskId]=useState(null);
+  const [quickTaskTitle,setQuickTaskTitle]=useState('');
+  const [quickTaskPrio,setQuickTaskPrio]=useState('media');
   const [showAddClient,setShowAddClient]=useState(false);
   const [addForm,setAddForm]=useState({empresa:'',contacto:'',correo:'',telefono:'',servicios:[],estado:'Lead',montoContrato:0});
   const [showImportCSV,setShowImportCSV]=useState(false);
@@ -4320,6 +4323,21 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
                               <span style={{width:'14px',color:CL_A,fontSize:'11px'}}>{c.estado===es?'✓':''}</span>{es}
                             </div>
                           ))}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{position:'relative'}} onClick={e=>e.stopPropagation()}>
+                      <button onClick={()=>{setQuickTaskId(quickTaskId===c.id?null:c.id);setQuickTaskTitle('');setQuickTaskPrio('media');}} title="Añadir tarea rápida" style={{background:'rgba(56,189,248,0.07)',border:'1px solid rgba(56,189,248,0.18)',borderRadius:'6px',color:'rgba(56,189,248,0.7)',fontSize:'10px',padding:'4px 8px',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:'600',whiteSpace:'nowrap',transition:'all .15s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(56,189,248,0.18)';e.currentTarget.style.color='#38bdf8';}} onMouseLeave={e=>{e.currentTarget.style.background='rgba(56,189,248,0.07)';e.currentTarget.style.color='rgba(56,189,248,0.7)';}}>+ Tarea</button>
+                      {quickTaskId===c.id&&(
+                        <div style={{position:'absolute',bottom:'calc(100% + 6px)',right:0,zIndex:300,background:'#1a1a1a',border:'1px solid rgba(56,189,248,0.3)',borderRadius:'10px',padding:'12px',minWidth:'240px',boxShadow:'0 12px 40px rgba(0,0,0,0.7)'}}>
+                          <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.4)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:'8px',fontFamily:"'Inter',sans-serif"}}>Nueva tarea — {c.empresa}</p>
+                          <input autoFocus value={quickTaskTitle} onChange={e=>setQuickTaskTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Escape'){setQuickTaskId(null);return;}if(e.key==='Enter'&&quickTaskTitle.trim()){const now=new Date();const fechaStr=now.toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});const nueva={id:Date.now().toString(),titulo:quickTaskTitle.trim(),prioridad:quickTaskPrio,fechaLimite:'',responsable:'',completada:false,createdAt:fechaStr};const entry={fecha:fechaStr,tipo:'tarea',descripcion:`📋 Tarea rápida: "${nueva.titulo}"`};const all=clients_storage.load();const updated=all.map(x=>x.id===c.id?{...x,tareas:[nueva,...(x.tareas||[])],historial:[...(x.historial||[]),entry]}:x);clients_storage.save(updated);setClients(prev=>prev.map(x=>x.id===c.id?{...x,tareas:[nueva,...(x.tareas||[])],historial:[...(x.historial||[]),entry]}:x));setQuickTaskId(null);setQuickTaskTitle('');}}} placeholder="Título de la tarea (Enter para guardar)" style={{width:'100%',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(56,189,248,0.25)',borderRadius:'7px',padding:'8px 10px',color:'#fff',fontSize:'12.5px',fontFamily:"'Inter',sans-serif",outline:'none',boxSizing:'border-box',marginBottom:'8px'}}/>
+                          <div style={{display:'flex',gap:'6px',marginBottom:'8px'}}>
+                            {['alta','media','baja'].map(p=>(
+                              <button key={p} onClick={()=>setQuickTaskPrio(p)} style={{flex:1,padding:'4px',background:quickTaskPrio===p?({'alta':'rgba(248,113,113,0.15)','media':'rgba(251,191,36,0.12)','baja':'rgba(74,222,128,0.1)'}[p]):'rgba(255,255,255,0.04)',border:`1px solid ${quickTaskPrio===p?({'alta':'rgba(248,113,113,0.4)','media':'rgba(251,191,36,0.35)','baja':'rgba(74,222,128,0.25)'}[p]):'rgba(255,255,255,0.1)'}`,borderRadius:'6px',color:quickTaskPrio===p?({'alta':'#f87171','media':'#fbbf24','baja':'#4ade80'}[p]):'rgba(255,255,255,0.3)',fontSize:'10.5px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",textTransform:'capitalize'}}>{p}</button>
+                            ))}
+                          </div>
+                          <p style={{fontSize:'10px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>↵ Enter para guardar · Esc para cerrar</p>
                         </div>
                       )}
                     </div>
