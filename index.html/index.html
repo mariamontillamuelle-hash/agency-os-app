@@ -313,6 +313,45 @@ function FormView({initial,editingId,onGenerate,onLibrary,savedCount,onHome}){
           <p className="s-head">Configuración de Propuesta</p>
           <div style={{marginBottom:'18px'}}><label className="lbl">Responsable de Comunicaciones *</label><select className="input-f" style={{maxWidth:'320px'}} value={f.responsable} onChange={set('responsable')}><option value="">Seleccionar...</option>{RESPONSABLES.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
           <div style={{marginBottom:'18px'}}><label className="lbl">Planes a presentar (puedes seleccionar hasta los tres) *</label><ChkGroup items={PLAN_OPTS} selected={f.planes} onChange={arr('planes')}/></div>
+          {f.planes.length>0&&(
+            <div style={{marginBottom:'18px',background:'rgba(168,85,247,0.04)',border:'1px solid rgba(168,85,247,0.15)',borderRadius:'10px',padding:'16px'}}>
+              <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(168,85,247,0.8)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'14px'}}>✏️ Personalizar planes para esta propuesta</p>
+              <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+                {f.planes.map(plan=>{
+                  const def=PLAN_DATA[plan];
+                  const custPrices=f.customPlanPrices||{};
+                  const custFeatures=f.customPlanFeatures||{};
+                  const custNames=f.customPlanNames||{};
+                  const features=custFeatures[plan]!==undefined?custFeatures[plan]:[...def.features];
+                  return(
+                    <div key={plan} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(168,85,247,0.12)',borderRadius:'8px',padding:'14px'}}>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'12px'}}>
+                        <div>
+                          <label style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",textTransform:'uppercase',letterSpacing:'.06em',display:'block',marginBottom:'4px'}}>Nombre del plan</label>
+                          <input className="input-f" value={custNames[plan]!==undefined?custNames[plan]:plan} onChange={e=>setF(p=>({...p,customPlanNames:{...(p.customPlanNames||{}),[plan]:e.target.value}}))} placeholder={plan} style={{fontSize:'13px'}}/>
+                        </div>
+                        <div>
+                          <label style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",textTransform:'uppercase',letterSpacing:'.06em',display:'block',marginBottom:'4px'}}>Precio / mes</label>
+                          <input className="input-f" value={custPrices[plan]!==undefined?custPrices[plan]:def.price} onChange={e=>setF(p=>({...p,customPlanPrices:{...(p.customPlanPrices||{}),[plan]:e.target.value}}))} placeholder={def.price} style={{fontSize:'13px'}}/>
+                        </div>
+                      </div>
+                      <label style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",textTransform:'uppercase',letterSpacing:'.06em',display:'block',marginBottom:'6px'}}>Características incluidas</label>
+                      <div style={{display:'flex',flexDirection:'column',gap:'5px',marginBottom:'8px'}}>
+                        {features.map((ft,i)=>(
+                          <div key={i} style={{display:'flex',gap:'6px',alignItems:'center'}}>
+                            <input className="input-f" value={ft} onChange={e=>{const nf=[...features];nf[i]=e.target.value;setF(p=>({...p,customPlanFeatures:{...(p.customPlanFeatures||{}),[plan]:nf}}));}} style={{fontSize:'12px',padding:'5px 8px',flex:1}}/>
+                            <button onClick={()=>{const nf=features.filter((_,j)=>j!==i);setF(p=>({...p,customPlanFeatures:{...(p.customPlanFeatures||{}),[plan]:nf}}));}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:'6px',color:'#f87171',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,fontSize:'15px',lineHeight:1}}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={()=>{const nf=[...features,'Nueva característica'];setF(p=>({...p,customPlanFeatures:{...(p.customPlanFeatures||{}),[plan]:nf}}));}} style={{background:'rgba(168,85,247,0.1)',border:'1px solid rgba(168,85,247,0.25)',borderRadius:'6px',color:'rgba(168,85,247,0.8)',padding:'5px 12px',fontSize:'11px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>+ Añadir característica</button>
+                    </div>
+                  );
+                })}
+              </div>
+              <p style={{fontSize:'10.5px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif",marginTop:'10px'}}>Los cambios aplican solo a esta propuesta</p>
+            </div>
+          )}
           <div><label className="lbl">Servicios adicionales</label><ChkGroup items={EXTRAS} selected={f.extras} onChange={arr('extras')}/></div>
         </div>
         <div style={{display:'flex',justifyContent:'flex-end',paddingTop:'8px'}}><button className="btn-main" onClick={submit} style={{padding:'14px 40px',fontSize:'15px'}}>{editingId?'Actualizar propuesta →':'Generar propuesta →'}</button></div>
@@ -971,17 +1010,20 @@ function ProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
       <div style={{display:'grid',gridTemplateColumns:`repeat(${planes.length},1fr)`,gap:'0',marginBottom:'20px',flex:1}}>
         {planes.map((name,pi)=>{
           const info=PLAN_DATA[name];const isMain=name===mainPlan||planes.length===1;
+          const displayPrice=(data.customPlanPrices&&data.customPlanPrices[name])||info.price;
+          const displayName=(data.customPlanNames&&data.customPlanNames[name])||name;
+          const displayFeatures=(data.customPlanFeatures&&data.customPlanFeatures[name])||info.features;
           return(
             <div key={name} style={{background: isMain?'#1e1e1e':'#141414',padding:'28px 24px',borderRight:'1px solid rgba(255,255,255,0.06)',display:'flex',flexDirection:'column',justifyContent:'flex-start',position:'relative',borderTop: isMain?`3px solid ${WARM}`:'3px solid transparent'}}>
               {isMain&&planes.length>1&&<span style={{position:'absolute',top:'12px',right:'12px',background:WARM,color:'#0a0a0a',fontSize:'9px',fontWeight:'800',padding:'2px 8px',letterSpacing:'.06em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif"}}>Recomendado</span>}
               <p style={{fontSize:'10px',fontWeight:'700',letterSpacing:'.1em',textTransform:'uppercase',color:isMain?WARM:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif",marginBottom:'6px'}}>Plan</p>
-              <STit size={26} style={{marginBottom:'4px',fontWeight:700}}>{name}</STit>
+              <STit size={26} style={{marginBottom:'4px',fontWeight:700}}>{displayName}</STit>
               <div style={{display:'flex',alignItems:'baseline',gap:'4px',marginBottom:'18px',paddingBottom:'16px',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
-                <STit size={30} style={{color: isMain?'#fff':'rgba(255,255,255,0.6)',fontWeight:800}}>{info.price}</STit>
+                <STit size={30} style={{color: isMain?'#fff':'rgba(255,255,255,0.6)',fontWeight:800}}>{displayPrice}</STit>
                 <span style={{fontSize:'12px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif"}}>/{info.freq}</span>
               </div>
-              {info.features.map((ft,i)=>(
-                <div key={i} style={{display:'flex',gap:'10px',alignItems:'flex-start',padding:'8px 0',borderBottom:i<info.features.length-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
+              {displayFeatures.map((ft,i)=>(
+                <div key={i} style={{display:'flex',gap:'10px',alignItems:'flex-start',padding:'8px 0',borderBottom:i<displayFeatures.length-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
                   <span style={{width:'14px',height:'14px',flexShrink:0,marginTop:'1px',display:'flex',alignItems:'center',justifyContent:'center'}}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L4.5 8.5L10 3" stroke={isMain?WARM:'rgba(255,255,255,0.3)'} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </span>
@@ -1045,7 +1087,7 @@ function ProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
           <div key={p} style={{padding:'16px 28px',background: i===0?'#1a1a1a':i===1?WARM:WARM2,borderRight:'1px solid rgba(255,255,255,0.06)'}}>
             <p style={{fontSize:'10px',color: i===0?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.45)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:'4px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Plan</p>
             <STit size={20} style={{color: i===0?'#fff':'#0a0a0a',fontWeight:700}}>{p}</STit>
-            <p style={{fontSize:'16px',fontWeight:'700',color: i===0?WARM:'rgba(0,0,0,0.6)',fontFamily:"'Playfair Display',serif"}}>{PLAN_DATA[p].price}<span style={{fontSize:'11px',fontFamily:"'Inter',sans-serif",color: i===0?'rgba(255,255,255,0.25)':'rgba(0,0,0,0.35)'}}>/mes</span></p>
+            <p style={{fontSize:'16px',fontWeight:'700',color: i===0?WARM:'rgba(0,0,0,0.6)',fontFamily:"'Playfair Display',serif"}}>{(data.customPlanPrices&&data.customPlanPrices[p])||PLAN_DATA[p].price}<span style={{fontSize:'11px',fontFamily:"'Inter',sans-serif",color: i===0?'rgba(255,255,255,0.25)':'rgba(0,0,0,0.35)'}}>/mes</span></p>
           </div>
         ))}
       </div>
@@ -1262,9 +1304,15 @@ function AIProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
   const [expProgress,setExpProgress]=useState(0);
   const [acceptOpen,setAcceptOpen]=useState(false);
 
-  const selPkgs=(data.pkgs&&data.pkgs.length>0?data.pkgs:['conector']).map(id=>AI_PKGS.find(p=>p.id===id)).filter(Boolean);
+  const selPkgs=(data.pkgs&&data.pkgs.length>0?data.pkgs:['conector']).map(id=>{const p=AI_PKGS.find(x=>x.id===id);if(!p)return null;const custSvcs=data.customPkgServices&&data.customPkgServices[id];return custSvcs?{...p,services:custSvcs}:p;}).filter(Boolean);
   const pkgNames=selPkgs.map(p=>p.name).join(' + ');
-  const {impl:totalImpl,monthly:totalMonthly}=calcAIPrice(data.pkgs||['conector'],data.appPrecioImpl||'',data.fidelizacionClientes||'<=500');
+  const {impl:rawImpl,monthly:rawMonthly}=calcAIPrice(data.pkgs||['conector'],data.appPrecioImpl||'',data.fidelizacionClientes||'<=500');
+  const custPkg=data.customPkgPrices||{};
+  const nonAppPkgs=(data.pkgs||['conector']).filter(id=>id!=='app');
+  const hasCustI=nonAppPkgs.some(id=>custPkg[id]?.impl!==undefined);
+  const hasCustM=nonAppPkgs.some(id=>custPkg[id]?.monthly!==undefined);
+  const totalImpl=hasCustI?nonAppPkgs.reduce((s,id)=>s+(custPkg[id]?.impl!==undefined?custPkg[id].impl:0),0)+(parseInt(data.appPrecioImpl)||0):rawImpl;
+  const totalMonthly=hasCustM?nonAppPkgs.reduce((s,id)=>s+(custPkg[id]?.monthly!==undefined?custPkg[id].monthly:0),0):rawMonthly;
   const hasApp=!!(data.pkgs||[]).includes('app');
   const individualImplSum=selPkgs.reduce((s,pkg)=>{if(pkg.id==='app')return s+(parseInt(data.appPrecioImpl)||0);return s+(pkg.impl||0);},0);
   const hasComboDiscount=selPkgs.length>1&&individualImplSum>totalImpl&&totalImpl>0;
@@ -1687,7 +1735,22 @@ function AIFormView({initial,editingId,onGenerate,onLibrary,savedCount,onHome}){
   const togglePkg=id=>setF(p=>({...p,pkgs:p.pkgs.includes(id)?p.pkgs.filter(x=>x!==id):[...p.pkgs,id]}));
   const hasApp=(f.pkgs||[]).includes('app');
   const hasFidel=(f.pkgs||[]).includes('fidelizacion');
-  const pricing=calcAIPrice(f.pkgs||[],f.appPrecioImpl||'',f.fidelizacionClientes||'<=500');
+  const pricingRaw=calcAIPrice(f.pkgs||[],f.appPrecioImpl||'',f.fidelizacionClientes||'<=500');
+  // Apply custom pkg prices if set
+  const pricing=(()=>{
+    const cust=f.customPkgPrices||{};
+    const nonApp=(f.pkgs||[]).filter(id=>id!=='app');
+    if(Object.keys(cust).length===0) return pricingRaw;
+    let impl=pricingRaw.impl;let monthly=pricingRaw.monthly;
+    // override impl: use custom combo or sum of custom individual
+    const custImpl=nonApp.reduce((s,id)=>s+(cust[id]?.impl!==undefined?cust[id].impl:0),0);
+    const hasCustImpl=nonApp.some(id=>cust[id]?.impl!==undefined);
+    if(hasCustImpl) impl=custImpl+(parseInt(f.appPrecioImpl)||0);
+    const custMonthly=nonApp.reduce((s,id)=>s+(cust[id]?.monthly!==undefined?cust[id].monthly:0),0);
+    const hasCustMonthly=nonApp.some(id=>cust[id]?.monthly!==undefined);
+    if(hasCustMonthly) monthly=custMonthly;
+    return{impl,monthly};
+  })();
   const submit=()=>{
     if(!f.empresa||!f.desafio||!f.objetivo){alert('Los campos empresa, desafío y objetivo son obligatorios.');return;}
     if(!f.pkgs||f.pkgs.length===0){alert('Selecciona al menos un paquete.');return;}
@@ -1747,6 +1810,46 @@ function AIFormView({initial,editingId,onGenerate,onLibrary,savedCount,onHome}){
               );
             })}
           </div>
+          {/* Custom pkg editor: prices + features */}
+          {(f.pkgs||[]).filter(id=>id!=='app').length>0&&(
+            <div style={{background:'rgba(56,189,248,0.04)',border:'1px solid rgba(56,189,248,0.15)',borderRadius:'10px',padding:'16px',marginTop:'8px'}}>
+              <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(56,189,248,0.8)',letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'14px'}}>✏️ Personalizar paquetes para esta propuesta</p>
+              <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+                {(f.pkgs||[]).filter(id=>id!=='app').map(id=>{
+                  const pkg=AI_PKGS.find(x=>x.id===id);if(!pkg)return null;
+                  const cust=f.customPkgPrices||{};
+                  const custSvcs=f.customPkgServices||{};
+                  const svcs=custSvcs[id]!==undefined?custSvcs[id]:[...pkg.services];
+                  return(
+                    <div key={id} style={{background:'rgba(255,255,255,0.03)',border:`1px solid ${pkg.color}33`,borderRadius:'8px',padding:'14px'}}>
+                      <p style={{fontSize:'12px',fontWeight:'700',color:pkg.color,marginBottom:'10px',fontFamily:"'Inter',sans-serif"}}>{pkg.name}</p>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'12px'}}>
+                        <div>
+                          <label style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",textTransform:'uppercase',letterSpacing:'.06em',display:'block',marginBottom:'3px'}}>Implementación (€)</label>
+                          <input type="number" className="input-f" value={cust[id]?.impl!==undefined?cust[id].impl:pkg.impl||''} onChange={e=>setF(p=>({...p,customPkgPrices:{...(p.customPkgPrices||{}),[id]:{...(p.customPkgPrices?.[id]||{}),impl:Number(e.target.value)}}}))} placeholder={String(pkg.impl||'')} style={{fontSize:'12px',padding:'6px 8px'}}/>
+                        </div>
+                        <div>
+                          <label style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",textTransform:'uppercase',letterSpacing:'.06em',display:'block',marginBottom:'3px'}}>Mensual (€)</label>
+                          <input type="number" className="input-f" value={cust[id]?.monthly!==undefined?cust[id].monthly:pkg.id==='fidelizacion'?(f.fidelizacionClientes==='>500'?250:150):(pkg.monthly||'')} onChange={e=>setF(p=>({...p,customPkgPrices:{...(p.customPkgPrices||{}),[id]:{...(p.customPkgPrices?.[id]||{}),monthly:Number(e.target.value)}}}))} placeholder={String(pkg.monthly||'')} style={{fontSize:'12px',padding:'6px 8px'}}/>
+                        </div>
+                      </div>
+                      <label style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",textTransform:'uppercase',letterSpacing:'.06em',display:'block',marginBottom:'6px'}}>Servicios incluidos</label>
+                      <div style={{display:'flex',flexDirection:'column',gap:'5px',marginBottom:'8px'}}>
+                        {svcs.map((s,si)=>(
+                          <div key={si} style={{display:'flex',gap:'6px',alignItems:'center'}}>
+                            <input className="input-f" value={s} onChange={e=>{const ns=[...svcs];ns[si]=e.target.value;setF(p=>({...p,customPkgServices:{...(p.customPkgServices||{}),[id]:ns}}));}} style={{fontSize:'12px',padding:'5px 8px',flex:1}}/>
+                            <button onClick={()=>{const ns=svcs.filter((_,j)=>j!==si);setF(p=>({...p,customPkgServices:{...(p.customPkgServices||{}),[id]:ns}}));}} style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.25)',borderRadius:'6px',color:'#f87171',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,fontSize:'15px',lineHeight:1}}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={()=>{const ns=[...svcs,'Nuevo servicio'];setF(p=>({...p,customPkgServices:{...(p.customPkgServices||{}),[id]:ns}}));}} style={{background:`rgba(56,189,248,0.1)`,border:`1px solid rgba(56,189,248,0.25)`,borderRadius:'6px',color:'rgba(56,189,248,0.8)',padding:'5px 12px',fontSize:'11px',fontWeight:'600',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>+ Añadir servicio</button>
+                    </div>
+                  );
+                })}
+              </div>
+              <p style={{fontSize:'10.5px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif",marginTop:'10px'}}>Los cambios aplican solo a esta propuesta</p>
+            </div>
+          )}
           {/* App a Medida custom price */}
           {hasApp&&(
             <div style={{padding:'16px 18px',background:'rgba(129,140,248,0.06)',border:'1px solid rgba(129,140,248,0.2)',borderRadius:'4px',marginTop:'4px'}}>
@@ -2231,6 +2334,7 @@ ${sep2}`;
 function WebFormView({onGenerate,onHome}){
   const E0={empresa:'',sector:'',descripcion:'',objetivo:'',secciones:[],estilo:'',referencias:'',publicoObjetivo:'',competidores:'',mensajesClave:'',ctaPrincipal:'',logoFile:null,coloresSeleccionados:[],seccionesSpec:{},otraSeccion:'',otraSeccionInput:''};
   const [f,setF]=useState(E0);
+  const [hexVal,setHexVal]=useState('');
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const togSec=s=>setF(p=>({...p,secciones:p.secciones.includes(s)?p.secciones.filter(x=>x!==s):[...p.secciones,s]}));
   const addOtra=()=>{const v=f.otraSeccionInput.trim();if(!v)return;setF(p=>({...p,otraSeccion:v,otraSeccionInput:''}));};
@@ -2372,13 +2476,13 @@ function WebFormView({onGenerate,onHome}){
             </div>
             <span style={{fontSize:'11px',fontWeight:'700',color:f.coloresSeleccionados.length>=4?WEB_A:'rgba(255,255,255,0.2)',background:f.coloresSeleccionados.length>=4?'rgba(167,139,250,0.1)':'rgba(255,255,255,0.04)',border:`1px solid ${f.coloresSeleccionados.length>=4?'rgba(167,139,250,0.3)':'rgba(255,255,255,0.07)'}`,borderRadius:'100px',padding:'3px 10px',fontFamily:"'Inter',sans-serif",flexShrink:0,marginTop:'2px'}}>{f.coloresSeleccionados.length}/4</span>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:'5px',marginBottom:'16px'}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(10,1fr)',gap:'4px',marginBottom:'12px'}}>
             {CP.map(c=>{
               const isSel=!!f.coloresSeleccionados.find(x=>x.h===c.h);
               const isDisabled=!isSel&&f.coloresSeleccionados.length>=4;
               return(
                 <button key={c.h} title={`${c.n} — ${c.h}`} onClick={()=>!isDisabled&&togColor(c)}
-                  style={{width:'100%',aspectRatio:'1',background:c.h,borderRadius:'5px',border:isSel?'2.5px solid #fff':'2px solid transparent',cursor:isDisabled?'not-allowed':'pointer',opacity:isDisabled?0.3:1,position:'relative',transition:'transform .1s,border .1s',boxSizing:'border-box',transform:isSel?'scale(1.08)':'scale(1)'}}>
+                  style={{width:'100%',aspectRatio:'1',background:c.h,borderRadius:'4px',border:isSel?'2.5px solid #fff':'2px solid transparent',cursor:isDisabled?'not-allowed':'pointer',opacity:isDisabled?0.3:1,position:'relative',transition:'transform .1s,border .1s',boxSizing:'border-box',transform:isSel?'scale(1.08)':'scale(1)'}}>
                   {isSel&&(
                     <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.3)',borderRadius:'2px'}}>
                       <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -2388,6 +2492,25 @@ function WebFormView({onGenerate,onHome}){
               );
             })}
           </div>
+          {/* Custom hex input */}
+          {(()=>{
+            const isValidHex=/^#[0-9a-fA-F]{6}$/.test(hexVal);
+            const addCustomHex=()=>{if(!isValidHex)return;togColor({n:hexVal.toUpperCase(),h:hexVal.toLowerCase()});setHexVal('');};
+            return(
+              <div style={{display:'flex',gap:'8px',alignItems:'center',marginBottom:'14px',flexWrap:'wrap'}}>
+                <div style={{width:'36px',height:'36px',borderRadius:'7px',background:isValidHex?hexVal:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.12)',flexShrink:0,transition:'background .1s'}}/>
+                <input value={hexVal} onChange={e=>{let v=e.target.value;if(!v.startsWith('#'))v='#'+v;setHexVal(v.slice(0,7));}} placeholder="#000000" maxLength={7}
+                  style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'7px',padding:'8px 11px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none',width:'110px',letterSpacing:'.04em'}}/>
+                <input type="color" value={isValidHex?hexVal:'#ffffff'} onChange={e=>setHexVal(e.target.value)}
+                  style={{width:'36px',height:'36px',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'7px',cursor:'pointer',padding:'2px',background:'rgba(255,255,255,0.04)'}} title="Abrir selector de color"/>
+                <button onClick={addCustomHex} disabled={!isValidHex||f.coloresSeleccionados.length>=4}
+                  style={{padding:'8px 14px',background:isValidHex&&f.coloresSeleccionados.length<4?WEB_A+'22':'rgba(255,255,255,0.04)',border:`1px solid ${isValidHex&&f.coloresSeleccionados.length<4?WEB_A+'55':'rgba(255,255,255,0.1)'}`,borderRadius:'7px',color:isValidHex&&f.coloresSeleccionados.length<4?WEB_A:'rgba(255,255,255,0.25)',fontSize:'12px',fontWeight:'600',cursor:isValidHex&&f.coloresSeleccionados.length<4?'pointer':'not-allowed',fontFamily:"'Inter',sans-serif",transition:'all .15s'}}>
+                  + Añadir color
+                </button>
+                <span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',fontFamily:"'Inter',sans-serif"}}>escribe cualquier HEX o usa el selector 🎨</span>
+              </div>
+            );
+          })()}
           {f.coloresSeleccionados.length>0&&(
             <div style={{display:'flex',flexWrap:'wrap',gap:'8px'}}>
               {f.coloresSeleccionados.map(c=>(
@@ -2554,6 +2677,25 @@ function ProjectChecklist({project,onUpdate}){
   );
 }
 
+/* ── Error Boundary for ClientDetailView ── */
+class ErrBoundary extends React.Component{
+  constructor(p){super(p);this.state={err:null};}
+  static getDerivedStateFromError(e){return{err:e};}
+  componentDidCatch(e,info){alert('ERROR: '+String(e?.message||e));}
+  render(){
+    if(this.state.err){
+      return(
+        <div style={{minHeight:'100vh',background:'#080808',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px',gap:'16px'}}>
+          <p style={{color:'#f87171',fontSize:'13px',fontWeight:'700',fontFamily:"'Inter',sans-serif"}}>⚠ Error al cargar el cliente</p>
+          <pre style={{color:'rgba(255,255,255,0.4)',fontSize:'11px',fontFamily:'monospace',background:'rgba(255,255,255,0.04)',padding:'16px',borderRadius:'8px',maxWidth:'600px',overflow:'auto',whiteSpace:'pre-wrap'}}>{String(this.state.err?.message||this.state.err)}</pre>
+          <button onClick={()=>{this.setState({err:null});this.props.onBack&&this.props.onBack();}} style={{padding:'8px 20px',background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'rgba(255,255,255,0.6)',fontSize:'13px',cursor:'pointer',fontFamily:"'Inter',sans-serif"}}>← Volver a clientes</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /* ── Client Detail View ── */
 function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [tab,setTab]=useState('overview');
@@ -2574,6 +2716,13 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   const [tagInput,setTagInput]=useState('');
   const [emailModal,setEmailModal]=useState(false);
   const [emailCopied,setEmailCopied]=useState(false);
+  const [pagoForm,setPagoForm]=useState({monto:'',descripcion:'',fecha:new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'})});
+  const [editMRR,setEditMRR]=useState(false);
+  const [mrrVal,setMrrVal]=useState(client.montoMensual||0);
+  const [selectedTpl,setSelectedTpl]=useState(null);
+  const [msgCopied,setMsgCopied]=useState(false);
+  const [newEntry,setNewEntry]=useState('');
+  const [histFilter,setHistFilter]=useState('todo');
   const SVC_LABELS={marketing:'Marketing Digital',ia:'Inteligencia Artificial',web:'Página Web'};
   const SVC_COLORS={marketing:WARM,ia:AI_A,web:WEB_A};
 
@@ -2583,7 +2732,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
   };
 
   const updateChecklist=(projId,key,val)=>{
-    const proyectos=client.proyectos.map(p=>p.id===projId?{...p,checklist:{...p.checklist,[key]:val}}:p);
+    const proyectos=(client.proyectos||[]).map(p=>p.id===projId?{...p,checklist:{...p.checklist,[key]:val}}:p);
     onUpdate({...client,proyectos});
   };
 
@@ -2724,7 +2873,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
             <div className="glass" style={{padding:'24px'}}>
               <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'16px',fontFamily:"'Inter',sans-serif"}}>Servicios Contratados</p>
               <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-                {client.servicios.length>0?client.servicios.map(s=>(
+                {(client.servicios||[]).length>0?(client.servicios||[]).map(s=>(
                   <div key={s} style={{display:'flex',alignItems:'center',gap:'10px',padding:'10px 12px',background:`${SVC_COLORS[s]||'#888'}0d`,border:`1px solid ${SVC_COLORS[s]||'#888'}30`,borderRadius:'8px'}}>
                     <div style={{width:'8px',height:'8px',borderRadius:'50%',background:SVC_COLORS[s]||'#888'}}/>
                     <span style={{fontSize:'13px',color:'rgba(255,255,255,0.8)',fontFamily:"'Inter',sans-serif",fontWeight:'500'}}>{SVC_LABELS[s]||s}</span>
@@ -2734,7 +2883,6 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
             </div>
             {/* Tags */}
             {(()=>{
-              const [tagInput,setTagInput]=React.useState('');
               const tags=client.tags||[];
               const addTag=()=>{
                 const t=tagInput.trim().toLowerCase().replace(/[^a-z0-9áéíóúñ\-_]/gi,'').slice(0,20);
@@ -2788,8 +2936,6 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                     <button onClick={()=>onUpdate({...client,esRecurrente:!client.esRecurrente})} style={{padding:'3px 10px',background:client.esRecurrente?'rgba(52,211,153,0.12)':'rgba(255,255,255,0.04)',border:`1px solid ${client.esRecurrente?'rgba(52,211,153,0.3)':'rgba(255,255,255,0.1)'}`,borderRadius:'100px',color:client.esRecurrente?'#34d399':'rgba(255,255,255,0.3)',fontSize:'11px',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",transition:'all .15s'}}>{client.esRecurrente?'✓ Recurrente':'Sin MRR'}</button>
                   </div>
                   {client.esRecurrente&&(()=>{
-                    const [editMRR,setEditMRR]=React.useState(false);
-                    const [mrrVal,setMrrVal]=React.useState(client.montoMensual||0);
                     return editMRR?(
                       <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
                         <span style={{fontSize:'11px',color:'rgba(255,255,255,0.4)',fontFamily:"'Inter',sans-serif"}}>$/mes</span>
@@ -2883,9 +3029,9 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
 
             <div className="glass" style={{padding:'24px',gridColumn:'1 / -1'}}>
               <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'16px',fontFamily:"'Inter',sans-serif"}}>Proyectos Activos</p>
-              {client.proyectos.length===0?<p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>Sin proyectos activos</p>:(
+              {(client.proyectos||[]).length===0?<p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.25)',fontFamily:"'Inter',sans-serif"}}>Sin proyectos activos</p>:(
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:'12px'}}>
-                  {client.proyectos.map(p=>{
+                  {(client.proyectos||[]).map(p=>{
                     const done=Object.values(p.checklist).filter(Boolean).length;
                     const total=Object.keys(p.checklist).length;
                     return(
@@ -2961,12 +3107,12 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                 </div>
               </div>
             )}
-            {client.proyectos.length===0&&!addingProject&&<div className="glass" style={{padding:'40px',textAlign:'center'}}><p style={{color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",fontSize:'14px'}}>No hay proyectos para este cliente</p></div>}
-            {client.proyectos.map(proj=>{
+            {(client.proyectos||[]).length===0&&!addingProject&&<div className="glass" style={{padding:'40px',textAlign:'center'}}><p style={{color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",fontSize:'14px'}}>No hay proyectos para este cliente</p></div>}
+            {(client.proyectos||[]).map(proj=>{
               const PROJ_STATES=['Pendiente de información','En progreso','En revisión','Pausado','Entregado'];
               const donePct=Math.round((Object.values(proj.checklist||{}).filter(Boolean).length/Math.max(Object.keys(proj.checklist||{}).length,1))*100);
-              const updateProj=(changes)=>{const updated={...client,proyectos:client.proyectos.map(p=>p.id===proj.id?{...p,...changes}:p)};onUpdate(updated);};
-              const deleteProj=()=>{if(!confirm(`¿Eliminar proyecto "${proj.nombre}"?`))return;onUpdate({...client,proyectos:client.proyectos.filter(p=>p.id!==proj.id)});};
+              const updateProj=(changes)=>{const updated={...client,proyectos:(client.proyectos||[]).map(p=>p.id===proj.id?{...p,...changes}:p)};onUpdate(updated);};
+              const deleteProj=()=>{if(!confirm(`¿Eliminar proyecto "${proj.nombre}"?`))return;onUpdate({...client,proyectos:(client.proyectos||[]).filter(p=>p.id!==proj.id)});};
               return(
               <div key={proj.id} className="glass" style={{padding:'28px',border:proj.estado==='Entregado'?'1px solid rgba(74,222,128,0.2)':'1px solid rgba(255,255,255,0.07)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'16px'}}>
@@ -3031,7 +3177,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
                 ))}
               </div>
               <div style={{padding:'14px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'8px'}}>
-                <p style={{fontSize:'12px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",lineHeight:'1.6'}}>El cliente verá únicamente los módulos correspondientes a sus servicios contratados: <strong style={{color:'rgba(255,255,255,0.6)'}}>{client.servicios.map(s=>SVC_LABELS[s]||s).join(', ')||'ninguno'}</strong></p>
+                <p style={{fontSize:'12px',color:'rgba(255,255,255,0.3)',fontFamily:"'Inter',sans-serif",lineHeight:'1.6'}}>El cliente verá únicamente los módulos correspondientes a sus servicios contratados: <strong style={{color:'rgba(255,255,255,0.6)'}}>{(client.servicios||[]).map(s=>SVC_LABELS[s]||s).join(', ')||'ninguno'}</strong></p>
               </div>
             </div>
           </div>
@@ -3344,8 +3490,7 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
         })()}
 
         {tab==='mensajes'&&(()=>{
-          const [selectedTpl,setSelectedTpl]=React.useState(null);
-          const [copied,setCopied]=React.useState(false);
+          const copied=msgCopied;const setCopied=setMsgCopied;
           const contacto=client.contacto||'Cliente';
           const empresa=client.empresa||'tu empresa';
           const asesor=currentUser?.nombre||'el equipo de GlowLabs';
@@ -3458,7 +3603,6 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
 
         {/* HISTORY TAB */}
         {tab==='pagos'&&(()=>{
-          const [pagoForm,setPagoForm]=React.useState({monto:'',descripcion:'',fecha:new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'})});
           const pagos=client.pagos||[];
           const totalPagado=pagos.reduce((s,p)=>s+(Number(p.monto)||0),0);
           const contrato=client.montoContrato||0;
@@ -3560,8 +3704,6 @@ function ClientDetailView({client,onUpdate,onBack,isAdmin,currentUser}){
           );
         })()}
         {tab==='history'&&(()=>{
-          const [newEntry,setNewEntry]=React.useState('');
-          const [histFilter,setHistFilter]=React.useState('todo');
           const TIPO_CONFIG={
             estado:{color:'#a855f7',icon:'◆',label:'Estado'},
             tarea:{color:'#38bdf8',icon:'☑',label:'Tarea'},
@@ -3906,9 +4048,20 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     }
   };
 
+  // Contract expiry alerts — must be before any early return (hooks rule)
+  const expiryAlerts=React.useMemo(()=>{
+    const now=new Date();now.setHours(0,0,0,0);
+    return clients.filter(c=>c.estado==='Activo'&&c.fechaVencimiento&&!c.archivado).map(c=>{
+      const d=new Date(c.fechaVencimiento);
+      const days=Math.round((d-now)/(1000*60*60*24));
+      return{...c,daysLeft:days};
+    }).filter(c=>c.daysLeft<=7).sort((a,b)=>a.daysLeft-b.daysLeft);
+  },[clients]);
+
   if(selectedClient){
     const fresh=clients.find(c=>c.id===selectedClient.id)||selectedClient;
-    return <ClientDetailView client={fresh} onUpdate={updateClient} onBack={()=>setSelectedClient(null)} currentUser={currentUser} isAdmin={isAdmin}/>;
+    if(!fresh){return <div style={{color:'white',padding:'40px'}}>Cliente no encontrado</div>;}
+    return <ErrBoundary onBack={()=>setSelectedClient(null)}><ClientDetailView client={fresh} onUpdate={updateClient} onBack={()=>setSelectedClient(null)} currentUser={currentUser} isAdmin={isAdmin}/></ErrBoundary>;
   }
 
   // Dashboard metrics
@@ -4066,17 +4219,6 @@ function ClientsModule({onHome,onClientAccepted,currentUser,initialClientId}){
     setClients(prev=>[...prev,...newClients]);
     setShowImportCSV(false);setCsvText('');setCsvPreview(null);setCsvImporting(false);
   };
-
-  // Contract expiry alerts (active clients expiring within 7 days)
-  const expiryAlerts=React.useMemo(()=>{
-    const now=new Date();now.setHours(0,0,0,0);
-    const in7=new Date(now.getTime()+7*24*60*60*1000);
-    return clients.filter(c=>c.estado==='Activo'&&c.fechaVencimiento&&!c.archivado).map(c=>{
-      const d=new Date(c.fechaVencimiento);
-      const days=Math.round((d-now)/(1000*60*60*24));
-      return{...c,daysLeft:days};
-    }).filter(c=>c.daysLeft<=7).sort((a,b)=>a.daysLeft-b.daysLeft);
-  },[clients]);
 
   return(
     <div style={{minHeight:'100vh',background:'#080808',paddingBottom:'60px'}}>
@@ -5322,7 +5464,7 @@ function EmployeeModule({onHome}){
   const [form,setForm]=useState(false);
   const [editId,setEditId]=useState(null);
   const DEFAULT_PERMISOS={marketing:true,ia:true,web:true,clients:true};
-  const [data,setData]=useState({nombre:'',username:'',password:'',metaMensual:'',permisos:{...DEFAULT_PERMISOS}});
+  const [data,setData]=useState({nombre:'',username:'',password:'',correo:'',metaMensual:'',permisos:{...DEFAULT_PERMISOS}});
   const [showPw,setShowPw]=useState(false);
   const [viewEmp,setViewEmp]=useState(null);
 
@@ -5334,9 +5476,16 @@ function EmployeeModule({onHome}){
     if(editId){
       emp_storage.save(all.map(e=>e.id===editId?{...e,...data,metaMensual:Number(data.metaMensual)||0}:e));
     } else {
-      emp_storage.save([...all,{id:Date.now().toString(),nombre:data.nombre.trim(),username:data.username.trim(),password:data.password,metaMensual:Number(data.metaMensual)||0,permisos:data.permisos||DEFAULT_PERMISOS,activo:true,ultimaActividad:null}]);
+      const newEmp={id:Date.now().toString(),nombre:data.nombre.trim(),username:data.username.trim(),password:data.password,correo:data.correo.trim(),metaMensual:Number(data.metaMensual)||0,permisos:data.permisos||DEFAULT_PERMISOS,activo:true,ultimaActividad:null};
+      emp_storage.save([...all,newEmp]);
+      // Auto-open mailto with credentials if correo is set
+      if(data.correo.trim()){
+        const subject=encodeURIComponent('Acceso a Agency OS — Tus credenciales');
+        const body=encodeURIComponent(`Hola ${data.nombre.trim()},\n\nAquí tienes tus credenciales de acceso a Agency OS:\n\n🔐 Usuario: ${data.username.trim()}\n🔑 Contraseña: ${data.password}\n🌐 Acceso: ${window.location.origin}${window.location.pathname}\n\nGuarda esta información en un lugar seguro.\n\nSaludos,\nGlowLabs`);
+        window.open(`mailto:${data.correo.trim()}?subject=${subject}&body=${body}`,'_blank');
+      }
     }
-    reload();setForm(false);setEditId(null);setData({nombre:'',username:'',password:'',metaMensual:'',permisos:{...DEFAULT_PERMISOS}});
+    reload();setForm(false);setEditId(null);setData({nombre:'',username:'',password:'',correo:'',metaMensual:'',permisos:{...DEFAULT_PERMISOS}});
   };
 
   const toggleActivo=(id)=>{
@@ -5345,7 +5494,7 @@ function EmployeeModule({onHome}){
     reload();
   };
 
-  const startEdit=(emp)=>{setData({nombre:emp.nombre,username:emp.username,password:emp.password,metaMensual:emp.metaMensual||'',permisos:emp.permisos||{...DEFAULT_PERMISOS}});setEditId(emp.id);setForm(true);};
+  const startEdit=(emp)=>{setData({nombre:emp.nombre,username:emp.username,password:emp.password,correo:emp.correo||'',metaMensual:emp.metaMensual||'',permisos:emp.permisos||{...DEFAULT_PERMISOS}});setEditId(emp.id);setForm(true);};
 
   const getStats=(empId)=>{
     const allC=clients_storage.load();
@@ -5517,6 +5666,11 @@ function EmployeeModule({onHome}){
                 <input type="number" value={data.metaMensual} onChange={e=>setData(d=>({...d,metaMensual:e.target.value}))} placeholder="0"
                   style={{width:'100%',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',padding:'10px 12px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none',boxSizing:'border-box'}}/>
               </div>
+              <div style={{gridColumn:'1/-1'}}>
+                <label style={{fontSize:'11px',fontWeight:'600',color:'rgba(56,189,248,0.7)',letterSpacing:'.08em',textTransform:'uppercase',display:'block',marginBottom:'6px'}}>Correo electrónico <span style={{fontWeight:'400',color:'rgba(255,255,255,0.2)',textTransform:'none',letterSpacing:'0'}}>— se enviará email con credenciales al crear</span></label>
+                <input type="email" value={data.correo} onChange={e=>setData(d=>({...d,correo:e.target.value}))} placeholder="juan@empresa.com"
+                  style={{width:'100%',background:'rgba(56,189,248,0.04)',border:'1px solid rgba(56,189,248,0.2)',borderRadius:'8px',padding:'10px 12px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",outline:'none',boxSizing:'border-box'}}/>
+              </div>
             </div>
             {/* Permisos de módulos */}
             <div style={{marginBottom:'18px',padding:'16px',background:'rgba(168,85,247,0.04)',border:'1px solid rgba(168,85,247,0.15)',borderRadius:'12px'}}>
@@ -5619,6 +5773,8 @@ function DashboardModule({onHome}){
   const [agencyGoal,setAgencyGoal]=React.useState(()=>{try{return Number(localStorage.getItem(GOAL_KEY))||0;}catch{return 0;}});
   const [editGoal,setEditGoal]=React.useState(false);
   const [goalInput,setGoalInput]=React.useState('');
+  const [perfMetric,setPerfMetric]=React.useState('monto');
+  const [taskTab,setTaskTab]=React.useState('overdue');
   const saveGoal=()=>{const v=Number(goalInput)||0;localStorage.setItem(GOAL_KEY,v);setAgencyGoal(v);setEditGoal(false);};
   const clients=clients_storage.load();
   const emps=emp_storage.load().filter(e=>e.activo);
@@ -6027,7 +6183,6 @@ function DashboardModule({onHome}){
         </div>
         {/* Employee performance chart */}
         {empStats.length>=2&&(()=>{
-          const [perfMetric,setPerfMetric]=React.useState('monto');
           const metrics=[{k:'monto',l:'Ingresos',fmt:v=>`$${v.toLocaleString('es-CO')}`,c:'#f59e0b'},{k:'propCreadas',l:'Propuestas',fmt:v=>String(v),c:'#38bdf8'},{k:'cerradas',l:'Cierres',fmt:v=>String(v),c:'#4ade80'}];
           const active=metrics.find(m=>m.k===perfMetric);
           const maxVal=Math.max(...empStats.map(e=>e[perfMetric]),1);
@@ -6071,7 +6226,6 @@ function DashboardModule({onHome}){
         })()}
         {/* Tasks panel */}
         {(()=>{
-          const [taskTab,setTaskTab]=React.useState('overdue');
           const now=new Date();
           const soon=new Date(now.getTime()+7*24*60*60*1000);
           const allTasks=clients.flatMap(c=>(c.tareas||[]).filter(t=>!t.completada).map(t=>({...t,empresa:c.empresa,clientId:c.id})));
