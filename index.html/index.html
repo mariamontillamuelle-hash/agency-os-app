@@ -5129,7 +5129,7 @@ function LoginScreen({onLogin}){
       onLogin({role:'admin',id:'admin',nombre:'Mafe Montilla'});
     } else {
       const emps=emp_storage.load();
-      const emp=emps.find(e=>e.activo&&e.username.toLowerCase()===u.trim().toLowerCase()&&e.password===p);
+      const emp=emps.find(e=>e.activo&&e.username.toLowerCase()===u.trim().toLowerCase()&&e.password===p.trim());
       if(emp){
         const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
         emp_storage.save(emps.map(e2=>e2.id===emp.id?{...e2,ultimaActividad:now}:e2));
