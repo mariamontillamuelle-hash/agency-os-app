@@ -5129,7 +5129,7 @@ function LoginScreen({onLogin}){
       onLogin({role:'admin',id:'admin',nombre:'Mafe Montilla'});
     } else {
       const emps=emp_storage.load();
-      const emp=emps.find(e=>e.activo&&e.username.toLowerCase()===u.trim().toLowerCase()&&e.password===p.trim());
+      const emp=emps.find(e=>e.activo&&e.username.toLowerCase()===u.trim().toLowerCase()&&e.password.trim()===p.trim());
       if(emp){
         const now=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'short',day:'numeric'});
         emp_storage.save(emps.map(e2=>e2.id===emp.id?{...e2,ultimaActividad:now}:e2));
@@ -5474,9 +5474,9 @@ function EmployeeModule({onHome}){
     if(!data.nombre.trim()||!data.username.trim()||!data.password.trim()) return;
     const all=emp_storage.load();
     if(editId){
-      emp_storage.save(all.map(e=>e.id===editId?{...e,...data,metaMensual:Number(data.metaMensual)||0}:e));
+      emp_storage.save(all.map(e=>e.id===editId?{...e,...data,password:data.password.trim(),nombre:data.nombre.trim(),username:data.username.trim(),metaMensual:Number(data.metaMensual)||0}:e));
     } else {
-      const newEmp={id:Date.now().toString(),nombre:data.nombre.trim(),username:data.username.trim(),password:data.password,correo:data.correo.trim(),metaMensual:Number(data.metaMensual)||0,permisos:data.permisos||DEFAULT_PERMISOS,activo:true,ultimaActividad:null};
+      const newEmp={id:Date.now().toString(),nombre:data.nombre.trim(),username:data.username.trim(),password:data.password.trim(),correo:data.correo.trim(),metaMensual:Number(data.metaMensual)||0,permisos:data.permisos||DEFAULT_PERMISOS,activo:true,ultimaActividad:null};
       emp_storage.save([...all,newEmp]);
       // Auto-open mailto with credentials if correo is set
       if(data.correo.trim()){
@@ -5753,11 +5753,18 @@ function EmployeeModule({onHome}){
                   )}
                 </div>
                 {/* Actions */}
-                <div style={{display:'flex',gap:'8px'}}>
-                  <button onClick={()=>setViewEmp(emp.id)} style={{flex:1,padding:'8px',background:'rgba(168,85,247,0.08)',border:'1px solid rgba(168,85,247,0.2)',borderRadius:'8px',color:GL_P3,fontSize:'12px',fontWeight:'600',cursor:'pointer'}}>Ver detalle</button>
+                <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                  <button onClick={()=>setViewEmp(emp.id)} style={{flex:1,minWidth:'80px',padding:'8px',background:'rgba(168,85,247,0.08)',border:'1px solid rgba(168,85,247,0.2)',borderRadius:'8px',color:GL_P3,fontSize:'12px',fontWeight:'600',cursor:'pointer'}}>Ver detalle</button>
                   <button onClick={()=>startEdit(emp)} style={{padding:'8px 12px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'rgba(255,255,255,0.5)',fontSize:'12px',cursor:'pointer'}}>Editar</button>
                   <button onClick={()=>toggleActivo(emp.id)} style={{padding:'8px 12px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'rgba(255,255,255,0.5)',fontSize:'12px',cursor:'pointer'}}>{emp.activo?'Desactivar':'Activar'}</button>
                 </div>
+                <button onClick={()=>{
+                  const token=btoa(JSON.stringify({id:emp.id,nombre:emp.nombre,username:emp.username,password:emp.password,correo:emp.correo||'',permisos:emp.permisos||{marketing:true,ia:true,web:true,clients:true},metaMensual:emp.metaMensual||0}));
+                  const link=`${window.location.origin}${window.location.pathname}#empsetup/${token}`;
+                  navigator.clipboard.writeText(link).then(()=>alert(`✅ Link copiado para ${emp.nombre}\n\nEnvíalo a tu colaboradora. Al abrirlo, se configurará su acceso automáticamente.`)).catch(()=>prompt('Copia este link:',link));
+                }} style={{marginTop:'8px',width:'100%',padding:'7px',background:'rgba(52,211,153,0.07)',border:'1px solid rgba(52,211,153,0.25)',borderRadius:'8px',color:'#34d399',fontSize:'11px',fontWeight:'700',cursor:'pointer',letterSpacing:'.03em'}}>
+                  🔗 Copiar link de acceso
+                </button>
               </div>
             );
           })}
@@ -7604,6 +7611,23 @@ function GlobalSearch({onClose,onNavigate}){
 
 /* ── APP ── */
 function App(){
+  /* ── EMPLOYEE SETUP LINK HANDLER ── */
+  (()=>{
+    try{
+      const h=window.location.hash;
+      if(h.startsWith('#empsetup/')){
+        const empData=JSON.parse(atob(h.slice('#empsetup/'.length)));
+        if(empData&&empData.id&&empData.username&&empData.password){
+          const existing=emp_storage.load();
+          if(!existing.find(e=>e.id===empData.id)){
+            emp_storage.save([...existing,{...empData,activo:true,ultimaActividad:null}]);
+          }
+        }
+        window.location.hash='';
+      }
+    }catch(e){}
+  })();
+
   /* ── AUTH / CLIENT MODE ── */
   const hash=window.location.hash;
   const clientMode=hash==='#cliente';
