@@ -1130,6 +1130,7 @@ function ProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={()=>onEdit(data)}>Editar</button>
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:isSaved?'rgba(255,255,255,0.3)':'#888'}} onClick={handleSave}>{isSaved?'✓ Guardada':'Guardar'}</button>
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={handlePDF}>↓ PDF</button>
+        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:'#a78bfa'}} onClick={()=>copyProposalLink(data,'marketing')}>🔗 Link</button>
         {onAccept&&<button onClick={()=>setAcceptOpen(true)} style={{padding:'6px 14px',fontSize:'12px',background:`linear-gradient(135deg,${WARM},${WARM2})`,border:'none',borderRadius:'6px',color:'#000',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",letterSpacing:'-.01em'}}>✓ Aceptar propuesta</button>}
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={onBack}>← Biblioteca</button>
       </div>
@@ -1700,6 +1701,7 @@ function AIProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={()=>onEdit(data)}>Editar</button>
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:isSaved?'rgba(255,255,255,0.3)':'#888'}} onClick={handleSave}>{isSaved?'✓ Guardada':'Guardar'}</button>
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={handlePDF}>↓ PDF</button>
+        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:'#a78bfa'}} onClick={()=>copyProposalLink(data,'ia')}>🔗 Link</button>
         {onAccept&&<button onClick={()=>setAcceptOpen(true)} style={{padding:'6px 14px',fontSize:'12px',background:`linear-gradient(135deg,${AI_A},${AI_A2})`,border:'none',borderRadius:'6px',color:'#000',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",letterSpacing:'-.01em'}}>✓ Aceptar propuesta</button>}
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={onBack}>← Biblioteca</button>
       </div>
@@ -2159,6 +2161,26 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
     fechaFin:'',
     referidoPor:'',
   };
+}
+
+/* ── PROPOSAL SHARE LINK ── */
+function genProposalLink(data,type='marketing'){
+  try{
+    const share={...data};
+    // Strip large base64 logos to keep URL short
+    if(share.logo&&share.logo.startsWith('data:'))share.logo='';
+    if(share.logoData&&share.logoData.startsWith('data:'))share.logoData='';
+    const json=JSON.stringify({type,data:share});
+    const token=btoa(unescape(encodeURIComponent(json)));
+    return `${window.location.origin}${window.location.pathname}#ver-propuesta/${token}`;
+  }catch(e){return null;}
+}
+function copyProposalLink(data,type='marketing'){
+  const link=genProposalLink(data,type);
+  if(!link){alert('Error generando link');return;}
+  navigator.clipboard.writeText(link)
+    .then(()=>alert('✅ Link copiado al portapapeles\n\nEl cliente puede abrirlo directamente en su navegador para ver la presentación.'))
+    .catch(()=>prompt('Copia este link:',link));
 }
 
 /* ── EMPLOYEES ── */
@@ -7611,6 +7633,19 @@ function GlobalSearch({onClose,onNavigate}){
 
 /* ── APP ── */
 function App(){
+  /* ── PROPOSAL VIEW LINK HANDLER ── */
+  const _propHash=window.location.hash;
+  if(_propHash.startsWith('#ver-propuesta/')){
+    try{
+      const token=_propHash.slice('#ver-propuesta/'.length);
+      const {type,data:pData}=JSON.parse(decodeURIComponent(escape(atob(token))));
+      if(type==='ia'){
+        return <div style={{minHeight:'100vh',background:'#0a0a0f'}}><AIProposalDeck data={pData} onBack={()=>{window.location.hash='';window.location.reload();}} isSaved={false}/></div>;
+      }
+      return <div style={{minHeight:'100vh',background:'#0a0a0f'}}><ProposalDeck data={pData} onBack={()=>{window.location.hash='';window.location.reload();}} isSaved={false}/></div>;
+    }catch(e){}
+  }
+
   /* ── EMPLOYEE SETUP LINK HANDLER ── */
   (()=>{
     try{
