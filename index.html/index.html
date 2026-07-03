@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -670,10 +671,27 @@ function AcceptModal({empresa,defaultServicios,onConfirm,onClose}){
   );
 }
 
+/* ── SLIDE SCALE HOOK (responsive mobile) ── */
+function useSlideScale(){
+  const [scale,setScale]=useState(1);
+  useEffect(()=>{
+    const compute=()=>{
+      const W=1280,H=720,NAV=56;
+      const vw=window.innerWidth,vh=window.innerHeight;
+      setScale(Math.min(vw/W,(vh-NAV)/H,1));
+    };
+    compute();
+    window.addEventListener('resize',compute);
+    return()=>window.removeEventListener('resize',compute);
+  },[]);
+  return scale;
+}
+
 /* ── PROPOSAL DECK ── */
 function ProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
   const [cur,setCur]=useState(0);
   const [toast,setToast]=useState(null);
+  const slideScale=useSlideScale();
   const [acceptOpen,setAcceptOpen]=useState(false);
   const [exporting,setExporting]=useState(false);
   const [expProgress,setExpProgress]=useState(0);
@@ -1120,7 +1138,7 @@ function ProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
           <div key={i} className={cls}>
             <DeckMeta empresa={data.empresa} n={i+1} total={total}/>
             <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
-              <div style={{width:'100%',height:'100%'}}>{SLIDES[i]}</div>
+              <div style={{width:'1280px',height:'720px',flexShrink:0,transform:`scale(${slideScale})`,transformOrigin:'center center'}}>{SLIDES[i]}</div>
             </div>
           </div>
         );
@@ -1129,17 +1147,17 @@ function ProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
       <div className="prog" style={{width:`${pct}%`}}/>
       <div className="dots-v">{SLIDES.map((_,i)=><div key={i} className={`dot ${i===cur?'on':''}`} onClick={()=>setCur(i)}/>)}</div>
 
-      <div className="nav-bar">
+      <div className="nav-bar" style={{overflowX:'auto',flexWrap:'nowrap'}}>
         <button className="nav-btn" onClick={()=>go(cur-1)} disabled={cur===0}><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M7 8.5L4 5.5L7 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
         <span className="s-ctr">{String(cur+1).padStart(2,'0')} / {String(total).padStart(2,'0')}</span>
         <button className="nav-btn" onClick={()=>go(cur+1)} disabled={cur===total-1}><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M4 2.5L7 5.5L4 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
         <div style={{width:'1px',height:'16px',background:'rgba(255,255,255,0.07)',margin:'0 2px'}}/>
-        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={()=>onEdit(data)}>Editar</button>
-        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:isSaved?'rgba(255,255,255,0.3)':'#888'}} onClick={handleSave}>{isSaved?'✓ Guardada':'Guardar'}</button>
+        {onEdit&&<button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={()=>onEdit(data)}>Editar</button>}
+        {onSave&&<button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:isSaved?'rgba(255,255,255,0.3)':'#888'}} onClick={handleSave}>{isSaved?'✓ Guardada':'Guardar'}</button>}
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={handlePDF}>↓ PDF</button>
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:'#a78bfa'}} onClick={()=>copyProposalLink(data,'marketing')}>🔗 Link</button>
         {onAccept&&<button onClick={()=>setAcceptOpen(true)} style={{padding:'6px 14px',fontSize:'12px',background:`linear-gradient(135deg,${WARM},${WARM2})`,border:'none',borderRadius:'6px',color:'#000',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",letterSpacing:'-.01em'}}>✓ Aceptar propuesta</button>}
-        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={onBack}>← Biblioteca</button>
+        {onBack&&<button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={onBack}>← Biblioteca</button>}
       </div>
 
       {toast&&<Toast msg={toast} onDone={()=>setToast(null)}/>}
@@ -1311,6 +1329,7 @@ function AIProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
   const [exporting,setExporting]=useState(false);
   const [expProgress,setExpProgress]=useState(0);
   const [acceptOpen,setAcceptOpen]=useState(false);
+  const slideScale=useSlideScale();
 
   const selPkgs=(data.pkgs&&data.pkgs.length>0?data.pkgs:['conector']).map(id=>{const p=AI_PKGS.find(x=>x.id===id);if(!p)return null;const custSvcs=data.customPkgServices&&data.customPkgServices[id];return custSvcs?{...p,services:custSvcs}:p;}).filter(Boolean);
   const pkgNames=selPkgs.map(p=>p.name).join(' + ');
@@ -1693,24 +1712,24 @@ function AIProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
           <div key={i} className={cls}>
             <AIDeckMeta empresa={data.empresa} n={i+1} total={total}/>
             <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
-              <div style={{width:'100%',height:'100%'}}>{AI_SLIDES[i]}</div>
+              <div style={{width:'1280px',height:'720px',flexShrink:0,transform:`scale(${slideScale})`,transformOrigin:'center center'}}>{AI_SLIDES[i]}</div>
             </div>
           </div>
         );
       })}
       <div className="prog" style={{width:`${pct}%`,background:AI_A}}/>
       <div className="dots-v">{AI_SLIDES.map((_,i)=><div key={i} className={`dot ${i===cur?'on':''}`} onClick={()=>setCur(i)}/>)}</div>
-      <div className="nav-bar">
+      <div className="nav-bar" style={{overflowX:'auto',flexWrap:'nowrap'}}>
         <button className="nav-btn" onClick={()=>go(cur-1)} disabled={cur===0}><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M7 8.5L4 5.5L7 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
         <span className="s-ctr">{String(cur+1).padStart(2,'0')} / {String(total).padStart(2,'0')}</span>
         <button className="nav-btn" onClick={()=>go(cur+1)} disabled={cur===total-1}><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M4 2.5L7 5.5L4 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
         <div style={{width:'1px',height:'16px',background:'rgba(255,255,255,0.07)',margin:'0 2px'}}/>
-        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={()=>onEdit(data)}>Editar</button>
-        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:isSaved?'rgba(255,255,255,0.3)':'#888'}} onClick={handleSave}>{isSaved?'✓ Guardada':'Guardar'}</button>
+        {onEdit&&<button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={()=>onEdit(data)}>Editar</button>}
+        {onSave&&<button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:isSaved?'rgba(255,255,255,0.3)':'#888'}} onClick={handleSave}>{isSaved?'✓ Guardada':'Guardar'}</button>}
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={handlePDF}>↓ PDF</button>
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:'#a78bfa'}} onClick={()=>copyProposalLink(data,'ia')}>🔗 Link</button>
         {onAccept&&<button onClick={()=>setAcceptOpen(true)} style={{padding:'6px 14px',fontSize:'12px',background:`linear-gradient(135deg,${AI_A},${AI_A2})`,border:'none',borderRadius:'6px',color:'#000',fontWeight:'700',cursor:'pointer',fontFamily:"'Inter',sans-serif",letterSpacing:'-.01em'}}>✓ Aceptar propuesta</button>}
-        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={onBack}>← Biblioteca</button>
+        {onBack&&<button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={onBack}>← Biblioteca</button>}
       </div>
       {toast&&<Toast msg={toast} onDone={()=>setToast(null)}/>}
     </div>
@@ -2171,23 +2190,56 @@ function makeClient({empresa,contacto='',correo='',servicios=[],proposalType=nul
 }
 
 /* ── PROPOSAL SHARE LINK ── */
+/* ── PROPOSAL SHARE LINK (compressed, short) ── */
+const PROP_LINK_COUNTER_KEY='glowlabs_prop_link_counter';
 function genProposalLink(data,type='marketing'){
   try{
-    const share={...data};
-    // Strip large base64 logos to keep URL short
-    if(share.logo&&share.logo.startsWith('data:'))share.logo='';
-    if(share.logoData&&share.logoData.startsWith('data:'))share.logoData='';
+    // Only include fields needed for rendering — keeps URL much shorter
+    const share={
+      empresa:data.empresa||'',clientName:data.clientName||'',sector:data.sector||'',
+      situacion:data.situacion||'',problemas:data.problemas||'',oportunidades:data.oportunidades||'',
+      objetivo:data.objetivo||'',planes:data.planes||[],
+      customPlanPrices:data.customPlanPrices||{},customPlanFeatures:data.customPlanFeatures||{},
+      customPlanNames:data.customPlanNames||{},responsable:data.responsable||'',
+      redes:data.redes||[],extras:data.extras||[],competidores:data.competidores||[],
+      observaciones:data.observaciones||'',publico:data.publico||'',
+      resolvedPlan:data.resolvedPlan||'',fecha:data.fecha||'',
+      // AI-specific
+      pkgs:data.pkgs,appPrecioImpl:data.appPrecioImpl,fidelizacionClientes:data.fidelizacionClientes,custPkg:data.custPkg,
+    };
     const json=JSON.stringify({type,data:share});
-    const token=btoa(unescape(encodeURIComponent(json)));
+    // Use LZ-string compression when available (60-70% shorter URLs)
+    let token;
+    if(typeof LZString!=='undefined'){
+      token='z/'+LZString.compressToEncodedURIComponent(json);
+    } else {
+      token=btoa(unescape(encodeURIComponent(json)));
+    }
     return `${window.location.origin}${window.location.pathname}#ver-propuesta/${token}`;
   }catch(e){return null;}
 }
-function copyProposalLink(data,type='marketing'){
+async function copyProposalLink(data,type='marketing'){
   const link=genProposalLink(data,type);
   if(!link){alert('Error generando link');return;}
+  // Assign sequential cotización number
+  const counter=(parseInt(localStorage.getItem(PROP_LINK_COUNTER_KEY)||'0')||0)+1;
+  localStorage.setItem(PROP_LINK_COUNTER_KEY,counter);
+  // Try URL shortener (is.gd free API)
+  try{
+    const r=await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(link)}`);
+    if(r.ok){
+      const short=(await r.text()).trim();
+      if(short.startsWith('http')){
+        await navigator.clipboard.writeText(short).catch(()=>{});
+        alert(`✅ Link de Cotización #${counter} copiado\n\n${short}\n\nEnvíalo al cliente — puede abrirlo desde cualquier dispositivo.`);
+        return;
+      }
+    }
+  }catch(_){}
+  // Fallback: copy compressed URL directly
   navigator.clipboard.writeText(link)
-    .then(()=>alert('✅ Link copiado al portapapeles\n\nEl cliente puede abrirlo directamente en su navegador para ver la presentación.'))
-    .catch(()=>prompt('Copia este link:',link));
+    .then(()=>alert(`✅ Link de Cotización #${counter} copiado\n\nEl cliente puede abrirlo en cualquier navegador para ver la presentación.`))
+    .catch(()=>prompt(`Link Cotización #${counter}:`,link));
 }
 
 /* ── EMPLOYEES ── */
@@ -7652,7 +7704,14 @@ function App(){
   if(_propHash.startsWith('#ver-propuesta/')){
     try{
       const token=_propHash.slice('#ver-propuesta/'.length);
-      const {type,data:pData}=JSON.parse(decodeURIComponent(escape(atob(token))));
+      let json;
+      // Handle LZ-compressed format (starts with 'z/')
+      if(token.startsWith('z/')&&typeof LZString!=='undefined'){
+        json=LZString.decompressFromEncodedURIComponent(token.slice(2));
+      }
+      // Fallback: legacy base64 format
+      if(!json){json=decodeURIComponent(escape(atob(token)));}
+      const {type,data:pData}=JSON.parse(json);
       if(type==='ia'){
         return <div style={{minHeight:'100vh',background:'#0a0a0f'}}><AIProposalDeck data={pData} onBack={()=>{window.location.hash='';window.location.reload();}} isSaved={false}/></div>;
       }
