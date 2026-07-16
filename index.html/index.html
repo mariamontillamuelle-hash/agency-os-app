@@ -7829,140 +7829,221 @@ const contracts_storage={
   load:()=>{try{return JSON.parse(localStorage.getItem(CONTRACT_KEY)||'[]');}catch{return[];}},
   save:(d)=>localStorage.setItem(CONTRACT_KEY,JSON.stringify(d))
 };
-const CONTRACT_TEMPLATE_KEY='glowlabs_contract_templates_v1';
-const templates_ct_storage={
-  load:()=>{try{return JSON.parse(localStorage.getItem(CONTRACT_TEMPLATE_KEY)||'[]');}catch{return[];}},
-  save:(d)=>localStorage.setItem(CONTRACT_TEMPLATE_KEY,JSON.stringify(d))
-};
+const CONTRACT_TEMPLATE_KEY='glowlabs_contract_templates_v1'; // legacy key kept for compat
 const CONT_A='#14b8a6';
-
-// Replaces {{VAR}} markers in template text
-function fillTemplate(texto,vars){
-  if(!texto)return '';
-  return texto.replace(/\{\{([A-Z0-9_]+)\}\}/g,(_,key)=>vars[key]!==undefined&&vars[key]!==''?vars[key]:`{{${key}}}`);
-}
-// Generates next contract number CT-YYYY-NNNNN
+const CONT_PLANES=[
+  {id:'signature',nombre:'Plan Signature',cuentas:'1 Cuenta',precio:2500},
+  {id:'premium',nombre:'Plan Premium',cuentas:'2 Cuentas',precio:4500},
+  {id:'elite',nombre:'Plan Elite',cuentas:'3 Cuentas',precio:6000},
+  {id:'global',nombre:'Plan Global Authority',cuentas:'4–5 Cuentas',precio:7500},
+];
 function genContractNum(){
   const all=contracts_storage.load();
   const year=new Date().getFullYear();
   const n=(all.length+1).toString().padStart(5,'0');
   return `CT-${year}-${n}`;
 }
-function makeVars(o={}){
-  return {
-    NOMBRE:'',EMAIL:'',TELEFONO:'',DOCUMENTO:'',DIRECCION:'',CIUDAD:'',PAIS:'España',
-    PLAN:'',PRECIO:'',MONEDA:'EUR',DURACION:'12 meses',FECHA_INICIO:'',FECHA_FIN:'',
-    FORMA_PAGO:'Transferencia bancaria',FRECUENCIA:'Mensual',PRIMER_PAGO:'',RENOVACION:'No',
-    OBSERVACIONES:'',REPRESENTANTE_CLIENTE:'',REPRESENTANTE_EMPRESA:'Mafe Montilla',
-    NUMERO_CONTRATO:'',FECHA_GENERACION:new Date().toLocaleDateString('es-ES'),...o
-  };
+
+function generateProposalHTML(emp,plan,cuentas,precio,data){
+  const planes=CONT_PLANES;
+  const topThree=planes.slice(0,3).map(p=>{
+    const sel=p.nombre===plan;
+    return `<div style="padding:24px;background:${sel?'rgba(201,169,110,0.12)':'rgba(30,30,30,0.8)'};border:${sel?'1px solid rgba(201,169,110,0.5)':'1px solid rgba(255,255,255,0.06)'};border-radius:6px;">
+      <div style="font-size:18px;font-family:Georgia,serif;color:${sel?'#c9a96e':'#fff'};margin-bottom:8px;">${p.nombre}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.4);font-family:sans-serif;margin-bottom:8px;">${p.cuentas}</div>
+      <div style="font-size:22px;font-family:sans-serif;font-weight:700;color:${sel?'#c9a96e':'rgba(255,255,255,0.8)'};">${p.precio.toLocaleString('es-ES')} €<span style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.3)">/mes</span></div>
+      ${sel?'<div style="margin-top:10px;font-size:11px;font-family:sans-serif;letter-spacing:0.08em;color:#c9a96e;">✓ PLAN SELECCIONADO</div>':''}
+    </div>`;
+  }).join('');
+  const p4=planes[3];
+  const sel4=p4&&p4.nombre===plan;
+  const globalRow=p4?`<div style="margin-top:12px;padding:24px;background:${sel4?'rgba(201,169,110,0.12)':'rgba(30,30,30,0.8)'};border:${sel4?'1px solid rgba(201,169,110,0.5)':'1px solid rgba(255,255,255,0.06)'};border-radius:6px;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:18px;font-family:Georgia,serif;color:${sel4?'#c9a96e':'#fff'};margin-bottom:4px;">${p4.nombre}</div><div style="font-size:12px;color:rgba(255,255,255,0.4);font-family:sans-serif;">${p4.cuentas}</div></div><div style="text-align:right"><div style="font-size:22px;font-family:sans-serif;font-weight:700;color:${sel4?'#c9a96e':'rgba(255,255,255,0.8)'};">desde ${p4.precio.toLocaleString('es-ES')} €<span style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.3)">/mes</span></div>${sel4?'<div style="font-size:11px;font-family:sans-serif;letter-spacing:0.08em;color:#c9a96e;">✓ PLAN SELECCIONADO</div>':''}</div></div>`:'';
+  const notasBlock=data.notas?`<div style="margin-top:32px;padding:20px;border:1px solid rgba(255,255,255,0.08);border-radius:6px;font-size:13px;font-family:sans-serif;color:rgba(255,255,255,0.4);line-height:1.7;">${data.notas}</div>`:'';
+  const fechaInicio=data.fecha_inicio?`<br><br><strong style="color:rgba(255,255,255,0.65)">Fecha de inicio:</strong> <span>${data.fecha_inicio}</span>`:'';
+  return `<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8">
+<title>${emp} – ${plan}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#080808;color:#fff;font-family:Georgia,'Times New Roman',serif;}
+.pg{max-width:900px;margin:0 auto;padding:0 48px;}
+.sec{padding:60px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+.lbl{display:inline-block;padding:4px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:3px;font-size:11px;font-family:sans-serif;letter-spacing:0.1em;color:rgba(255,255,255,0.5);margin-bottom:16px;}
+.ttl{font-size:38px;line-height:1.2;color:#fff;font-weight:400;margin-bottom:20px;}
+.subt{font-size:18px;color:rgba(255,255,255,0.55);line-height:1.4;margin-bottom:24px;}
+.body{font-size:14px;line-height:1.85;color:rgba(255,255,255,0.5);font-family:sans-serif;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-top:28px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:28px;}
+.card{padding:28px;background:rgba(30,30,30,0.9);}
+.ctit{font-size:17px;font-family:Georgia,serif;color:#fff;margin-bottom:10px;}
+.cbod{font-size:13px;line-height:1.7;color:rgba(255,255,255,0.45);font-family:sans-serif;}
+.num{display:flex;gap:16px;margin-bottom:20px;align-items:flex-start;}
+.nbadge{width:40px;height:40px;background:rgba(201,169,110,0.12);display:flex;align-items:center;justify-content:center;font-size:15px;font-family:sans-serif;color:#c9a96e;flex-shrink:0;}
+.ntit{font-size:15px;font-family:Georgia,serif;color:#fff;margin-bottom:5px;}
+.nbod{font-size:13px;line-height:1.65;color:rgba(255,255,255,0.45);font-family:sans-serif;}
+.plans{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:24px;}
+.teamcard{padding:28px;background:rgba(30,30,30,0.9);}
+.tname{font-size:19px;font-family:Georgia,serif;color:#fff;margin-bottom:6px;}
+.trole{font-size:12px;font-style:italic;color:rgba(255,255,255,0.35);margin-bottom:8px;font-family:sans-serif;}
+.tdesc{font-size:13px;line-height:1.6;color:rgba(255,255,255,0.45);font-family:sans-serif;}
+@media print{
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .sec{page-break-inside:avoid;}
+}
+</style></head><body>
+
+<div style="min-height:95vh;display:flex;align-items:flex-end;padding:80px 48px 60px;background:#050505;border-bottom:1px solid rgba(255,255,255,0.05);">
+  <div>
+    <div style="font-size:50px;font-family:Georgia,serif;color:#fff;line-height:1.1;margin-bottom:18px;">${emp}</div>
+    <div style="font-size:26px;font-family:Georgia,serif;color:rgba(255,255,255,0.5);line-height:1.4;margin-bottom:36px;">Plan de Posicionamiento Global<br>y Transformación Digital</div>
+    <span style="display:inline-block;padding:8px 20px;border:1px solid rgba(201,169,110,0.45);border-radius:4px;color:#c9a96e;font-size:13px;font-family:sans-serif;">${plan} · ${cuentas} · ${precio} €/mes</span>
+  </div>
+</div>
+
+<div class="sec"><div class="pg">
+  <span class="lbl">PUNTO DE PARTIDA</span>
+  <div class="ttl">Situación Actual y El Desafío</div>
+  <div class="g3">
+    <div class="card"><div class="ctit">Fortaleza Comprobada</div><div class="cbod">${emp} ha demostrado su capacidad en su industria. Cuenta con experiencia, trayectoria y activos de comunicación que pueden ser aprovechados estratégicamente para construir una marca sólida.</div></div>
+    <div class="card" style="background:rgba(45,45,45,0.9)"><div class="ctit">El Problema</div><div class="cbod">La comunicación digital aún está centrada en acciones individuales. Esto limita la construcción de una marca reconocible y de valor a largo plazo.</div></div>
+    <div class="card" style="background:rgba(55,55,55,0.5)"><div class="ctit">La Consecuencia</div><div class="cbod">La atención se concentra en cada acción individual, no en la empresa que la lidera. Gran parte del impacto generado desaparece sin dejar huella de marca duradera.</div></div>
+  </div>
+</div></div>
+
+<div class="sec"><div class="pg">
+  <span class="lbl">VISIÓN ESTRATÉGICA</span>
+  <div class="ttl">La Oportunidad y Nuestra Visión</div>
+  <div class="g2">
+    <div class="card"><div class="ctit">La Oportunidad</div><div class="cbod">Las compañías más influyentes no solamente promocionan productos o servicios.</div><div class="cbod" style="margin-top:12px;font-style:italic;">Construyen marcas. Construyen reputación. Construyen autoridad. Construyen presencia.</div></div>
+    <div class="card" style="background:rgba(45,45,45,0.9)"><div class="ctit">Nuestro Objetivo</div><div class="cbod">Posicionar a <strong style="color:#fff">${emp}</strong> como una referencia dentro de su industria a nivel internacional.</div><div class="cbod" style="margin-top:12px;font-style:italic;">Una marca que genere confianza, prestigio y posicionamiento. Una marca que aumente su valor con cada acción realizada.</div></div>
+  </div>
+</div></div>
+
+<div class="sec"><div class="pg">
+  <span class="lbl">ESTRATEGIA</span>
+  <div class="ttl">Estrategia de Marketing 360° y Ecosistema Digital</div>
+  <div class="subt">De la promoción de acciones a la construcción de marca</div>
+  <div class="body"><strong style="color:rgba(255,255,255,0.65)">El Ecosistema Actual:</strong>&nbsp; Acción → Resultado → Olvido</div>
+  <div class="body" style="margin-top:10px"><strong style="color:rgba(255,255,255,0.65)">El Nuevo Ecosistema:</strong>&nbsp; ${emp} → Comunidad → Autoridad → Reconocimiento → Fidelización → Crecimiento</div>
+  <div style="margin-top:24px;padding:22px;background:rgba(201,169,110,0.05);border:1px solid rgba(201,169,110,0.15);border-radius:8px;"><div class="body">Diseñaremos una estrategia integral enfocada en <strong style="color:rgba(255,255,255,0.7)">posicionamiento de marca, construcción de autoridad, comunicación estratégica, crecimiento de audiencia, automatización de procesos, fidelización de clientes y escalabilidad digital.</strong></div></div>
+</div></div>
+
+<div class="sec"><div class="pg">
+  <span class="lbl">CONTENIDO Y REDES</span>
+  <div class="ttl">Estrategia de Contenido y Gestión de Redes Sociales</div>
+  <div style="margin-top:20px">
+    <div class="num"><div class="nbadge">1</div><div><div class="ntit">Activos de Alto Impacto</div><div class="nbod">Reutilización inteligente de contenido existente, edición profesional de video, storytelling de marca y casos de éxito de proyectos anteriores.</div></div></div>
+    <div class="num"><div class="nbadge" style="background:rgba(201,169,110,0.22)">2</div><div><div class="ntit">Instagram y TikTok</div><div class="nbod">Gestión estratégica con planificación mensual, parrilla de contenidos, diseño gráfico, publicación, community management y optimización continua.</div></div></div>
+    <div class="num"><div class="nbadge">3</div><div><div class="ntit">Credibilidad y Autoridad</div><div class="nbod">Contenido institucional, relaciones con colaboradores, experiencias pasadas y credibilidad empresarial para posicionamiento de largo plazo.</div></div></div>
+    <div class="num"><div class="nbadge" style="background:rgba(201,169,110,0.22)">4</div><div><div class="ntit">Reportes Mensuales</div><div class="nbod">Análisis de resultados, ajustes de comunicación y optimización continua de todas las plataformas gestionadas.</div></div></div>
+  </div>
+</div></div>
+
+<div class="sec"><div class="pg">
+  <span class="lbl">TECNOLOGÍA</span>
+  <div class="ttl">Inteligencia Artificial, Automatización y Email Marketing</div>
+  <div class="g3">
+    <div class="card"><div class="ctit">IA y Automatización</div><div class="cbod">Automatización de respuestas en Instagram y WhatsApp, flujos automatizados de atención, integración de herramientas de IA y creación de avatares con inteligencia artificial y voz.</div></div>
+    <div class="card" style="background:rgba(201,169,110,0.07);border:1px solid rgba(201,169,110,0.12)"><div class="ctit">Email Marketing</div><div class="cbod">Organización y segmentación de bases de datos, diseño de campañas, automatizaciones, newsletters, comunicación, fidelización y reactivación de contactos.</div></div>
+    <div class="card" style="background:rgba(55,55,55,0.5)"><div class="ctit">Optimización de Procesos</div><div class="cbod">Transformación de las bases de datos existentes en un canal estratégico de comunicación que trabaja de forma continua y automatizada para ${emp}.</div></div>
+  </div>
+</div></div>
+
+<div class="sec"><div class="pg">
+  <span class="lbl">EL EQUIPO</span>
+  <div class="ttl">Equipo Responsable</div>
+  <div class="g3" style="margin-top:24px">
+    <div class="teamcard"><div class="tname">Mafe Montilla</div><div class="trole">Directora de Estrategia Digital</div><div class="tdesc">Responsable de la planificación estratégica, posicionamiento de marca, crecimiento digital, supervisión de resultados y dirección general del proyecto.</div></div>
+    <div class="teamcard" style="background:rgba(201,169,110,0.07)"><div class="tname">Angélica Triana</div><div class="trole">Directora de Comunicaciones</div><div class="tdesc">Responsable de la planificación de contenidos, comunicación de marca, coordinación editorial y supervisión de publicaciones.</div></div>
+    <div class="teamcard" style="background:rgba(55,55,55,0.4)"><div class="tname">Daniel Gutiérrez</div><div class="trole">Director Creativo y Editor Audiovisual</div><div class="tdesc">Responsable de diseño gráfico, edición de video, línea visual de la marca y adaptación de contenido para plataformas digitales.</div></div>
+  </div>
+</div></div>
+
+<div class="sec"><div class="pg">
+  <span class="lbl">SERVICIOS E INVERSIÓN</span>
+  <div class="ttl">Servicios Incluidos e Inversión</div>
+  <div class="plans">${topThree}</div>
+  ${globalRow}
+  <div style="margin-top:22px;padding:20px;background:rgba(255,255,255,0.02);border-radius:6px;"><div class="body">Todos los planes incluyen: <strong style="color:rgba(255,255,255,0.6)">Estrategia 360°, posicionamiento de marca, estrategia de contenidos, parrillas mensuales, edición profesional de video, diseño gráfico, gestión de Instagram y TikTok, community management, automatización con IA, avatares con IA, email marketing, reportes mensuales y consultoría estratégica continua.</strong></div></div>
+</div></div>
+
+<div class="sec" style="border-bottom:none"><div class="pg">
+  <div style="max-width:700px">
+    <div style="font-size:46px;font-family:Georgia,serif;color:#c9a96e;line-height:1.2;margin-bottom:28px;">El Resultado<br>Esperado</div>
+    <div class="body">Posicionar a <strong style="color:rgba(255,255,255,0.7)">${emp}</strong> como una marca referente dentro de su industria. Construir una presencia digital alineada con la magnitud de sus producciones y servicios.<br><br>Generar una marca con <strong style="color:rgba(255,255,255,0.7)">autoridad, reconocimiento y valor propio.</strong><br><br>Transformar la comunicación digital en un activo estratégico capaz de generar crecimiento, influencia y oportunidades más allá de cada acción individual.${fechaInicio}</div>
+    ${notasBlock}
+  </div>
+  <div style="margin-top:64px;padding-top:36px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:flex-end">
+    <div>
+      <div style="font-size:10px;font-family:sans-serif;color:rgba(255,255,255,0.18);letter-spacing:0.1em;margin-bottom:48px;">FIRMA DEL CLIENTE</div>
+      <div style="width:220px;border-top:1px solid rgba(255,255,255,0.18);padding-top:8px"><div style="font-size:12px;font-family:sans-serif;color:rgba(255,255,255,0.35)">${emp}</div></div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:10px;font-family:sans-serif;color:rgba(255,255,255,0.18);letter-spacing:0.1em;margin-bottom:48px;">GLOWLABS STUDIO</div>
+      <div style="width:220px;border-top:1px solid rgba(255,255,255,0.18);padding-top:8px;margin-left:auto"><div style="font-size:12px;font-family:sans-serif;color:rgba(255,255,255,0.35)">Mafe Montilla · Directora</div></div>
+    </div>
+  </div>
+  <div style="margin-top:28px;font-size:10px;font-family:sans-serif;color:rgba(255,255,255,0.12);text-align:center">${data.numero} · ${data.fecha_creacion} · Glowlabs Studio</div>
+</div></div>
+
+</body></html>`;
 }
 
 function ContractModule({onHome}){
   const CA=CONT_A;
-  const [tab,setTab]=React.useState('list'); // list | form | preview | templates
+  const [view,setView]=React.useState('list');
   const [contracts,setContracts]=React.useState(()=>contracts_storage.load());
-  const [templates,setTemplates]=React.useState(()=>templates_ct_storage.load());
-  const [editing,setEditing]=React.useState(null);   // contract being edited
-  const [previewing,setPreviewing]=React.useState(null); // {vars, templateText, numero}
-  const [tplEditing,setTplEditing]=React.useState(null); // template being edited
-
-  const saveContracts=arr=>{contracts_storage.save(arr);setContracts(arr);};
-  const saveTemplates=arr=>{templates_ct_storage.save(arr);setTemplates(arr);};
-
-  const handleSaveContract=(c)=>{
-    const arr=editing?contracts.map(x=>x.id===c.id?c:x):[c,...contracts];
-    saveContracts(arr);
-    // Link to client CRM if clienteId set
-    if(c.vars&&c.vars.clienteId){
-      const clients=clients_storage.load();
-      const idx=clients.findIndex(x=>x.id===c.vars.clienteId);
-      if(idx>=0){
-        clients[idx].notas=clients[idx].notas||[];
-        if(!clients[idx].notas.find(n=>n.id===c.id)){
-          clients[idx].notas.unshift({id:c.id,texto:`Contrato ${c.numero} generado (${c.templateNombre}) — Estado: ${c.estado}`,fecha:new Date().toLocaleDateString('es-ES'),autor:'Sistema'});
-          clients_storage.save(clients);
-        }
-      }
-    }
-    setEditing(null);setTab('list');
-  };
-  const handleDelContract=id=>{if(window.confirm('¿Eliminar contrato?'))saveContracts(contracts.filter(c=>c.id!==id));};
-  const handleSaveTpl=t=>{
-    const arr=tplEditing?templates.map(x=>x.id===t.id?t:x):[t,...templates];
-    saveTemplates(arr);setTplEditing(null);
-  };
-  const handleDelTpl=id=>{if(window.confirm('¿Eliminar plantilla?'))saveTemplates(templates.filter(t=>t.id!==id));};
-
-  if(tab==='form') return <ContractFormTPL initial={editing} templates={templates} onSave={handleSaveContract} onPreview={(vars,tplText,numero)=>{setPreviewing({vars,tplText,numero});setTab('preview');}} onBack={()=>{setEditing(null);setTab('list');}}/>;
-  if(tab==='preview'&&previewing) return <ContractPreview {...previewing} onBack={()=>setTab('form')} onBackList={()=>{setPreviewing(null);setTab('list');}}/>;
-  if(tab==='templates') return <ContractTemplateEditor templates={templates} editing={tplEditing} onSave={handleSaveTpl} onEdit={t=>{setTplEditing(t);}} onDel={handleDelTpl} onBack={()=>{setTplEditing(null);setTab('list');}}/>;
-
-  const estadoColor=e=>({Firmado:'#4ade80',Enviado:'#fbbf24',Cancelado:'#f87171',Borrador:'rgba(255,255,255,0.3)'}[e]||'rgba(255,255,255,0.3)');
-  const clients=clients_storage.load();
-  const getClientName=id=>{const c=clients.find(x=>x.id===id);return c?.empresa||c?.nombre||'';};
-
+  const [editing,setEditing]=React.useState(null);
+  const [previewing,setPreviewing]=React.useState(null);
+  const persist=upd=>{setContracts(upd);contracts_storage.save(upd);};
+  const del=id=>{if(confirm('¿Eliminar esta propuesta?'))persist(contracts.filter(c=>c.id!==id));};
+  if(view==='form') return <ContractForm initial={editing} onSave={data=>{const upd=data.id&&contracts.find(c=>c.id===data.id)?contracts.map(c=>c.id===data.id?data:c):[...contracts,data];persist(upd);setEditing(null);setView('list');}} onPreview={data=>{setPreviewing(data);setView('preview');}} onBack={()=>{setEditing(null);setView('list');}}/>;
+  if(view==='preview'&&previewing) return <ContractPreviewDoc data={previewing} onBack={()=>setView('form')} onBackList={()=>{setPreviewing(null);setView('list');}}/>;
+  const estadoColors={Borrador:'rgba(255,255,255,0.3)',Enviada:'#60a5fa',Aceptada:'#22c55e',Rechazada:'#ef4444'};
   return(
-  <div style={{minHeight:'100vh',background:'#0a0a0f',fontFamily:"'Inter',sans-serif"}}>
-    <div style={{position:'sticky',top:0,zIndex:20,borderBottom:'1px solid rgba(255,255,255,0.06)',background:'rgba(9,9,11,0.95)',backdropFilter:'blur(16px)',padding:'0 28px',height:'56px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-      <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
-        <button onClick={onHome} style={{all:'unset',cursor:'pointer',fontSize:'12px',color:'rgba(255,255,255,0.35)',display:'flex',alignItems:'center',gap:'6px'}}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Inicio
-        </button>
-        <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
-        {['list','templates'].map(t=>(
-          <button key={t} onClick={()=>setTab(t)} style={{all:'unset',cursor:'pointer',fontSize:'12px',fontWeight:'600',color:tab===t?CA:'rgba(255,255,255,0.35)',borderBottom:tab===t?`2px solid ${CA}`:'2px solid transparent',paddingBottom:'2px'}}>{{list:'Contratos',templates:'Plantillas'}[t]}</button>
-        ))}
+  <div style={{minHeight:'100vh',background:GL_BG,fontFamily:"'Inter',sans-serif"}}>
+    <div style={{position:'sticky',top:0,zIndex:20,borderBottom:'1px solid rgba(255,255,255,0.06)',background:'rgba(9,9,11,0.9)',backdropFilter:'blur(16px)',padding:'0 28px',height:'56px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
+        <button onClick={onHome} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'6px'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Inicio</button>
+        <span style={{color:'rgba(255,255,255,0.12)'}}>|</span>
+        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>Propuestas & Contratos</span>
+        <span style={{fontSize:'11px',padding:'2px 8px',borderRadius:'100px',background:'rgba(20,184,166,0.1)',border:'1px solid rgba(20,184,166,0.3)',color:CA}}>{contracts.length}</span>
       </div>
-      <div style={{display:'flex',gap:'10px'}}>
-        <button onClick={()=>{setTplEditing(null);setTab('templates');}} style={{all:'unset',cursor:'pointer',padding:'7px 14px',border:`1px solid rgba(20,184,166,0.25)`,borderRadius:'6px',fontSize:'12px',color:CA}}>+ Plantilla</button>
-        <button onClick={()=>{setEditing(null);setTab('form');}} style={{all:'unset',cursor:'pointer',padding:'7px 16px',background:CA,borderRadius:'6px',fontSize:'12px',fontWeight:'600',color:'#fff',opacity:templates.length===0?0.4:1}} disabled={templates.length===0}>+ Nuevo contrato</button>
-      </div>
+      <button onClick={()=>{setEditing(null);setView('form');}} style={{all:'unset',cursor:'pointer',padding:'7px 16px',background:CA,borderRadius:'6px',color:'#fff',fontSize:'12px',fontWeight:'600'}}>+ Nueva Propuesta</button>
     </div>
-    <div style={{maxWidth:'960px',margin:'0 auto',padding:'32px 28px'}}>
-      {templates.length===0&&(
-        <div style={{padding:'20px',background:'rgba(20,184,166,0.05)',border:'1px solid rgba(20,184,166,0.15)',borderRadius:'8px',marginBottom:'24px',fontSize:'13px',color:'rgba(255,255,255,0.5)'}}>
-          <strong style={{color:CA}}>Primero añade una plantilla.</strong> Ve a "Plantillas", pega tu contrato con marcadores <code style={{background:'rgba(255,255,255,0.06)',padding:'1px 5px',borderRadius:'3px'}}>{`{{NOMBRE}}`}</code> y guárdala. Luego podrás generar contratos.
-        </div>
-      )}
+    <div style={{maxWidth:'900px',margin:'0 auto',padding:'32px 28px'}}>
       {contracts.length===0?(
-        <div style={{textAlign:'center',padding:'80px 0'}}>
-          <p style={{color:'rgba(255,255,255,0.2)',fontSize:'14px',marginBottom:'20px'}}>No hay contratos generados todavía.</p>
-          {templates.length>0&&<button onClick={()=>{setEditing(null);setTab('form');}} style={{all:'unset',cursor:'pointer',padding:'10px 24px',background:CA,borderRadius:'8px',color:'#fff',fontSize:'13px',fontWeight:'700'}}>Crear primer contrato</button>}
+        <div style={{textAlign:'center',padding:'80px 0',color:'rgba(255,255,255,0.2)'}}>
+          <div style={{fontSize:'40px',marginBottom:'12px'}}>📄</div>
+          <div style={{fontSize:'14px',marginBottom:'16px'}}>No hay propuestas aún</div>
+          <button onClick={()=>setView('form')} style={{all:'unset',cursor:'pointer',padding:'8px 20px',background:CA,borderRadius:'6px',color:'#fff',fontSize:'13px',fontWeight:'600',display:'inline-block'}}>Crear primera propuesta</button>
         </div>
       ):(
         <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
-          {contracts.map(c=>{
-            const sColor=estadoColor(c.estado);
-            const clientName=c.vars?.clienteId?getClientName(c.vars.clienteId):'';
-            return(
-            <div key={c.id} style={{padding:'16px 20px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',transition:'border .15s'}}
-              onMouseOver={e=>e.currentTarget.style.border=`1px solid rgba(20,184,166,0.25)`}
-              onMouseOut={e=>e.currentTarget.style.border='1px solid rgba(255,255,255,0.07)'}>
+          {[...contracts].reverse().map(c=>(
+            <div key={c.id} style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'10px',padding:'18px 22px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px'}}>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'4px'}}>
-                  <span style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',fontFamily:'monospace'}}>{c.numero}</span>
-                  <span style={{fontSize:'10px',fontWeight:'700',padding:'2px 8px',borderRadius:'100px',border:`1px solid ${sColor}44`,color:sColor,background:`${sColor}11`}}>{c.estado||'Borrador'}</span>
+                <div style={{display:'flex',alignItems:'center',gap:'10px',flexWrap:'wrap',marginBottom:'4px'}}>
+                  <span style={{fontSize:'14px',fontWeight:'600',color:'#fff'}}>{c.empresa}</span>
+                  <span style={{fontSize:'11px',padding:'2px 8px',borderRadius:'100px',background:'rgba(20,184,166,0.1)',border:'1px solid rgba(20,184,166,0.25)',color:CA}}>{c.numero}</span>
+                  <span style={{fontSize:'11px',padding:'2px 8px',borderRadius:'100px',background:'rgba(255,255,255,0.04)',color:estadoColors[c.estado]||'#fff'}}>{c.estado}</span>
                 </div>
-                <p style={{fontSize:'14px',fontWeight:'700',color:'#fff',marginBottom:'2px'}}>{c.vars?.NOMBRE||'Sin nombre'}</p>
-                <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
-                  <span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>{c.templateNombre}</span>
-                  {c.vars?.PLAN&&<span style={{fontSize:'11px',color:CA,fontWeight:'600'}}>{c.vars.PLAN}</span>}
-                  {c.vars?.PRECIO&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>{c.vars.PRECIO} {c.vars.MONEDA}</span>}
-                  {clientName&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>→ {clientName}</span>}
-                  <span style={{fontSize:'11px',color:'rgba(255,255,255,0.2)'}}>{c.creadoEn?.slice(0,10)}</span>
+                <div style={{display:'flex',gap:'12px',color:'rgba(255,255,255,0.35)',fontSize:'12px',flexWrap:'wrap'}}>
+                  <span>{c.plan}</span><span style={{color:'rgba(255,255,255,0.15)'}}>·</span>
+                  <span>{c.cuentas}</span><span style={{color:'rgba(255,255,255,0.15)'}}>·</span>
+                  <span style={{color:'rgba(255,255,255,0.55)',fontWeight:'600'}}>{(c.precio||0).toLocaleString('es-ES')} €/mes</span>
+                  {c.fecha_inicio&&<><span style={{color:'rgba(255,255,255,0.15)'}}>·</span><span>{c.fecha_inicio}</span></>}
                 </div>
+                {c.contacto&&<div style={{fontSize:'11px',color:'rgba(255,255,255,0.22)',marginTop:'2px'}}>{c.contacto}</div>}
               </div>
               <div style={{display:'flex',gap:'8px',flexShrink:0}}>
-                <select value={c.estado} onChange={e=>{const arr=contracts.map(x=>x.id===c.id?{...x,estado:e.target.value}:x);saveContracts(arr);}} style={{all:'unset',cursor:'pointer',padding:'5px 10px',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'5px',fontSize:'11px',color:'rgba(255,255,255,0.5)',background:'rgba(255,255,255,0.04)'}}>
-                  {['Borrador','Enviado','Firmado','Cancelado'].map(s=><option key={s} value={s}>{s}</option>)}
-                </select>
-                <button onClick={()=>{setEditing(c);setTab('form');}} style={{all:'unset',cursor:'pointer',padding:'6px 12px',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'5px',fontSize:'12px',color:'rgba(255,255,255,0.4)'}}>Editar</button>
-                <button onClick={()=>handleDelContract(c.id)} style={{all:'unset',cursor:'pointer',padding:'6px 8px',border:'1px solid rgba(255,59,48,0.15)',borderRadius:'5px',fontSize:'12px',color:'rgba(255,59,48,0.5)'}}>✕</button>
+                <button onClick={()=>{setPreviewing(c);setView('preview');}} style={{all:'unset',cursor:'pointer',padding:'6px 12px',background:'rgba(20,184,166,0.1)',border:'1px solid rgba(20,184,166,0.25)',borderRadius:'6px',color:CA,fontSize:'12px'}}>👁 Ver</button>
+                <button onClick={()=>{setEditing(c);setView('form');}} style={{all:'unset',cursor:'pointer',padding:'6px 12px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'6px',color:'rgba(255,255,255,0.5)',fontSize:'12px'}}>Editar</button>
+                <button onClick={()=>del(c.id)} style={{all:'unset',cursor:'pointer',padding:'6px 10px',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:'6px',color:'#ef4444',fontSize:'12px'}}>✕</button>
               </div>
             </div>
-            );
-          })}
+          ))}
         </div>
       )}
     </div>
@@ -7970,232 +8051,125 @@ function ContractModule({onHome}){
   );
 }
 
-function ContractTemplateEditor({templates,editing,onSave,onEdit,onDel,onBack}){
+function ContractForm({initial,onSave,onPreview,onBack}){
   const CA=CONT_A;
-  const [nombre,setNombre]=React.useState(editing?.nombre||'');
-  const [texto,setTexto]=React.useState(editing?.texto||'');
-
-  React.useEffect(()=>{setNombre(editing?.nombre||'');setTexto(editing?.texto||'');},[editing]);
-
-  const vars_found=texto.match(/\{\{([A-Z0-9_]+)\}\}/g)||[];
-  const vars_uniq=[...new Set(vars_found)];
-
-  const handleSave=()=>{
-    if(!nombre.trim()||!texto.trim())return;
-    onSave({id:editing?.id||('tpl_'+Date.now()),nombre:nombre.trim(),texto,creadoEn:editing?.creadoEn||new Date().toISOString()});
-    setNombre('');setTexto('');
-  };
-
-  const INP={all:'unset',display:'block',width:'100%',padding:'9px 12px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'6px',fontSize:'13px',color:'#fff',boxSizing:'border-box'};
-
-  const VARS_HELP=[['CLIENTE','NOMBRE','EMAIL','TELEFONO','DOCUMENTO','DIRECCION','CIUDAD','PAIS'],['SERVICIO','PLAN','PRECIO','MONEDA','DURACION','FECHA_INICIO','FECHA_FIN','FORMA_PAGO','FRECUENCIA','PRIMER_PAGO','RENOVACION','OBSERVACIONES'],['FIRMA','REPRESENTANTE_CLIENTE','REPRESENTANTE_EMPRESA','NUMERO_CONTRATO','FECHA_GENERACION']];
-
+  const isEdit=!!(initial&&initial.id);
+  const [d,setD]=React.useState(()=>initial||{id:'',numero:genContractNum(),empresa:'',contacto:'',email:'',plan:'Plan Signature',cuentas:'1 Cuenta',precio:2500,fecha_inicio:'',notas:'',estado:'Borrador',fecha_creacion:new Date().toLocaleDateString('es-ES')});
+  const set=k=>e=>setD(prev=>({...prev,[k]:e.target.value}));
+  const planChange=e=>{const p=CONT_PLANES.find(x=>x.nombre===e.target.value);if(p)setD(prev=>({...prev,plan:p.nombre,cuentas:p.cuentas,precio:p.precio}));};
+  const handleSave=()=>{if(!d.empresa.trim()){alert('El nombre de la empresa es obligatorio');return;}onSave({...d,id:d.id||crypto.randomUUID()});};
+  const handlePreview=()=>{if(!d.empresa.trim()){alert('Ingresa el nombre de la empresa');return;}onPreview({...d,id:d.id||crypto.randomUUID()});};
+  const ESTADOS=['Borrador','Enviada','Aceptada','Rechazada'];
+  const inp={all:'unset',display:'block',width:'100%',padding:'9px 12px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'6px',color:'#fff',fontSize:'13px',boxSizing:'border-box'};
   return(
-  <div style={{minHeight:'100vh',background:'#0a0a0f',fontFamily:"'Inter',sans-serif"}}>
-    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 28px',height:'56px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,background:'rgba(9,9,11,0.95)',backdropFilter:'blur(16px)',zIndex:50}}>
-      <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
-        <button onClick={onBack} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'6px'}}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Contratos
-        </button>
+  <div style={{minHeight:'100vh',background:GL_BG,fontFamily:"'Inter',sans-serif"}}>
+    <div style={{position:'sticky',top:0,zIndex:20,borderBottom:'1px solid rgba(255,255,255,0.06)',background:'rgba(9,9,11,0.9)',backdropFilter:'blur(16px)',padding:'0 28px',height:'56px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+        <button onClick={onBack} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'6px'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Volver</button>
         <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
-        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>Plantillas de contrato</span>
+        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>{isEdit?'Editar':'Nueva'} Propuesta</span>
+        <span style={{fontSize:'11px',color:'rgba(255,255,255,0.25)'}}>{d.numero}</span>
       </div>
-      <button onClick={handleSave} disabled={!nombre||!texto} style={{all:'unset',cursor:'pointer',padding:'7px 18px',background:CA,borderRadius:'6px',fontSize:'12px',fontWeight:'600',color:'#fff',opacity:(!nombre||!texto)?0.4:1}}>{editing?'Actualizar':'Guardar plantilla'}</button>
+      <div style={{display:'flex',gap:'10px'}}>
+        <button onClick={handlePreview} style={{all:'unset',cursor:'pointer',padding:'7px 14px',border:`1px solid ${CA}`,borderRadius:'6px',color:CA,fontSize:'12px'}}>👁 Vista previa</button>
+        <button onClick={handleSave} style={{all:'unset',cursor:'pointer',padding:'7px 18px',background:CA,borderRadius:'6px',color:'#fff',fontSize:'12px',fontWeight:'600'}}>💾 Guardar</button>
+      </div>
     </div>
-    <div style={{maxWidth:'960px',margin:'0 auto',padding:'32px 28px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'28px'}}>
-      {/* LEFT: editor */}
-      <div>
-        <div style={{marginBottom:'16px'}}>
-          <label style={{display:'block',fontSize:'11px',color:'rgba(255,255,255,0.35)',marginBottom:'5px'}}>Nombre de la plantilla</label>
-          <input style={INP} value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Ej: Contrato de Servicios Digitales"/>
+    <div style={{maxWidth:'680px',margin:'0 auto',padding:'40px 28px',display:'flex',flexDirection:'column',gap:'22px'}}>
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'10px',padding:'24px'}}>
+        <div style={{fontSize:'11px',fontWeight:'600',color:CA,letterSpacing:'0.08em',marginBottom:'16px',textTransform:'uppercase'}}>Cliente</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
+          <label style={{gridColumn:'1/-1'}}><div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'6px'}}>Empresa / Marca *</div><input value={d.empresa} onChange={set('empresa')} placeholder="Ej: APLIVE" style={inp}/></label>
+          <label><div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'6px'}}>Nombre del contacto</div><input value={d.contacto} onChange={set('contacto')} placeholder="Nombre completo" style={inp}/></label>
+          <label><div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'6px'}}>Email</div><input value={d.email} onChange={set('email')} placeholder="email@empresa.com" type="email" style={inp}/></label>
         </div>
-        <div>
-          <label style={{display:'block',fontSize:'11px',color:'rgba(255,255,255,0.35)',marginBottom:'5px'}}>Texto del contrato (pega tu contrato aquí)</label>
-          <textarea style={{...INP,minHeight:'420px',resize:'vertical',lineHeight:'1.6',fontFamily:'monospace',fontSize:'12px'}} value={texto} onChange={e=>setTexto(e.target.value)} placeholder={`Pega aquí tu contrato completo.\n\nUsa marcadores como:\n{{NOMBRE}}\n{{EMAIL}}\n{{PLAN}}\n{{PRECIO}} {{MONEDA}}\n{{FECHA_INICIO}}\n{{REPRESENTANTE_CLIENTE}}\n\nNo modifiques el texto legal — solo añade los marcadores en los lugares correctos.`}/>
-        </div>
-        {vars_uniq.length>0&&<p style={{fontSize:'11px',color:CA,marginTop:'8px'}}>{vars_uniq.length} variable{vars_uniq.length!==1?'s':''} detectada{vars_uniq.length!==1?'s':''}: {vars_uniq.join(', ')}</p>}
       </div>
-      {/* RIGHT: help + existing templates */}
-      <div>
-        <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:'12px'}}>Variables disponibles</p>
-        {VARS_HELP.map(([section,...vars])=>(
-          <div key={section} style={{marginBottom:'12px'}}>
-            <p style={{fontSize:'10px',color:'rgba(255,255,255,0.2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:'6px'}}>{section}</p>
-            <div style={{display:'flex',flexWrap:'wrap',gap:'5px'}}>
-              {vars.map(v=>(
-                <button key={v} onClick={()=>setTexto(t=>t+`{{${v}}}`)} style={{all:'unset',cursor:'pointer',padding:'3px 8px',background:'rgba(20,184,166,0.08)',border:'1px solid rgba(20,184,166,0.2)',borderRadius:'4px',fontSize:'11px',color:CA,fontFamily:'monospace'}}>{`{{${v}}}`}</button>
-              ))}
-            </div>
-          </div>
-        ))}
-        {templates.length>0&&(
-          <div style={{marginTop:'24px'}}>
-            <p style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:'10px'}}>Plantillas guardadas ({templates.length})</p>
-            {templates.map(t=>(
-              <div key={t.id} style={{padding:'10px 14px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'6px',display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'8px'}}>
-                <div>
-                  <p style={{fontSize:'13px',fontWeight:'600',color:'rgba(255,255,255,0.7)'}}>{t.nombre}</p>
-                  <p style={{fontSize:'11px',color:'rgba(255,255,255,0.25)'}}>{(t.texto||'').split('\n').length} líneas · {((t.texto||'').match(/\{\{[A-Z0-9_]+\}\}/g)||[]).length} variables</p>
-                </div>
-                <div style={{display:'flex',gap:'6px'}}>
-                  <button onClick={()=>onEdit(t)} style={{all:'unset',cursor:'pointer',padding:'5px 10px',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'5px',fontSize:'11px',color:'rgba(255,255,255,0.4)'}}>Editar</button>
-                  <button onClick={()=>onDel(t.id)} style={{all:'unset',cursor:'pointer',padding:'5px 8px',border:'1px solid rgba(255,59,48,0.15)',borderRadius:'5px',fontSize:'11px',color:'rgba(255,59,48,0.4)'}}>✕</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'10px',padding:'24px'}}>
+        <div style={{fontSize:'11px',fontWeight:'600',color:CA,letterSpacing:'0.08em',marginBottom:'16px',textTransform:'uppercase'}}>Plan & Inversión</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'14px'}}>
+          <label style={{gridColumn:'1/-1'}}><div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'6px'}}>Plan</div>
+            <select value={d.plan} onChange={planChange} style={{...inp,cursor:'pointer'}}>
+              {CONT_PLANES.map(p=><option key={p.id} value={p.nombre} style={{background:'#111'}}>{p.nombre} — {p.cuentas} — {p.precio.toLocaleString('es-ES')} €/mes</option>)}
+            </select>
+          </label>
+          <label><div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'6px'}}>Cuentas</div><input value={d.cuentas} onChange={set('cuentas')} style={inp}/></label>
+          <label><div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'6px'}}>Precio (€/mes)</div><input value={d.precio} onChange={e=>setD(p=>({...p,precio:Number(e.target.value)||0}))} type="number" style={inp}/></label>
+          <label><div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'6px'}}>Fecha inicio</div><input value={d.fecha_inicio} onChange={set('fecha_inicio')} type="date" style={{...inp,colorScheme:'dark'}}/></label>
+        </div>
+      </div>
+      <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'10px',padding:'24px'}}>
+        <div style={{fontSize:'11px',fontWeight:'600',color:CA,letterSpacing:'0.08em',marginBottom:'16px',textTransform:'uppercase'}}>Estado & Notas</div>
+        <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+          <label><div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'6px'}}>Estado</div>
+            <select value={d.estado} onChange={set('estado')} style={{...inp,cursor:'pointer'}}>
+              {ESTADOS.map(e=><option key={e} value={e} style={{background:'#111'}}>{e}</option>)}
+            </select>
+          </label>
+          <label><div style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',marginBottom:'6px'}}>Notas internas</div><textarea value={d.notas} onChange={set('notas')} rows={3} placeholder="Notas sobre este cliente o propuesta..." style={{...inp,resize:'vertical',minHeight:'72px'}}/></label>
+        </div>
       </div>
     </div>
   </div>
   );
 }
 
-function ContractFormTPL({initial,templates,onSave,onPreview,onBack}){
+function ContractPreviewDoc({data,onBack,onBackList}){
   const CA=CONT_A;
-  const [tplId,setTplId]=React.useState(()=>initial?.templateId||templates[0]?.id||'');
-  const [vars,setVars]=React.useState(()=>initial?.vars?{...makeVars(),...initial.vars}:makeVars());
-  const [estado,setEstado]=React.useState(()=>initial?.estado||'Borrador');
-  const clients=clients_storage.load();
-
-  const tpl=templates.find(t=>t.id===tplId)||templates[0];
-  const upV=d=>setVars(p=>({...p,...d}));
-
-  const handleClientLink=id=>{
-    const c=clients.find(x=>x.id===id);
-    if(!c)return upV({clienteId:''});
-    upV({clienteId:id,NOMBRE:c.nombre||vars.NOMBRE,EMAIL:c.email||vars.EMAIL,TELEFONO:c.telefono||vars.TELEFONO,DOCUMENTO:c.nif||vars.DOCUMENTO,DIRECCION:c.direccion||vars.DIRECCION,CIUDAD:c.ciudad||vars.CIUDAD,PAIS:c.pais||vars.PAIS});
-  };
-
-  const handleSave=()=>{
-    if(!tpl)return;
-    const numero=initial?.numero||genContractNum();
-    const v={...vars,NUMERO_CONTRATO:numero,FECHA_GENERACION:new Date().toLocaleDateString('es-ES')};
-    const c={id:initial?.id||('CTR_'+Date.now()),numero,templateId:tpl.id,templateNombre:tpl.nombre,vars:v,estado,creadoEn:initial?.creadoEn||new Date().toISOString()};
-    onSave(c);
-  };
-  const handlePreview=()=>{
-    if(!tpl)return;
-    const numero=initial?.numero||genContractNum();
-    const v={...vars,NUMERO_CONTRATO:numero,FECHA_GENERACION:new Date().toLocaleDateString('es-ES')};
-    onPreview(v,tpl.texto,numero);
-  };
-
-  const INP={all:'unset',display:'block',width:'100%',padding:'9px 12px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'6px',fontSize:'13px',color:'#fff',boxSizing:'border-box'};
-  const SEL={...INP,cursor:'pointer'};
-  const Sec=({t,ch})=>(<div style={{marginBottom:'28px'}}><p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.25)',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:'14px',paddingBottom:'8px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>{t}</p>{ch}</div>);
-  const Row=({children})=>(<div style={{display:'flex',gap:'14px',flexWrap:'wrap'}}>{children}</div>);
-  const F=({label,ch,half,third})=>(<div style={{marginBottom:'12px',width:third?'calc(33% - 10px)':half?'calc(50% - 7px)':'100%'}}><label style={{display:'block',fontSize:'11px',color:'rgba(255,255,255,0.35)',marginBottom:'5px'}}>{label}</label>{ch}</div>);
-
-  if(templates.length===0) return(
-    <div style={{minHeight:'100vh',background:'#0a0a0f',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'16px',fontFamily:"'Inter',sans-serif"}}>
-      <p style={{color:'rgba(255,255,255,0.4)',fontSize:'14px'}}>Primero debes crear una plantilla de contrato.</p>
-      <button onClick={onBack} style={{all:'unset',cursor:'pointer',color:CA,fontSize:'13px'}}>← Volver a Contratos</button>
-    </div>
-  );
-
-  return(
-  <div style={{minHeight:'100vh',background:'#0a0a0f',fontFamily:"'Inter',sans-serif",color:'#fff'}}>
-    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 28px',height:'56px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,background:'rgba(9,9,11,0.95)',backdropFilter:'blur(16px)',zIndex:50}}>
-      <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
-        <button onClick={onBack} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'6px'}}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Contratos
-        </button>
-        <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
-        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>{initial?initial.numero:'Nuevo contrato'}</span>
-      </div>
-      <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
-        <select value={estado} onChange={e=>setEstado(e.target.value)} style={{...SEL,width:'auto',fontSize:'12px',padding:'6px 10px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)'}}>
-          {['Borrador','Enviado','Firmado','Cancelado'].map(s=><option key={s} value={s}>{s}</option>)}
-        </select>
-        <button onClick={handlePreview} style={{all:'unset',cursor:'pointer',padding:'7px 14px',border:`1px solid rgba(20,184,166,0.3)`,borderRadius:'6px',fontSize:'12px',color:CA,fontWeight:'600'}}>👁 Vista previa</button>
-        <button onClick={handleSave} style={{all:'unset',cursor:'pointer',padding:'7px 18px',background:CA,borderRadius:'6px',fontSize:'12px',fontWeight:'600',color:'#fff'}}>Guardar</button>
-      </div>
-    </div>
-    <div style={{padding:'32px 28px',maxWidth:'780px',margin:'0 auto'}}>
-      {templates.length>1&&(
-        <Sec t="Plantilla" ch={<F label="Plantilla a usar" ch={<select style={SEL} value={tplId} onChange={e=>setTplId(e.target.value)}>{templates.map(t=><option key={t.id} value={t.id}>{t.nombre}</option>)}</select>}/>}/>
-      )}
-      <Sec t="Vincular a cliente CRM (opcional)" ch={
-        <F label="Cliente" ch={<select style={SEL} value={vars.clienteId||''} onChange={e=>handleClientLink(e.target.value)}>
-          <option value="">— Sin vincular —</option>
-          {clients.map(c=><option key={c.id} value={c.id}>{c.empresa||c.nombre}</option>)}
-        </select>}/>
-      }/>
-      <Sec t="Datos del cliente" ch={<>
-        <Row>
-          <F label="Nombre completo" half ch={<input style={INP} value={vars.NOMBRE} onChange={e=>upV({NOMBRE:e.target.value})} placeholder="{{NOMBRE}}"/>}/>
-          <F label="Correo electrónico" half ch={<input style={INP} value={vars.EMAIL} onChange={e=>upV({EMAIL:e.target.value})} placeholder="{{EMAIL}}"/>}/>
-          <F label="Teléfono" third ch={<input style={INP} value={vars.TELEFONO} onChange={e=>upV({TELEFONO:e.target.value})} placeholder="{{TELEFONO}}"/>}/>
-          <F label="Documento identidad (NIF/DNI)" third ch={<input style={INP} value={vars.DOCUMENTO} onChange={e=>upV({DOCUMENTO:e.target.value})} placeholder="{{DOCUMENTO}}"/>}/>
-          <F label="País" third ch={<input style={INP} value={vars.PAIS} onChange={e=>upV({PAIS:e.target.value})} placeholder="{{PAIS}}"/>}/>
-          <F label="Dirección" half ch={<input style={INP} value={vars.DIRECCION} onChange={e=>upV({DIRECCION:e.target.value})} placeholder="{{DIRECCION}}"/>}/>
-          <F label="Ciudad" half ch={<input style={INP} value={vars.CIUDAD} onChange={e=>upV({CIUDAD:e.target.value})} placeholder="{{CIUDAD}}"/>}/>
-        </Row>
-      </>}/>
-      <Sec t="Datos del servicio" ch={<>
-        <Row>
-          <F label="Nombre del plan / servicio" half ch={<input style={INP} value={vars.PLAN} onChange={e=>upV({PLAN:e.target.value})} placeholder="{{PLAN}}"/>}/>
-          <F label="Precio" third ch={<input style={INP} value={vars.PRECIO} onChange={e=>upV({PRECIO:e.target.value})} placeholder="{{PRECIO}}"/>}/>
-          <F label="Moneda" third ch={<select style={SEL} value={vars.MONEDA} onChange={e=>upV({MONEDA:e.target.value})}>{['EUR','USD','GBP','MXN','COP','ARS'].map(m=><option key={m} value={m}>{m}</option>)}</select>}/>
-          <F label="Duración del contrato" third ch={<input style={INP} value={vars.DURACION} onChange={e=>upV({DURACION:e.target.value})} placeholder="12 meses"/>}/>
-          <F label="Fecha inicio" third ch={<input type="date" style={INP} value={vars.FECHA_INICIO} onChange={e=>upV({FECHA_INICIO:e.target.value})}/>}/>
-          <F label="Fecha finalización" third ch={<input type="date" style={INP} value={vars.FECHA_FIN} onChange={e=>upV({FECHA_FIN:e.target.value})}/>}/>
-          <F label="Forma de pago" half ch={<input style={INP} value={vars.FORMA_PAGO} onChange={e=>upV({FORMA_PAGO:e.target.value})} placeholder="Transferencia bancaria"/>}/>
-          <F label="Frecuencia" half ch={<select style={SEL} value={vars.FRECUENCIA} onChange={e=>upV({FRECUENCIA:e.target.value})}>{['Mensual','Trimestral','Semestral','Anual','Único'].map(f=><option key={f} value={f}>{f}</option>)}</select>}/>
-          <F label="Fecha primer pago" half ch={<input type="date" style={INP} value={vars.PRIMER_PAGO} onChange={e=>upV({PRIMER_PAGO:e.target.value})}/>}/>
-          <F label="Renovación automática" half ch={<select style={SEL} value={vars.RENOVACION} onChange={e=>upV({RENOVACION:e.target.value})}><option value="Sí">Sí</option><option value="No">No</option></select>}/>
-          <F label="Observaciones" ch={<textarea style={{...INP,minHeight:'70px',resize:'vertical',lineHeight:'1.5'}} value={vars.OBSERVACIONES} onChange={e=>upV({OBSERVACIONES:e.target.value})} placeholder="Notas adicionales del servicio..."/>}/>
-        </Row>
-      </>}/>
-      <Sec t="Firma" ch={<>
-        <Row>
-          <F label="Representante del cliente (firmante)" half ch={<input style={INP} value={vars.REPRESENTANTE_CLIENTE} onChange={e=>upV({REPRESENTANTE_CLIENTE:e.target.value})} placeholder="Nombre completo del firmante"/>}/>
-          <F label="Representante de la empresa" half ch={<input style={INP} value={vars.REPRESENTANTE_EMPRESA} onChange={e=>upV({REPRESENTANTE_EMPRESA:e.target.value})} placeholder="Mafe Montilla"/>}/>
-        </Row>
-      </>}/>
-    </div>
-  </div>
-  );
-}
-
-function ContractPreview({vars,tplText,numero,onBack,onBackList}){
-  const CA=CONT_A;
-  const filled=fillTemplate(tplText,vars);
-
+  const emp=data.empresa||'Cliente';
+  const plan=data.plan||'Plan Signature';
+  const cuentas=data.cuentas||'1 Cuenta';
+  const precio=(data.precio||0).toLocaleString('es-ES');
   const handlePrint=()=>{
     const w=window.open('','_blank');
-    const styles=`<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Georgia,'Times New Roman',serif;font-size:11.5pt;line-height:1.85;color:#111;background:#fff;padding:2.5cm 3cm;}pre,p{margin-bottom:9pt;text-align:justify;white-space:pre-wrap;font-family:inherit;font-size:inherit;}@media print{body{padding:2cm;}}</style>`;
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Contrato ${numero||''}</title>${styles}</head><body><pre style="white-space:pre-wrap;font-family:Georgia,serif;font-size:11.5pt;line-height:1.85">${filled.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre></body></html>`);
+    const html=generateProposalHTML(emp,plan,cuentas,precio,data);
+    w.document.write(html);
     w.document.close();
-    setTimeout(()=>w.print(),350);
+    setTimeout(()=>w.print(),700);
   };
-
-  // Highlight any remaining {{VAR}} that weren't filled
-  const rendered=filled.replace(/\{\{([A-Z0-9_]+)\}\}/g,'<mark style="background:rgba(251,191,36,0.25);color:#fbbf24;padding:0 2px;border-radius:2px">{{$1}}</mark>');
-
+  const sections=[
+    {lbl:'PUNTO DE PARTIDA',ttl:'Situación Actual y El Desafío'},
+    {lbl:'VISIÓN ESTRATÉGICA',ttl:'La Oportunidad y Nuestra Visión'},
+    {lbl:'ESTRATEGIA',ttl:'Estrategia de Marketing 360° y Ecosistema Digital'},
+    {lbl:'CONTENIDO Y REDES',ttl:'Estrategia de Contenido y Gestión de Redes Sociales'},
+    {lbl:'TECNOLOGÍA',ttl:'Inteligencia Artificial, Automatización y Email Marketing'},
+    {lbl:'EL EQUIPO',ttl:'Equipo Responsable'},
+    {lbl:'SERVICIOS E INVERSIÓN',ttl:'Servicios Incluidos e Inversión'},
+    {lbl:'EL RESULTADO',ttl:'El Resultado Esperado'},
+  ];
   return(
-  <div style={{minHeight:'100vh',background:'#0a0a0f',fontFamily:"'Inter',sans-serif"}}>
-    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 28px',height:'56px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,background:'rgba(9,9,11,0.95)',backdropFilter:'blur(16px)',zIndex:50}}>
+  <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif"}}>
+    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 28px',height:'56px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(16px)',zIndex:50}}>
       <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-        <button onClick={onBack} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'6px'}}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Editar
-        </button>
+        <button onClick={onBack} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'6px'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Editar</button>
         <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
-        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>Vista previa del contrato</span>
-        {numero&&<span style={{fontSize:'11px',padding:'2px 8px',borderRadius:'100px',background:'rgba(20,184,166,0.1)',border:'1px solid rgba(20,184,166,0.3)',color:CA}}>{numero}</span>}
+        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>Vista previa</span>
+        <span style={{fontSize:'11px',padding:'2px 8px',borderRadius:'100px',background:'rgba(20,184,166,0.1)',border:'1px solid rgba(20,184,166,0.3)',color:CA}}>{data.numero}</span>
       </div>
       <div style={{display:'flex',gap:'10px'}}>
         <button onClick={onBackList} style={{all:'unset',cursor:'pointer',padding:'7px 14px',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'6px',color:'rgba(255,255,255,0.5)',fontSize:'12px'}}>← Lista</button>
-        <button onClick={handlePrint} style={{all:'unset',cursor:'pointer',padding:'7px 18px',background:CA,borderRadius:'6px',color:'#fff',fontSize:'12px',fontWeight:'600'}}>🖨 Imprimir / PDF</button>
+        <button onClick={handlePrint} style={{all:'unset',cursor:'pointer',padding:'7px 18px',background:CA,borderRadius:'6px',color:'#fff',fontSize:'12px',fontWeight:'600'}}>🖨 Imprimir / Descargar PDF</button>
       </div>
     </div>
-    <div style={{maxWidth:'820px',margin:'0 auto',padding:'40px 28px'}}>
-      <div style={{background:'rgba(255,255,255,0.015)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px',padding:'48px 52px',position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',top:0,left:0,right:0,height:'3px',background:`linear-gradient(90deg,${CA},transparent)`}}/>
-        <pre style={{whiteSpace:'pre-wrap',fontFamily:"Georgia,'Times New Roman',serif",fontSize:'13.5px',lineHeight:'1.85',color:'rgba(255,255,255,0.75)',margin:0}} dangerouslySetInnerHTML={{__html:rendered}}/>
+    <div style={{background:'#050505',padding:'72px 60px 52px',borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+      <div style={{maxWidth:'800px',margin:'0 auto'}}>
+        <div style={{fontSize:'44px',fontFamily:"Georgia,'Times New Roman',serif",color:'#fff',lineHeight:1.2,marginBottom:'14px'}}>{emp}</div>
+        <div style={{fontSize:'22px',fontFamily:"Georgia,'Times New Roman',serif",color:'rgba(255,255,255,0.48)',lineHeight:1.4,marginBottom:'28px'}}>Plan de Posicionamiento Global<br/>y Transformación Digital</div>
+        <span style={{display:'inline-block',padding:'7px 18px',border:'1px solid rgba(201,169,110,0.4)',borderRadius:'4px',color:'#c9a96e',fontSize:'13px',fontFamily:'sans-serif'}}>{plan} · {cuentas} · {precio} €/mes</span>
       </div>
-      <p style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',textAlign:'center',marginTop:'16px'}}>Las variables resaltadas en amarillo aún no tienen valor asignado.</p>
+    </div>
+    <div style={{maxWidth:'860px',margin:'0 auto',padding:'40px 28px'}}>
+      <div style={{display:'flex',flexDirection:'column',gap:'1px',marginBottom:'28px'}}>
+        {sections.map((s,i)=>(
+          <div key={i} style={{padding:'18px 22px',background:i%2===0?'rgba(255,255,255,0.02)':'transparent',borderRadius:'5px'}}>
+            <div style={{fontSize:'10px',letterSpacing:'0.1em',color:'rgba(255,255,255,0.22)',marginBottom:'3px'}}>{s.lbl}</div>
+            <div style={{fontSize:'17px',fontFamily:"Georgia,'Times New Roman',serif",color:'rgba(255,255,255,0.75)'}}>{s.ttl}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{padding:'22px',background:'rgba(201,169,110,0.05)',border:'1px solid rgba(201,169,110,0.18)',borderRadius:'10px',textAlign:'center'}}>
+        <div style={{fontSize:'13px',color:'#c9a96e',marginBottom:'6px',fontWeight:'600'}}>Propuesta completa lista para imprimir</div>
+        <div style={{fontSize:'12px',color:'rgba(255,255,255,0.28)'}}>Haz clic en "Imprimir / Descargar PDF" para abrir y exportar el documento completo en formato oscuro profesional</div>
+      </div>
     </div>
   </div>
   );
