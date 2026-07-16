@@ -7439,6 +7439,31 @@ function HomeScreen({onSelect,currentUser}){
           );
         })()}
 
+        {/* GASTOS — admin only */}
+        {isAdmin&&(()=>{
+          const GA=EXP_A;
+          const exps=expenses_storage.load();
+          const totalGastado=exps.reduce((s,g)=>s+parseFloat(g.importe||0)*(1+parseFloat(g.ivaRate||0)/100),0);
+          const pendientes=exps.filter(g=>g.estado==='Pendiente').length;
+          return(
+          <button onClick={()=>onSelect('expenses')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+            <div style={{padding:'32px 28px',background:'rgba(34,197,94,0.02)',border:'1px solid rgba(34,197,94,0.12)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
+              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(34,197,94,0.4)';e.currentTarget.style.background='rgba(34,197,94,0.06)';}}
+              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(34,197,94,0.12)';e.currentTarget.style.background='rgba(34,197,94,0.02)';}}>
+              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${GA},transparent)`}}/>
+              <div style={{width:'36px',height:'36px',background:'rgba(34,197,94,0.08)',border:'1px solid rgba(34,197,94,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GA} strokeWidth="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+              </div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:GA,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 09</p>
+              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Gastos<br/>& Pagos</h2>
+              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Registra gastos, IVA deducible y métodos de pago. Exporta a CSV para contabilidad.</p>
+              {exps.length>0&&<p style={{fontSize:'11px',color:`${GA}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{exps.length} gasto{exps.length!==1?'s':''}{pendientes>0?` · ${pendientes} pendiente${pendientes!==1?'s':''}`:''}{totalGastado>0?` · ${Math.round(totalGastado).toLocaleString('es-ES')}€ total`:''}</p>}
+              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:GA,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver gastos <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={GA} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            </div>
+          </button>
+          );
+        })()}
+
         {/* FACTURAS — admin only */}
         {isAdmin&&(()=>{
           const FA=INV_A;
@@ -8369,6 +8394,233 @@ function InvoiceView({data,onBack,onBackList}){
   );
 }
 
+/* ── EXPENSES ── */
+const EXPENSE_KEY='glowlabs_expenses_v1';
+const expenses_storage={
+  load:()=>{try{return JSON.parse(localStorage.getItem(EXPENSE_KEY)||'[]');}catch{return[];}},
+  save:(d)=>localStorage.setItem(EXPENSE_KEY,JSON.stringify(d))
+};
+const EXP_A='#22c55e';
+const EXP_CATS=['Marketing','IA & Tech','Diseño Web','Operaciones','Equipo','Software','Publicidad','Viajes','Material','Otro'];
+const EXP_PMETHODS=['Tarjeta','Transferencia','Efectivo','PayPal','Otro'];
+
+function makeExpense(o={}){
+  const id='GAS-'+String(Date.now()).slice(-6);
+  return {id,numero:id,fecha:new Date().toISOString().slice(0,10),descripcion:'',categoria:'Operaciones',proveedor:'',importe:0,ivaRate:21,ivaDeducible:true,metodoPago:'Tarjeta',clienteId:'',estado:'Pendiente',notas:'',...o,creadoEn:o.creadoEn||new Date().toISOString()};
+}
+
+function ExpenseModule({onHome}){
+  const [gastos,setGastos]=React.useState(()=>expenses_storage.load());
+  const [view,setView]=React.useState('list');
+  const [editing,setEditing]=React.useState(null);
+  const [filterEstado,setFilterEstado]=React.useState('Todos');
+  const [filterCat,setFilterCat]=React.useState('Todas');
+  const EA=EXP_A;
+
+  const save=arr=>{expenses_storage.save(arr);setGastos(arr);};
+  const del=id=>{if(window.confirm('¿Eliminar gasto?'))save(gastos.filter(g=>g.id!==id));};
+  const exportCSV=()=>{
+    const rows=[['Número','Fecha','Descripción','Categoría','Proveedor','Importe','IVA%','Total','IVA Deducible','Método Pago','Estado','Notas'],...gastos.map(g=>[g.numero,g.fecha,g.descripcion,g.categoria,g.proveedor,g.importe,g.ivaRate,(g.importe*(1+g.ivaRate/100)).toFixed(2),g.ivaDeducible?'Sí':'No',g.metodoPago,g.estado,g.notas])];
+    const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('﻿'+csv);a.download='gastos.csv';a.click();
+  };
+
+  if(view==='form') return <ExpenseForm initial={editing} onSave={g=>{const arr=editing?gastos.map(x=>x.id===g.id?g:x):[g,...gastos];save(arr);setEditing(null);setView('list');}} onCancel={()=>{setEditing(null);setView('list');}}/>;
+
+  const filtered=gastos.filter(g=>(filterEstado==='Todos'||g.estado===filterEstado)&&(filterCat==='Todas'||g.categoria===filterCat));
+  const totalBase=gastos.reduce((s,g)=>s+parseFloat(g.importe||0),0);
+  const totalIVA=gastos.filter(g=>g.ivaDeducible).reduce((s,g)=>s+parseFloat(g.importe||0)*parseFloat(g.ivaRate||0)/100,0);
+  const totalPend=gastos.filter(g=>g.estado==='Pendiente').reduce((s,g)=>s+parseFloat(g.importe||0)*(1+parseFloat(g.ivaRate||0)/100),0);
+
+  const estadoBadge=e=>({Pendiente:{bg:'rgba(251,191,36,0.12)',color:'#fbbf24',label:'Pendiente'},Pagado:{bg:'rgba(34,197,94,0.12)',color:EA,label:'Pagado'},Reembolsado:{bg:'rgba(99,102,241,0.12)',color:'#818cf8',label:'Reembolsado'}}[e]||{bg:'rgba(255,255,255,0.08)',color:'#aaa',label:e});
+
+  return(
+  <div style={{minHeight:'100vh',background:'#0a0a0f',color:'#fff',fontFamily:"'Inter',sans-serif"}}>
+    {/* NAV */}
+    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 32px',display:'flex',alignItems:'center',justifyContent:'space-between',height:'56px',position:'sticky',top:0,background:'rgba(10,10,15,0.95)',backdropFilter:'blur(12px)',zIndex:50}}>
+      <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
+        <button onClick={onHome} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'5px'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Inicio
+        </button>
+        <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
+        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>Gastos & Pagos</span>
+      </div>
+      <div style={{display:'flex',gap:'10px'}}>
+        <button onClick={exportCSV} style={{all:'unset',cursor:'pointer',padding:'7px 14px',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'5px',fontSize:'12px',color:'rgba(255,255,255,0.5)',display:'flex',alignItems:'center',gap:'6px'}}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV
+        </button>
+        <button onClick={()=>{setEditing(null);setView('form');}} style={{all:'unset',cursor:'pointer',padding:'7px 16px',background:EA,borderRadius:'5px',fontSize:'12px',fontWeight:'600',color:'#fff'}}>+ Nuevo gasto</button>
+      </div>
+    </div>
+
+    <div style={{padding:'32px',maxWidth:'1200px',margin:'0 auto'}}>
+      {/* STATS */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'16px',marginBottom:'28px'}}>
+        {[{label:'Total gastado',val:`${totalBase.toLocaleString('es-ES',{minimumFractionDigits:2})} €`,sub:`${gastos.length} gasto${gastos.length!==1?'s':''}`,color:EA},{label:'IVA deducible',val:`${totalIVA.toLocaleString('es-ES',{minimumFractionDigits:2})} €`,sub:'IVA recuperable',color:'#818cf8'},{label:'Pendiente de pago',val:`${totalPend.toLocaleString('es-ES',{minimumFractionDigits:2})} €`,sub:'Con IVA incluido',color:'#fbbf24'}].map((s,i)=>(
+          <div key={i} style={{padding:'20px 24px',background:'rgba(255,255,255,0.02)',border:`1px solid rgba(255,255,255,0.06)`,borderRadius:'8px'}}>
+            <p style={{fontSize:'11px',color:'rgba(255,255,255,0.35)',marginBottom:'8px',textTransform:'uppercase',letterSpacing:'.1em'}}>{s.label}</p>
+            <p style={{fontSize:'22px',fontWeight:'700',color:s.color,fontFamily:"'Playfair Display',serif",marginBottom:'4px'}}>{s.val}</p>
+            <p style={{fontSize:'11px',color:'rgba(255,255,255,0.2)'}}>{s.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* FILTERS */}
+      <div style={{display:'flex',gap:'10px',marginBottom:'20px',flexWrap:'wrap',alignItems:'center'}}>
+        <div style={{display:'flex',gap:'6px'}}>
+          {['Todos','Pendiente','Pagado','Reembolsado'].map(s=>(
+            <button key={s} onClick={()=>setFilterEstado(s)} style={{all:'unset',cursor:'pointer',padding:'6px 14px',borderRadius:'20px',fontSize:'12px',fontWeight:'600',background:filterEstado===s?EA:'rgba(255,255,255,0.05)',color:filterEstado===s?'#fff':'rgba(255,255,255,0.4)',transition:'all .15s'}}>{s}</button>
+          ))}
+        </div>
+        <select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{all:'unset',cursor:'pointer',padding:'6px 12px',borderRadius:'20px',fontSize:'12px',background:'rgba(255,255,255,0.05)',color:'rgba(255,255,255,0.5)',border:'1px solid rgba(255,255,255,0.1)'}}>
+          <option value="Todas">Todas las categorías</option>
+          {EXP_CATS.map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {/* LIST */}
+      {filtered.length===0?(
+        <div style={{textAlign:'center',padding:'80px 20px',color:'rgba(255,255,255,0.2)',fontSize:'14px'}}>
+          No hay gastos{filterEstado!=='Todos'||filterCat!=='Todas'?' con estos filtros':' registrados'}.
+          <br/><button onClick={()=>{setEditing(null);setView('form');}} style={{all:'unset',cursor:'pointer',color:EA,fontSize:'13px',marginTop:'12px',display:'block'}}>+ Añadir primer gasto →</button>
+        </div>
+      ):(
+        <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+          {filtered.map(g=>{
+            const total=(parseFloat(g.importe||0)*(1+parseFloat(g.ivaRate||0)/100));
+            const badge=estadoBadge(g.estado);
+            return(
+            <div key={g.id} style={{padding:'16px 20px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'8px',display:'grid',gridTemplateColumns:'1fr auto',gap:'12px',alignItems:'center',transition:'border .15s'}}
+              onMouseOver={e=>e.currentTarget.style.border=`1px solid rgba(34,197,94,0.2)`}
+              onMouseOut={e=>e.currentTarget.style.border='1px solid rgba(255,255,255,0.06)'}>
+              <div style={{display:'flex',gap:'16px',alignItems:'center'}}>
+                <div style={{minWidth:'80px'}}>
+                  <p style={{fontSize:'10px',color:'rgba(255,255,255,0.2)',marginBottom:'2px'}}>{g.numero}</p>
+                  <p style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>{g.fecha}</p>
+                </div>
+                <div style={{flex:1}}>
+                  <p style={{fontSize:'13px',fontWeight:'600',color:'rgba(255,255,255,0.85)',marginBottom:'3px'}}>{g.descripcion||'Sin descripción'}</p>
+                  <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                    <span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>{g.categoria}</span>
+                    {g.proveedor&&<><span style={{color:'rgba(255,255,255,0.1)'}}>·</span><span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>{g.proveedor}</span></>}
+                    {g.ivaDeducible&&<span style={{fontSize:'10px',padding:'2px 6px',background:'rgba(129,140,248,0.1)',color:'#818cf8',borderRadius:'10px'}}>IVA ded.</span>}
+                  </div>
+                </div>
+              </div>
+              <div style={{display:'flex',gap:'12px',alignItems:'center'}}>
+                <div style={{textAlign:'right'}}>
+                  <p style={{fontSize:'15px',fontWeight:'700',color:EA}}>{total.toLocaleString('es-ES',{minimumFractionDigits:2})} €</p>
+                  <p style={{fontSize:'10px',color:'rgba(255,255,255,0.2)'}}>Base: {parseFloat(g.importe||0).toLocaleString('es-ES',{minimumFractionDigits:2})} €</p>
+                </div>
+                <span style={{padding:'4px 10px',borderRadius:'10px',fontSize:'11px',fontWeight:'600',background:badge.bg,color:badge.color}}>{badge.label}</span>
+                <button onClick={()=>{setEditing(g);setView('form');}} style={{all:'unset',cursor:'pointer',padding:'6px 12px',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'5px',fontSize:'12px',color:'rgba(255,255,255,0.4)'}}>Editar</button>
+                <button onClick={()=>del(g.id)} style={{all:'unset',cursor:'pointer',padding:'6px 8px',border:'1px solid rgba(255,59,48,0.15)',borderRadius:'5px',fontSize:'12px',color:'rgba(255,59,48,0.5)'}}>✕</button>
+              </div>
+            </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+  );
+}
+
+function ExpenseForm({initial,onSave,onCancel}){
+  const EA=EXP_A;
+  const [g,setG]=React.useState(()=>initial?{...initial}:makeExpense());
+  const up=d=>setG(p=>({...p,...d}));
+  const total=(parseFloat(g.importe||0)*(1+parseFloat(g.ivaRate||0)/100));
+  const ivaMonto=(parseFloat(g.importe||0)*parseFloat(g.ivaRate||0)/100);
+  const clients=clients_storage.load();
+
+  const Sec=({t,ch})=>(
+    <div style={{marginBottom:'28px'}}>
+      <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.25)',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:'14px',paddingBottom:'8px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>{t}</p>
+      {ch}
+    </div>
+  );
+  const Field=({label,ch,half})=>(
+    <div style={{marginBottom:'14px',width:half?'calc(50% - 7px)':'100%'}}>
+      <label style={{display:'block',fontSize:'11px',color:'rgba(255,255,255,0.35)',marginBottom:'5px'}}>{label}</label>
+      {ch}
+    </div>
+  );
+  const inp={all:'unset',display:'block',width:'100%',padding:'9px 12px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'6px',fontSize:'13px',color:'#fff',boxSizing:'border-box'};
+  const sel={...inp,cursor:'pointer'};
+
+  return(
+  <div style={{minHeight:'100vh',background:'#0a0a0f',color:'#fff',fontFamily:"'Inter',sans-serif"}}>
+    {/* NAV */}
+    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 32px',display:'flex',alignItems:'center',justifyContent:'space-between',height:'56px',position:'sticky',top:0,background:'rgba(10,10,15,0.95)',backdropFilter:'blur(12px)',zIndex:50}}>
+      <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
+        <button onClick={onCancel} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'5px'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Gastos
+        </button>
+        <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
+        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>{initial?`Editar ${g.numero}`:'Nuevo gasto'}</span>
+      </div>
+      <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+        <div style={{textAlign:'right',marginRight:'8px'}}>
+          <p style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',marginBottom:'2px'}}>Total con IVA</p>
+          <p style={{fontSize:'18px',fontWeight:'700',color:EA,fontFamily:"'Playfair Display',serif"}}>{total.toLocaleString('es-ES',{minimumFractionDigits:2})} €</p>
+        </div>
+        <select value={g.estado} onChange={e=>up({estado:e.target.value})} style={{...sel,width:'auto',fontSize:'12px',padding:'7px 12px',color:g.estado==='Pagado'?EA:g.estado==='Pendiente'?'#fbbf24':'#818cf8',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)'}}>
+          {['Pendiente','Pagado','Reembolsado'].map(s=><option key={s} value={s}>{s}</option>)}
+        </select>
+        <button onClick={()=>onSave(g)} style={{all:'unset',cursor:'pointer',padding:'8px 20px',background:EA,borderRadius:'6px',fontSize:'13px',fontWeight:'600',color:'#fff'}}>Guardar</button>
+      </div>
+    </div>
+
+    <div style={{padding:'36px 32px',maxWidth:'760px',margin:'0 auto'}}>
+      <Sec t="Datos del gasto" ch={<>
+        <div style={{display:'flex',flexWrap:'wrap',gap:'14px'}}>
+          <Field label="Descripción" ch={<input style={inp} value={g.descripcion} onChange={e=>up({descripcion:e.target.value})} placeholder="Ej: Suscripción Adobe Creative Cloud"/>}/>
+          <div style={{display:'flex',gap:'14px',width:'100%'}}>
+            <Field label="Categoría" half ch={<select style={sel} value={g.categoria} onChange={e=>up({categoria:e.target.value})}>{EXP_CATS.map(c=><option key={c} value={c}>{c}</option>)}</select>}/>
+            <Field label="Proveedor" half ch={<input style={inp} value={g.proveedor} onChange={e=>up({proveedor:e.target.value})} placeholder="Nombre empresa o persona"/>}/>
+          </div>
+          <div style={{display:'flex',gap:'14px',width:'100%'}}>
+            <Field label="Fecha" half ch={<input type="date" style={inp} value={g.fecha} onChange={e=>up({fecha:e.target.value})}/>}/>
+            <Field label="Método de pago" half ch={<select style={sel} value={g.metodoPago} onChange={e=>up({metodoPago:e.target.value})}>{EXP_PMETHODS.map(m=><option key={m} value={m}>{m}</option>)}</select>}/>
+          </div>
+          <Field label="Cliente relacionado (opcional)" ch={<select style={sel} value={g.clienteId} onChange={e=>up({clienteId:e.target.value})}><option value="">— Ninguno —</option>{clients.map(c=><option key={c.id} value={c.id}>{c.empresa||c.nombre}</option>)}</select>}/>
+        </div>
+      </>}/>
+
+      <Sec t="Importe e IVA" ch={<>
+        <div style={{display:'flex',gap:'14px',flexWrap:'wrap'}}>
+          <Field label="Importe base (€)" half ch={<input type="number" style={inp} value={g.importe} onChange={e=>up({importe:parseFloat(e.target.value)||0})} placeholder="0.00" step="0.01" min="0"/>}/>
+          <Field label="IVA %" half ch={<select style={sel} value={g.ivaRate} onChange={e=>up({ivaRate:parseFloat(e.target.value)})}>{[0,4,10,21].map(r=><option key={r} value={r}>{r}%</option>)}</select>}/>
+        </div>
+        <div style={{padding:'16px',background:'rgba(34,197,94,0.04)',border:'1px solid rgba(34,197,94,0.12)',borderRadius:'8px',marginBottom:'14px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:'6px'}}>
+            <span style={{fontSize:'12px',color:'rgba(255,255,255,0.4)'}}>Base imponible</span>
+            <span style={{fontSize:'12px',color:'rgba(255,255,255,0.7)'}}>{parseFloat(g.importe||0).toLocaleString('es-ES',{minimumFractionDigits:2})} €</span>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:'6px'}}>
+            <span style={{fontSize:'12px',color:'rgba(255,255,255,0.4)'}}>IVA ({g.ivaRate}%)</span>
+            <span style={{fontSize:'12px',color:'rgba(255,255,255,0.7)'}}>{ivaMonto.toLocaleString('es-ES',{minimumFractionDigits:2})} €</span>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'8px'}}>
+            <span style={{fontSize:'13px',fontWeight:'700',color:'#fff'}}>Total</span>
+            <span style={{fontSize:'16px',fontWeight:'700',color:EA}}>{total.toLocaleString('es-ES',{minimumFractionDigits:2})} €</span>
+          </div>
+        </div>
+        <label style={{display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',fontSize:'13px',color:'rgba(255,255,255,0.6)'}}>
+          <div onClick={()=>up({ivaDeducible:!g.ivaDeducible})} style={{width:'36px',height:'20px',borderRadius:'10px',background:g.ivaDeducible?EA:'rgba(255,255,255,0.1)',transition:'background .2s',position:'relative',cursor:'pointer',flexShrink:0}}>
+            <div style={{position:'absolute',top:'3px',left:g.ivaDeducible?'19px':'3px',width:'14px',height:'14px',borderRadius:'50%',background:'#fff',transition:'left .2s'}}/>
+          </div>
+          IVA deducible — marcar si este gasto es deducible del IVA de la empresa
+        </label>
+      </>}/>
+
+      <Sec t="Notas" ch={<textarea style={{...inp,minHeight:'80px',resize:'vertical',lineHeight:'1.5'}} value={g.notas} onChange={e=>up({notas:e.target.value})} placeholder="Notas internas, referencia de factura, justificante..."/>}/>
+    </div>
+  </div>
+  );
+}
+
 /* ── APP ── */
 function App(){
   /* ── PROPOSAL VIEW LINK HANDLER ── */
@@ -8508,7 +8760,7 @@ function App(){
   const iaHandleDelete=id=>{if(!isAdmin){alert('No tienes permiso para eliminar propuestas.');return;}if(!confirm('¿Eliminar esta propuesta?'))return;iaPersist(iaSaved.filter(s=>s.id!==id));};
 
   /* ── BACKUP helpers ── */
-  const BACKUP_KEYS=['propuestas_v2','propuestas_ia_v1',CLIENTS_KEY,EMP_KEY,AUTH_KEY,CONTRACT_KEY,INVOICE_KEY];
+  const BACKUP_KEYS=['propuestas_v2','propuestas_ia_v1',CLIENTS_KEY,EMP_KEY,AUTH_KEY,CONTRACT_KEY,INVOICE_KEY,EXPENSE_KEY];
   const doExportBackup=()=>{
     const data={version:'glowlabs_backup_v1',fecha:new Date().toISOString(),datos:{}};
     BACKUP_KEYS.forEach(k=>{try{data.datos[k]=JSON.parse(localStorage.getItem(k)||'null');}catch{data.datos[k]=null;}});
@@ -8627,6 +8879,9 @@ function App(){
 
   /* ── INVOICES module ── */
   if(module==='invoices'&&isAdmin) return <InvoiceModule onHome={goHome}/>;
+
+  /* ── EXPENSES module ── */
+  if(module==='expenses'&&isAdmin) return <ExpenseModule onHome={goHome}/>;
 
   return null;
 }
