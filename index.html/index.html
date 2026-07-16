@@ -7439,6 +7439,33 @@ function HomeScreen({onSelect,currentUser}){
           );
         })()}
 
+        {/* REPORTES — admin only */}
+        {isAdmin&&(()=>{
+          const RA=REP_A;
+          const invs=invoices_storage.load().filter(i=>i.estado==='Pagada');
+          const exps=expenses_storage.load().filter(g=>g.estado==='Pagado');
+          const totalInv=invs.reduce((s,i)=>{const b=(i.items||[]).reduce((ss,it)=>ss+(parseFloat(it.qty||1)*parseFloat(it.unitPrice||0)),0);return s+b*(1+parseFloat(i.ivaRate||21)/100);},0);
+          const totalExp=exps.reduce((s,g)=>s+parseFloat(g.importe||0)*(1+parseFloat(g.ivaRate||0)/100),0);
+          const ben=totalInv-totalExp;
+          return(
+          <button onClick={()=>onSelect('reportes')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+            <div style={{padding:'32px 28px',background:'rgba(129,140,248,0.02)',border:'1px solid rgba(129,140,248,0.12)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
+              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(129,140,248,0.4)';e.currentTarget.style.background='rgba(129,140,248,0.06)';}}
+              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(129,140,248,0.12)';e.currentTarget.style.background='rgba(129,140,248,0.02)';}}>
+              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${RA},transparent)`}}/>
+              <div style={{width:'36px',height:'36px',background:'rgba(129,140,248,0.08)',border:'1px solid rgba(129,140,248,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={RA} strokeWidth="1.5"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+              </div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:RA,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 10</p>
+              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Reportes<br/>& Contabilidad</h2>
+              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>P&L mensual, IVA a liquidar, top clientes y desglose de gastos por categoría.</p>
+              {(invs.length>0||exps.length>0)&&<p style={{fontSize:'11px',color:`${RA}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>Ingresos {Math.round(totalInv).toLocaleString('es-ES')}€ · Gastos {Math.round(totalExp).toLocaleString('es-ES')}€ · Beneficio {Math.round(ben).toLocaleString('es-ES')}€</p>}
+              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:RA,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver reportes <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={RA} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            </div>
+          </button>
+          );
+        })()}
+
         {/* GASTOS — admin only */}
         {isAdmin&&(()=>{
           const GA=EXP_A;
@@ -8621,6 +8648,218 @@ function ExpenseForm({initial,onSave,onCancel}){
   );
 }
 
+/* ── REPORTES ── */
+const REP_A='#818cf8';
+function ReportesModule({onHome}){
+  const RA=REP_A;
+  const [periodo,setPeriodo]=React.useState('año');
+  const [año,setAño]=React.useState(new Date().getFullYear());
+
+  const invoices=invoices_storage.load();
+  const gastos=expenses_storage.load();
+  const clients=clients_storage.load();
+
+  // Helpers
+  const parseFecha=s=>s?new Date(s):null;
+  const inPeriodo=fecha=>{
+    if(!fecha)return false;
+    const d=parseFecha(fecha);
+    if(!d)return false;
+    if(periodo==='año')return d.getFullYear()===año;
+    const now=new Date();
+    if(periodo==='mes')return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+    if(periodo==='trim'){const m=now.getMonth();const q=Math.floor(m/3);return d.getFullYear()===now.getFullYear()&&Math.floor(d.getMonth()/3)===q;}
+    return true;
+  };
+
+  const filtInv=invoices.filter(i=>inPeriodo(i.fechaEmision));
+  const filtGas=gastos.filter(g=>inPeriodo(g.fecha));
+
+  const calcInvTotal=i=>{const sub=(i.items||[]).reduce((s,it)=>s+(parseFloat(it.qty||1)*parseFloat(it.unitPrice||0)),0);return sub*(1+parseFloat(i.ivaRate||21)/100);};
+  const calcGasTotal=g=>parseFloat(g.importe||0)*(1+parseFloat(g.ivaRate||0)/100);
+  const calcInvBase=i=>(i.items||[]).reduce((s,it)=>s+(parseFloat(it.qty||1)*parseFloat(it.unitPrice||0)),0);
+  const calcInvIVA=i=>calcInvBase(i)*parseFloat(i.ivaRate||21)/100;
+  const calcGasBase=g=>parseFloat(g.importe||0);
+  const calcGasIVA=g=>parseFloat(g.importe||0)*parseFloat(g.ivaRate||0)/100;
+
+  const totalIngresos=filtInv.filter(i=>i.estado==='Pagada').reduce((s,i)=>s+calcInvTotal(i),0);
+  const totalGastos=filtGas.filter(g=>g.estado==='Pagado').reduce((s,g)=>s+calcGasTotal(g),0);
+  const beneficio=totalIngresos-totalGastos;
+  const ivaRepercutido=filtInv.filter(i=>i.estado==='Pagada').reduce((s,i)=>s+calcInvIVA(i),0);
+  const ivaSoportado=filtGas.filter(g=>g.ivaDeducible).reduce((s,g)=>s+calcGasIVA(g),0);
+  const ivaLiquidar=ivaRepercutido-ivaSoportado;
+
+  const pendienteCobro=filtInv.filter(i=>i.estado!=='Pagada'&&i.estado!=='Cancelada').reduce((s,i)=>s+calcInvTotal(i),0);
+  const pendientePago=filtGas.filter(g=>g.estado==='Pendiente').reduce((s,g)=>s+calcGasTotal(g),0);
+
+  // Monthly data for año
+  const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const monthlyData=months.map((m,mi)=>({
+    m,
+    ingresos:invoices.filter(i=>i.estado==='Pagada'&&parseFecha(i.fechaEmision)?.getFullYear()===año&&parseFecha(i.fechaEmision)?.getMonth()===mi).reduce((s,i)=>s+calcInvTotal(i),0),
+    gastos:gastos.filter(g=>g.estado==='Pagado'&&parseFecha(g.fecha)?.getFullYear()===año&&parseFecha(g.fecha)?.getMonth()===mi).reduce((s,g)=>s+calcGasTotal(g),0)
+  }));
+  const maxVal=Math.max(...monthlyData.flatMap(d=>[d.ingresos,d.gastos]),1);
+
+  // Top clients by invoiced
+  const clientRevMap={};
+  filtInv.forEach(i=>{if(i.clienteId){clientRevMap[i.clienteId]=(clientRevMap[i.clienteId]||0)+calcInvTotal(i);}});
+  const topClients=Object.entries(clientRevMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,val])=>({
+    name:clients.find(c=>c.id===id)?.empresa||clients.find(c=>c.id===id)?.nombre||'Desconocido',val
+  }));
+
+  // Expenses by category
+  const catMap={};
+  filtGas.forEach(g=>{catMap[g.categoria]=(catMap[g.categoria]||0)+calcGasBase(g);});
+  const topCats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const totalCatBase=topCats.reduce((s,[,v])=>s+v,0)||1;
+
+  const catColors=['#818cf8','#34d399','#fbbf24','#f87171','#60a5fa','#c084fc'];
+
+  const exportPL=()=>{
+    const rows=[['Concepto','Importe'],['',''],['INGRESOS',''],['Total facturado (cobrado)',totalIngresos.toFixed(2)],['Pendiente de cobro',pendienteCobro.toFixed(2)],['',''],['GASTOS',''],['Total gastos (pagados)',totalGastos.toFixed(2)],['Pendiente de pago',pendientePago.toFixed(2)],['',''],['RESULTADO',''],['Beneficio neto',beneficio.toFixed(2)],['',''],['IVA',''],['IVA repercutido',ivaRepercutido.toFixed(2)],['IVA soportado deducible',ivaSoportado.toFixed(2)],['IVA a liquidar',ivaLiquidar.toFixed(2)]];
+    const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+    const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent('﻿'+csv);a.download=`pl-${año}.csv`;a.click();
+  };
+
+  const fmt=n=>n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  return(
+  <div style={{minHeight:'100vh',background:'#0a0a0f',color:'#fff',fontFamily:"'Inter',sans-serif"}}>
+    {/* NAV */}
+    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 32px',display:'flex',alignItems:'center',justifyContent:'space-between',height:'56px',position:'sticky',top:0,background:'rgba(10,10,15,0.95)',backdropFilter:'blur(12px)',zIndex:50}}>
+      <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
+        <button onClick={onHome} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'5px'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Inicio
+        </button>
+        <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
+        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>Reportes & Contabilidad</span>
+      </div>
+      <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+        <div style={{display:'flex',gap:'6px'}}>
+          {['mes','trim','año','todo'].map(p=>(
+            <button key={p} onClick={()=>setPeriodo(p)} style={{all:'unset',cursor:'pointer',padding:'6px 12px',borderRadius:'16px',fontSize:'12px',fontWeight:'600',background:periodo===p?RA:'rgba(255,255,255,0.05)',color:periodo===p?'#fff':'rgba(255,255,255,0.4)',transition:'all .15s'}}>{{mes:'Este mes',trim:'Trimestre',año:'Año',todo:'Todo'}[p]}</button>
+          ))}
+        </div>
+        {periodo==='año'&&<select value={año} onChange={e=>setAño(parseInt(e.target.value))} style={{all:'unset',padding:'6px 10px',borderRadius:'6px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',fontSize:'12px',color:'rgba(255,255,255,0.6)',cursor:'pointer'}}>
+          {[2023,2024,2025,2026,2027].map(y=><option key={y} value={y}>{y}</option>)}
+        </select>}
+        <button onClick={exportPL} style={{all:'unset',cursor:'pointer',padding:'7px 14px',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'5px',fontSize:'12px',color:'rgba(255,255,255,0.5)',display:'flex',alignItems:'center',gap:'6px'}}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV P&L
+        </button>
+      </div>
+    </div>
+
+    <div style={{padding:'32px',maxWidth:'1300px',margin:'0 auto'}}>
+      {/* KPI CARDS */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'14px',marginBottom:'28px'}}>
+        {[
+          {label:'Ingresos cobrados',val:fmt(totalIngresos),sub:`+ ${fmt(pendienteCobro)} pendiente`,color:'#34d399',icon:'M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6'},
+          {label:'Gastos pagados',val:fmt(totalGastos),sub:`+ ${fmt(pendientePago)} pendiente`,color:'#f87171',icon:'M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6'},
+          {label:'Beneficio neto',val:fmt(beneficio),sub:totalIngresos>0?`Margen ${Math.round(beneficio/totalIngresos*100)}%`:'Sin datos',color:beneficio>=0?RA:'#f87171',icon:'M3 3l18 18M3 21l18-18'},
+          {label:'IVA a liquidar',val:fmt(ivaLiquidar),sub:`Repercutido ${fmt(ivaRepercutido)} — Deducible ${fmt(ivaSoportado)}`,color:'#fbbf24',icon:'M9 14l6-6m-4-2h.01M13 14h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}
+        ].map((k,i)=>(
+          <div key={i} style={{padding:'20px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'8px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'10px'}}>
+              <p style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'.1em'}}>{k.label}</p>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={k.color} strokeWidth="1.5"><path d={k.icon}/></svg>
+            </div>
+            <p style={{fontSize:'22px',fontWeight:'700',color:k.color,fontFamily:"'Playfair Display',serif",marginBottom:'4px'}}>{k.val} €</p>
+            <p style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',lineHeight:'1.4'}}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:'20px',marginBottom:'20px'}}>
+        {/* MONTHLY CHART */}
+        <div style={{padding:'24px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'8px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+            <p style={{fontSize:'12px',fontWeight:'700',color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'.1em'}}>Ingresos vs Gastos — {año}</p>
+            <div style={{display:'flex',gap:'16px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'2px',background:'#34d399'}}/><span style={{fontSize:'11px',color:'rgba(255,255,255,0.4)'}}>Ingresos</span></div>
+              <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'2px',background:'#f87171'}}/><span style={{fontSize:'11px',color:'rgba(255,255,255,0.4)'}}>Gastos</span></div>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:'6px',height:'160px',alignItems:'flex-end'}}>
+            {monthlyData.map((d,i)=>(
+              <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                <div style={{width:'100%',display:'flex',gap:'2px',alignItems:'flex-end',height:'140px'}}>
+                  <div style={{flex:1,background:'#34d399',borderRadius:'3px 3px 0 0',height:`${(d.ingresos/maxVal*130)}px`,minHeight:d.ingresos>0?'3px':'0',transition:'height .3s'}}/>
+                  <div style={{flex:1,background:'#f87171',borderRadius:'3px 3px 0 0',height:`${(d.gastos/maxVal*130)}px`,minHeight:d.gastos>0?'3px':'0',transition:'height .3s'}}/>
+                </div>
+                <span style={{fontSize:'9px',color:'rgba(255,255,255,0.25)'}}>{d.m}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* GASTOS POR CATEGORÍA */}
+        <div style={{padding:'24px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'8px'}}>
+          <p style={{fontSize:'12px',fontWeight:'700',color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:'20px'}}>Gastos por categoría</p>
+          {topCats.length===0?(<p style={{color:'rgba(255,255,255,0.2)',fontSize:'13px'}}>Sin gastos en este periodo.</p>):(
+            <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+              {topCats.map(([cat,val],i)=>(
+                <div key={cat}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:'4px'}}>
+                    <span style={{fontSize:'12px',color:'rgba(255,255,255,0.6)'}}>{cat}</span>
+                    <span style={{fontSize:'12px',fontWeight:'600',color:catColors[i%catColors.length]}}>{fmt(val)} €</span>
+                  </div>
+                  <div style={{height:'4px',background:'rgba(255,255,255,0.05)',borderRadius:'2px'}}>
+                    <div style={{height:'100%',borderRadius:'2px',background:catColors[i%catColors.length],width:`${val/totalCatBase*100}%`,transition:'width .3s'}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* TOP CLIENTS */}
+      {topClients.length>0&&(
+      <div style={{padding:'24px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'8px',marginBottom:'20px'}}>
+        <p style={{fontSize:'12px',fontWeight:'700',color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:'16px'}}>Top clientes por facturación</p>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:'12px'}}>
+          {topClients.map((c,i)=>(
+            <div key={i} style={{padding:'14px',background:'rgba(129,140,248,0.04)',border:'1px solid rgba(129,140,248,0.1)',borderRadius:'6px'}}>
+              <div style={{width:'28px',height:'28px',borderRadius:'50%',background:`rgba(129,140,248,${0.15+i*0.03})`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'11px',fontWeight:'700',color:RA,marginBottom:'8px'}}>{i+1}</div>
+              <p style={{fontSize:'12px',fontWeight:'600',color:'rgba(255,255,255,0.7)',marginBottom:'4px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.name}</p>
+              <p style={{fontSize:'14px',fontWeight:'700',color:RA}}>{fmt(c.val)} €</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      )}
+
+      {/* P&L TABLE */}
+      <div style={{padding:'24px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'8px'}}>
+        <p style={{fontSize:'12px',fontWeight:'700',color:'rgba(255,255,255,0.5)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:'16px'}}>Resumen P&L</p>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px'}}>
+          <tbody>
+            {[
+              {label:'Ingresos cobrados',val:totalIngresos,color:'#34d399',bold:false},
+              {label:'Ingresos pendientes de cobro',val:pendienteCobro,color:'rgba(255,255,255,0.3)',bold:false,italic:true},
+              {label:'',val:null},{label:'Gastos pagados',val:-totalGastos,color:'#f87171',bold:false},
+              {label:'Gastos pendientes de pago',val:-pendientePago,color:'rgba(255,255,255,0.3)',bold:false,italic:true},
+              {label:'',val:null},{label:'BENEFICIO NETO',val:beneficio,color:beneficio>=0?RA:'#f87171',bold:true},
+              {label:'',val:null},{label:'IVA repercutido (cobrado)',val:ivaRepercutido,color:'#fbbf24',bold:false},
+              {label:'IVA soportado (deducible)',val:-ivaSoportado,color:'rgba(255,255,255,0.4)',bold:false},
+              {label:'IVA A LIQUIDAR',val:ivaLiquidar,color:'#fbbf24',bold:true}
+            ].map((row,i)=>row.val===null?(
+              <tr key={i}><td colSpan={2} style={{padding:'6px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}></td></tr>
+            ):(
+              <tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                <td style={{padding:'10px 0',color:row.italic?'rgba(255,255,255,0.3)':'rgba(255,255,255,0.6)',fontStyle:row.italic?'italic':'normal',fontWeight:row.bold?'700':'400',fontSize:row.bold?'14px':'13px'}}>{row.label}</td>
+                <td style={{padding:'10px 0',textAlign:'right',color:row.color,fontWeight:row.bold?'700':'600',fontSize:row.bold?'15px':'13px'}}>{(row.val<0?'- ':'')+fmt(Math.abs(row.val))} €</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  );
+}
+
 /* ── APP ── */
 function App(){
   /* ── PROPOSAL VIEW LINK HANDLER ── */
@@ -8882,6 +9121,9 @@ function App(){
 
   /* ── EXPENSES module ── */
   if(module==='expenses'&&isAdmin) return <ExpenseModule onHome={goHome}/>;
+
+  /* ── REPORTES module ── */
+  if(module==='reportes'&&isAdmin) return <ReportesModule onHome={goHome}/>;
 
   return null;
 }
