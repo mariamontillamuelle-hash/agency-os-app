@@ -7439,6 +7439,31 @@ function HomeScreen({onSelect,currentUser}){
           );
         })()}
 
+        {/* PROYECTOS — admin only */}
+        {isAdmin&&(()=>{
+          const ZA=PROJ_A;
+          const projs=proyectos_storage.load();
+          const activos=projs.filter(p=>p.estado==='En progreso').length;
+          const totalH=projs.reduce((s,p)=>s+parseFloat(p.horasReales||0),0);
+          return(
+          <button onClick={()=>onSelect('proyectos')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+            <div style={{padding:'32px 28px',background:'rgba(6,182,212,0.02)',border:'1px solid rgba(6,182,212,0.12)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
+              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(6,182,212,0.4)';e.currentTarget.style.background='rgba(6,182,212,0.06)';}}
+              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(6,182,212,0.12)';e.currentTarget.style.background='rgba(6,182,212,0.02)';}}>
+              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${ZA},transparent)`}}/>
+              <div style={{width:'36px',height:'36px',background:'rgba(6,182,212,0.08)',border:'1px solid rgba(6,182,212,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ZA} strokeWidth="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:ZA,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 11</p>
+              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Proyectos<br/>& Tiempo</h2>
+              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Gestiona proyectos por fases, registra horas y controla plazos de entrega.</p>
+              {projs.length>0&&<p style={{fontSize:'11px',color:`${ZA}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{projs.length} proyecto{projs.length!==1?'s':''}{activos>0?` · ${activos} activo${activos!==1?'s':''}`:''}{totalH>0?` · ${totalH}h registradas`:''}</p>}
+              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:ZA,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver proyectos <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={ZA} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            </div>
+          </button>
+          );
+        })()}
+
         {/* REPORTES — admin only */}
         {isAdmin&&(()=>{
           const RA=REP_A;
@@ -8860,6 +8885,230 @@ function ReportesModule({onHome}){
   );
 }
 
+/* ── PROYECTOS ── */
+const PROJ_KEY='glowlabs_proyectos_v1';
+const proyectos_storage={
+  load:()=>{try{return JSON.parse(localStorage.getItem(PROJ_KEY)||'[]');}catch{return[];}},
+  save:(d)=>localStorage.setItem(PROJ_KEY,JSON.stringify(d))
+};
+const PROJ_A='#06b6d4';
+const PROJ_ESTADOS=['En planificación','En progreso','En revisión','Completado','Pausado','Cancelado'];
+const PROJ_TIPOS=['Diseño Web','Marketing Digital','IA & Automatización','Branding','Redes Sociales','SEO/SEM','Consultoría','Otro'];
+
+function makeProyecto(o={}){
+  const id='PRO-'+String(Date.now()).slice(-6);
+  return {id,nombre:'',tipo:'Diseño Web',clienteId:'',descripcion:'',estado:'En planificación',prioridad:'Media',fechaInicio:new Date().toISOString().slice(0,10),fechaFin:'',horasEstimadas:0,horasReales:0,presupuesto:0,fases:[],notas:'',...o,creadoEn:o.creadoEn||new Date().toISOString()};
+}
+function makeFase(o={}){return {id:Date.now()+Math.random(),nombre:'',completada:false,horas:0,...o};}
+
+function ProyectosModule({onHome}){
+  const PA=PROJ_A;
+  const [proyectos,setProyectos]=React.useState(()=>proyectos_storage.load());
+  const [view,setView]=React.useState('list');
+  const [editing,setEditing]=React.useState(null);
+  const [filterEstado,setFilterEstado]=React.useState('Todos');
+  const clients=clients_storage.load();
+
+  const save=arr=>{proyectos_storage.save(arr);setProyectos(arr);};
+  const del=id=>{if(window.confirm('¿Eliminar proyecto?'))save(proyectos.filter(p=>p.id!==id));};
+
+  if(view==='form') return <ProyectoForm initial={editing} onSave={p=>{const arr=editing?proyectos.map(x=>x.id===p.id?p:x):[p,...proyectos];save(arr);setEditing(null);setView('list');}} onCancel={()=>{setEditing(null);setView('list');}}/>;
+
+  const filtered=proyectos.filter(p=>filterEstado==='Todos'||p.estado===filterEstado);
+  const activos=proyectos.filter(p=>p.estado==='En progreso').length;
+  const completados=proyectos.filter(p=>p.estado==='Completado').length;
+  const totalHoras=proyectos.reduce((s,p)=>s+parseFloat(p.horasReales||0),0);
+  const totalPresup=proyectos.reduce((s,p)=>s+parseFloat(p.presupuesto||0),0);
+
+  const estadoColor=e=>({
+    'En planificación':'#fbbf24','En progreso':PA,'En revisión':'#818cf8',
+    Completado:'#34d399',Pausado:'rgba(255,255,255,0.3)',Cancelado:'#f87171'
+  }[e]||'#aaa');
+
+  const prioColor=p=>({Alta:'#f87171',Media:'#fbbf24',Baja:'#34d399'}[p]||'#aaa');
+
+  const getClientName=id=>{const c=clients.find(x=>x.id===id);return c?.empresa||c?.nombre||'';};
+  const getFasesPct=p=>{if(!p.fases||!p.fases.length)return null;const done=p.fases.filter(f=>f.completada).length;return Math.round(done/p.fases.length*100);};
+
+  return(
+  <div style={{minHeight:'100vh',background:'#0a0a0f',color:'#fff',fontFamily:"'Inter',sans-serif"}}>
+    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 32px',display:'flex',alignItems:'center',justifyContent:'space-between',height:'56px',position:'sticky',top:0,background:'rgba(10,10,15,0.95)',backdropFilter:'blur(12px)',zIndex:50}}>
+      <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
+        <button onClick={onHome} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'5px'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Inicio
+        </button>
+        <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
+        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>Proyectos & Tiempo</span>
+      </div>
+      <button onClick={()=>{setEditing(null);setView('form');}} style={{all:'unset',cursor:'pointer',padding:'7px 16px',background:PA,borderRadius:'5px',fontSize:'12px',fontWeight:'600',color:'#fff'}}>+ Nuevo proyecto</button>
+    </div>
+
+    <div style={{padding:'32px',maxWidth:'1200px',margin:'0 auto'}}>
+      {/* STATS */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'14px',marginBottom:'28px'}}>
+        {[{label:'Total proyectos',val:proyectos.length,color:PA},{label:'En progreso',val:activos,color:'#fbbf24'},{label:'Completados',val:completados,color:'#34d399'},{label:'Horas registradas',val:`${totalHoras}h`,color:'#818cf8'}].map((s,i)=>(
+          <div key={i} style={{padding:'18px 20px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'8px'}}>
+            <p style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:'8px'}}>{s.label}</p>
+            <p style={{fontSize:'24px',fontWeight:'700',color:s.color,fontFamily:"'Playfair Display',serif"}}>{s.val}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* FILTERS */}
+      <div style={{display:'flex',gap:'6px',marginBottom:'20px',flexWrap:'wrap'}}>
+        {['Todos',...PROJ_ESTADOS].map(s=>(
+          <button key={s} onClick={()=>setFilterEstado(s)} style={{all:'unset',cursor:'pointer',padding:'6px 14px',borderRadius:'20px',fontSize:'12px',fontWeight:'600',background:filterEstado===s?PA:'rgba(255,255,255,0.05)',color:filterEstado===s?'#fff':'rgba(255,255,255,0.4)',transition:'all .15s'}}>{s}</button>
+        ))}
+      </div>
+
+      {/* LIST */}
+      {filtered.length===0?(
+        <div style={{textAlign:'center',padding:'80px 20px',color:'rgba(255,255,255,0.2)',fontSize:'14px'}}>
+          No hay proyectos{filterEstado!=='Todos'?' con este estado':''}.
+          <br/><button onClick={()=>{setEditing(null);setView('form');}} style={{all:'unset',cursor:'pointer',color:PA,fontSize:'13px',marginTop:'12px',display:'block'}}>+ Crear primer proyecto →</button>
+        </div>
+      ):(
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:'16px'}}>
+          {filtered.map(p=>{
+            const pct=getFasesPct(p);
+            const clientName=getClientName(p.clienteId);
+            const diasRestantes=p.fechaFin?Math.ceil((new Date(p.fechaFin)-new Date())/(1000*60*60*24)):null;
+            return(
+            <div key={p.id} style={{padding:'20px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'8px',display:'flex',flexDirection:'column',gap:'12px',transition:'border .15s',cursor:'pointer'}}
+              onMouseOver={e=>e.currentTarget.style.border=`1px solid rgba(6,182,212,0.2)`}
+              onMouseOut={e=>e.currentTarget.style.border='1px solid rgba(255,255,255,0.06)'}
+              onClick={()=>{setEditing(p);setView('form');}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div>
+                  <p style={{fontSize:'10px',color:'rgba(255,255,255,0.2)',marginBottom:'4px'}}>{p.id} · {p.tipo}</p>
+                  <h3 style={{fontSize:'15px',fontWeight:'700',color:'#fff',margin:0}}>{p.nombre||'Sin nombre'}</h3>
+                  {clientName&&<p style={{fontSize:'12px',color:'rgba(255,255,255,0.35)',marginTop:'2px'}}>{clientName}</p>}
+                </div>
+                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'4px'}}>
+                  <span style={{padding:'3px 9px',borderRadius:'10px',fontSize:'11px',fontWeight:'600',background:`${estadoColor(p.estado)}18`,color:estadoColor(p.estado)}}>{p.estado}</span>
+                  <span style={{fontSize:'10px',color:prioColor(p.prioridad)}}>● {p.prioridad}</span>
+                </div>
+              </div>
+              {p.descripcion&&<p style={{fontSize:'12px',color:'rgba(255,255,255,0.3)',lineHeight:'1.5',margin:0,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{p.descripcion}</p>}
+              {pct!==null&&(
+                <div>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:'5px'}}>
+                    <span style={{fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>Fases: {p.fases.filter(f=>f.completada).length}/{p.fases.length}</span>
+                    <span style={{fontSize:'11px',fontWeight:'600',color:PA}}>{pct}%</span>
+                  </div>
+                  <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px'}}>
+                    <div style={{height:'100%',borderRadius:'2px',background:PA,width:`${pct}%`,transition:'width .3s'}}/>
+                  </div>
+                </div>
+              )}
+              <div style={{display:'flex',gap:'16px',borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:'10px',marginTop:'auto'}}>
+                <span style={{fontSize:'11px',color:'rgba(255,255,255,0.25)'}}>{p.horasReales}h real{p.horasEstimadas>0?` / ${p.horasEstimadas}h est.`:''}</span>
+                {p.presupuesto>0&&<span style={{fontSize:'11px',color:'rgba(255,255,255,0.25)'}}>{parseFloat(p.presupuesto).toLocaleString('es-ES')}€</span>}
+                {diasRestantes!==null&&<span style={{fontSize:'11px',color:diasRestantes<0?'#f87171':diasRestantes<7?'#fbbf24':'rgba(255,255,255,0.25)',marginLeft:'auto'}}>{diasRestantes<0?`${Math.abs(diasRestantes)}d vencido`:diasRestantes===0?'Hoy':`${diasRestantes}d restantes`}</span>}
+              </div>
+              <button onClick={e=>{e.stopPropagation();del(p.id);}} style={{all:'unset',position:'absolute',display:'none'}}>✕</button>
+            </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+  );
+}
+
+function ProyectoForm({initial,onSave,onCancel}){
+  const PA=PROJ_A;
+  const [p,setP]=React.useState(()=>initial?{...initial,fases:(initial.fases||[]).map(f=>({...f}))}:makeProyecto());
+  const up=d=>setP(prev=>({...prev,...d}));
+  const clients=clients_storage.load();
+
+  const addFase=()=>up({fases:[...(p.fases||[]),makeFase({nombre:'Nueva fase'})]});
+  const updFase=(idx,d)=>{const f=[...(p.fases||[])];f[idx]={...f[idx],...d};up({fases:f});};
+  const delFase=idx=>{const f=[...(p.fases||[])];f.splice(idx,1);up({fases:f});};
+
+  const completadas=(p.fases||[]).filter(f=>f.completada).length;
+  const pct=p.fases&&p.fases.length>0?Math.round(completadas/p.fases.length*100):0;
+  const totalHorasFases=(p.fases||[]).reduce((s,f)=>s+parseFloat(f.horas||0),0);
+
+  const inp={all:'unset',display:'block',width:'100%',padding:'9px 12px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'6px',fontSize:'13px',color:'#fff',boxSizing:'border-box'};
+  const sel={...inp,cursor:'pointer'};
+  const Sec=({t,ch})=>(<div style={{marginBottom:'28px'}}><p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.25)',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:'14px',paddingBottom:'8px',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>{t}</p>{ch}</div>);
+  const Field=({label,ch,half})=>(<div style={{marginBottom:'14px',width:half?'calc(50% - 7px)':'100%'}}><label style={{display:'block',fontSize:'11px',color:'rgba(255,255,255,0.35)',marginBottom:'5px'}}>{label}</label>{ch}</div>);
+
+  return(
+  <div style={{minHeight:'100vh',background:'#0a0a0f',color:'#fff',fontFamily:"'Inter',sans-serif"}}>
+    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 32px',display:'flex',alignItems:'center',justifyContent:'space-between',height:'56px',position:'sticky',top:0,background:'rgba(10,10,15,0.95)',backdropFilter:'blur(12px)',zIndex:50}}>
+      <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
+        <button onClick={onCancel} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'5px'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Proyectos
+        </button>
+        <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
+        <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>{initial?p.id:'Nuevo proyecto'}</span>
+      </div>
+      <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+        {p.fases&&p.fases.length>0&&<div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+          <div style={{width:'80px',height:'4px',background:'rgba(255,255,255,0.06)',borderRadius:'2px'}}>
+            <div style={{height:'100%',borderRadius:'2px',background:PA,width:`${pct}%`}}/>
+          </div>
+          <span style={{fontSize:'12px',color:PA,fontWeight:'600'}}>{pct}%</span>
+        </div>}
+        <select value={p.estado} onChange={e=>up({estado:e.target.value})} style={{...sel,width:'auto',fontSize:'12px',padding:'7px 12px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)'}}>
+          {PROJ_ESTADOS.map(s=><option key={s} value={s}>{s}</option>)}
+        </select>
+        <button onClick={()=>onSave(p)} style={{all:'unset',cursor:'pointer',padding:'8px 20px',background:PA,borderRadius:'6px',fontSize:'13px',fontWeight:'600',color:'#fff'}}>Guardar</button>
+      </div>
+    </div>
+
+    <div style={{padding:'36px 32px',maxWidth:'800px',margin:'0 auto'}}>
+      <Sec t="Información general" ch={<>
+        <Field label="Nombre del proyecto" ch={<input style={inp} value={p.nombre} onChange={e=>up({nombre:e.target.value})} placeholder="Ej: Rediseño web corporativa"/>}/>
+        <div style={{display:'flex',gap:'14px',flexWrap:'wrap'}}>
+          <Field label="Tipo" half ch={<select style={sel} value={p.tipo} onChange={e=>up({tipo:e.target.value})}>{PROJ_TIPOS.map(t=><option key={t} value={t}>{t}</option>)}</select>}/>
+          <Field label="Prioridad" half ch={<select style={sel} value={p.prioridad} onChange={e=>up({prioridad:e.target.value})}>{['Alta','Media','Baja'].map(v=><option key={v} value={v}>{v}</option>)}</select>}/>
+          <Field label="Cliente" half ch={<select style={sel} value={p.clienteId} onChange={e=>up({clienteId:e.target.value})}><option value="">— Sin cliente —</option>{clients.map(c=><option key={c.id} value={c.id}>{c.empresa||c.nombre}</option>)}</select>}/>
+          <Field label="Presupuesto (€)" half ch={<input type="number" style={inp} value={p.presupuesto} onChange={e=>up({presupuesto:parseFloat(e.target.value)||0})} placeholder="0" min="0"/>}/>
+          <Field label="Fecha inicio" half ch={<input type="date" style={inp} value={p.fechaInicio} onChange={e=>up({fechaInicio:e.target.value})}/>}/>
+          <Field label="Fecha entrega" half ch={<input type="date" style={inp} value={p.fechaFin} onChange={e=>up({fechaFin:e.target.value})}/>}/>
+        </div>
+        <Field label="Descripción" ch={<textarea style={{...inp,minHeight:'70px',resize:'vertical',lineHeight:'1.5'}} value={p.descripcion} onChange={e=>up({descripcion:e.target.value})} placeholder="Descripción breve del proyecto..."/>}/>
+      </>}/>
+
+      <Sec t="Horas" ch={<>
+        <div style={{display:'flex',gap:'14px'}}>
+          <Field label="Horas estimadas" half ch={<input type="number" style={inp} value={p.horasEstimadas} onChange={e=>up({horasEstimadas:parseFloat(e.target.value)||0})} min="0" step="0.5"/>}/>
+          <Field label="Horas reales registradas" half ch={<input type="number" style={inp} value={p.horasReales} onChange={e=>up({horasReales:parseFloat(e.target.value)||0})} min="0" step="0.5"/>}/>
+        </div>
+        {p.horasEstimadas>0&&<div style={{padding:'12px',background:'rgba(6,182,212,0.04)',border:'1px solid rgba(6,182,212,0.1)',borderRadius:'6px',fontSize:'12px',color:'rgba(255,255,255,0.4)'}}>
+          Desviación: <span style={{color:p.horasReales>p.horasEstimadas?'#f87171':PA,fontWeight:'600'}}>{(p.horasReales-p.horasEstimadas>0?'+':'')+((p.horasReales||0)-(p.horasEstimadas||0)).toFixed(1)}h</span>
+          {p.presupuesto>0&&p.horasReales>0&&<span style={{marginLeft:'16px'}}>Coste/hora estimado: <span style={{color:PA,fontWeight:'600'}}>{(p.presupuesto/p.horasEstimadas).toFixed(0)}€/h</span></span>}
+        </div>}
+      </>}/>
+
+      <Sec t={`Fases del proyecto (${completadas}/${(p.fases||[]).length} completadas)`} ch={<>
+        <div style={{display:'flex',flexDirection:'column',gap:'8px',marginBottom:'12px'}}>
+          {(p.fases||[]).map((f,i)=>(
+            <div key={f.id} style={{display:'flex',alignItems:'center',gap:'10px',padding:'10px 12px',background:'rgba(255,255,255,0.02)',border:`1px solid ${f.completada?'rgba(6,182,212,0.2)':'rgba(255,255,255,0.06)'}`,borderRadius:'6px'}}>
+              <div onClick={()=>updFase(i,{completada:!f.completada})} style={{width:'18px',height:'18px',borderRadius:'4px',border:`1.5px solid ${f.completada?PA:'rgba(255,255,255,0.2)'}`,background:f.completada?PA:'transparent',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {f.completada&&<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </div>
+              <input style={{...inp,flex:1,padding:'4px 0',background:'transparent',border:'none',textDecoration:f.completada?'line-through':'none',color:f.completada?'rgba(255,255,255,0.3)':'rgba(255,255,255,0.8)'}} value={f.nombre} onChange={e=>updFase(i,{nombre:e.target.value})} placeholder="Nombre de la fase"/>
+              <input type="number" style={{...inp,width:'70px',padding:'4px 8px',fontSize:'12px',textAlign:'center'}} value={f.horas} onChange={e=>updFase(i,{horas:parseFloat(e.target.value)||0})} placeholder="h" title="Horas" min="0" step="0.5"/>
+              <span style={{fontSize:'10px',color:'rgba(255,255,255,0.2)',flexShrink:0}}>h</span>
+              <button onClick={()=>delFase(i)} style={{all:'unset',cursor:'pointer',color:'rgba(255,59,48,0.4)',fontSize:'14px',flexShrink:0}}>✕</button>
+            </div>
+          ))}
+        </div>
+        {totalHorasFases>0&&<p style={{fontSize:'11px',color:'rgba(255,255,255,0.2)',marginBottom:'10px'}}>Total horas en fases: {totalHorasFases}h</p>}
+        <button onClick={addFase} style={{all:'unset',cursor:'pointer',padding:'8px 16px',border:`1px dashed rgba(6,182,212,0.3)`,borderRadius:'6px',fontSize:'12px',color:PA,width:'100%',textAlign:'center',boxSizing:'border-box'}}>+ Añadir fase</button>
+      </>}/>
+
+      <Sec t="Notas" ch={<textarea style={{...inp,minHeight:'80px',resize:'vertical',lineHeight:'1.5'}} value={p.notas} onChange={e=>up({notas:e.target.value})} placeholder="Notas, links, referencias del proyecto..."/>}/>
+    </div>
+  </div>
+  );
+}
+
 /* ── APP ── */
 function App(){
   /* ── PROPOSAL VIEW LINK HANDLER ── */
@@ -8999,7 +9248,7 @@ function App(){
   const iaHandleDelete=id=>{if(!isAdmin){alert('No tienes permiso para eliminar propuestas.');return;}if(!confirm('¿Eliminar esta propuesta?'))return;iaPersist(iaSaved.filter(s=>s.id!==id));};
 
   /* ── BACKUP helpers ── */
-  const BACKUP_KEYS=['propuestas_v2','propuestas_ia_v1',CLIENTS_KEY,EMP_KEY,AUTH_KEY,CONTRACT_KEY,INVOICE_KEY,EXPENSE_KEY];
+  const BACKUP_KEYS=['propuestas_v2','propuestas_ia_v1',CLIENTS_KEY,EMP_KEY,AUTH_KEY,CONTRACT_KEY,INVOICE_KEY,EXPENSE_KEY,PROJ_KEY];
   const doExportBackup=()=>{
     const data={version:'glowlabs_backup_v1',fecha:new Date().toISOString(),datos:{}};
     BACKUP_KEYS.forEach(k=>{try{data.datos[k]=JSON.parse(localStorage.getItem(k)||'null');}catch{data.datos[k]=null;}});
@@ -9124,6 +9373,9 @@ function App(){
 
   /* ── REPORTES module ── */
   if(module==='reportes'&&isAdmin) return <ReportesModule onHome={goHome}/>;
+
+  /* ── PROYECTOS module ── */
+  if(module==='proyectos'&&isAdmin) return <ProyectosModule onHome={goHome}/>;
 
   return null;
 }
