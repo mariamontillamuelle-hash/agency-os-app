@@ -8119,6 +8119,13 @@ function ContractPreviewDoc({data,onBack,onBackList}){
   const plan=data.plan||'Plan Signature';
   const cuentas=data.cuentas||'1 Cuenta';
   const precio=(data.precio||0).toLocaleString('es-ES');
+  const iframeRef=React.useRef(null);
+  React.useEffect(()=>{
+    if(!iframeRef.current) return;
+    const html=generateProposalHTML(emp,plan,cuentas,precio,data);
+    const doc=iframeRef.current.contentDocument||iframeRef.current.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+  },[]);
   const handlePrint=()=>{
     const w=window.open('','_blank');
     const html=generateProposalHTML(emp,plan,cuentas,precio,data);
@@ -8126,51 +8133,22 @@ function ContractPreviewDoc({data,onBack,onBackList}){
     w.document.close();
     setTimeout(()=>w.print(),700);
   };
-  const sections=[
-    {lbl:'PUNTO DE PARTIDA',ttl:'Situación Actual y El Desafío'},
-    {lbl:'VISIÓN ESTRATÉGICA',ttl:'La Oportunidad y Nuestra Visión'},
-    {lbl:'ESTRATEGIA',ttl:'Estrategia de Marketing 360° y Ecosistema Digital'},
-    {lbl:'CONTENIDO Y REDES',ttl:'Estrategia de Contenido y Gestión de Redes Sociales'},
-    {lbl:'TECNOLOGÍA',ttl:'Inteligencia Artificial, Automatización y Email Marketing'},
-    {lbl:'EL EQUIPO',ttl:'Equipo Responsable'},
-    {lbl:'SERVICIOS E INVERSIÓN',ttl:'Servicios Incluidos e Inversión'},
-    {lbl:'EL RESULTADO',ttl:'El Resultado Esperado'},
-  ];
   return(
-  <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif"}}>
-    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 28px',height:'56px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,background:'rgba(8,8,8,0.95)',backdropFilter:'blur(16px)',zIndex:50}}>
+  <div style={{height:'100vh',display:'flex',flexDirection:'column',background:'#080808',fontFamily:"'Inter',sans-serif"}}>
+    <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'0 28px',height:'56px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(8,8,8,0.98)',backdropFilter:'blur(16px)',zIndex:50}}>
       <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
         <button onClick={onBack} style={{all:'unset',cursor:'pointer',color:'rgba(255,255,255,0.35)',fontSize:'12px',display:'flex',alignItems:'center',gap:'6px'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Editar</button>
         <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
         <span style={{fontSize:'13px',fontWeight:'600',color:'#fff'}}>Vista previa</span>
         <span style={{fontSize:'11px',padding:'2px 8px',borderRadius:'100px',background:'rgba(20,184,166,0.1)',border:'1px solid rgba(20,184,166,0.3)',color:CA}}>{data.numero}</span>
+        <span style={{fontSize:'11px',color:'rgba(255,255,255,0.25)'}}>{emp} · {plan}</span>
       </div>
       <div style={{display:'flex',gap:'10px'}}>
         <button onClick={onBackList} style={{all:'unset',cursor:'pointer',padding:'7px 14px',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'6px',color:'rgba(255,255,255,0.5)',fontSize:'12px'}}>← Lista</button>
-        <button onClick={handlePrint} style={{all:'unset',cursor:'pointer',padding:'7px 18px',background:CA,borderRadius:'6px',color:'#fff',fontSize:'12px',fontWeight:'600'}}>🖨 Imprimir / Descargar PDF</button>
+        <button onClick={handlePrint} style={{all:'unset',cursor:'pointer',padding:'7px 18px',background:CA,borderRadius:'6px',color:'#fff',fontSize:'12px',fontWeight:'600'}}>🖨 Imprimir / PDF</button>
       </div>
     </div>
-    <div style={{background:'#050505',padding:'72px 60px 52px',borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-      <div style={{maxWidth:'800px',margin:'0 auto'}}>
-        <div style={{fontSize:'44px',fontFamily:"Georgia,'Times New Roman',serif",color:'#fff',lineHeight:1.2,marginBottom:'14px'}}>{emp}</div>
-        <div style={{fontSize:'22px',fontFamily:"Georgia,'Times New Roman',serif",color:'rgba(255,255,255,0.48)',lineHeight:1.4,marginBottom:'28px'}}>Plan de Posicionamiento Global<br/>y Transformación Digital</div>
-        <span style={{display:'inline-block',padding:'7px 18px',border:'1px solid rgba(201,169,110,0.4)',borderRadius:'4px',color:'#c9a96e',fontSize:'13px',fontFamily:'sans-serif'}}>{plan} · {cuentas} · {precio} €/mes</span>
-      </div>
-    </div>
-    <div style={{maxWidth:'860px',margin:'0 auto',padding:'40px 28px'}}>
-      <div style={{display:'flex',flexDirection:'column',gap:'1px',marginBottom:'28px'}}>
-        {sections.map((s,i)=>(
-          <div key={i} style={{padding:'18px 22px',background:i%2===0?'rgba(255,255,255,0.02)':'transparent',borderRadius:'5px'}}>
-            <div style={{fontSize:'10px',letterSpacing:'0.1em',color:'rgba(255,255,255,0.22)',marginBottom:'3px'}}>{s.lbl}</div>
-            <div style={{fontSize:'17px',fontFamily:"Georgia,'Times New Roman',serif",color:'rgba(255,255,255,0.75)'}}>{s.ttl}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{padding:'22px',background:'rgba(201,169,110,0.05)',border:'1px solid rgba(201,169,110,0.18)',borderRadius:'10px',textAlign:'center'}}>
-        <div style={{fontSize:'13px',color:'#c9a96e',marginBottom:'6px',fontWeight:'600'}}>Propuesta completa lista para imprimir</div>
-        <div style={{fontSize:'12px',color:'rgba(255,255,255,0.28)'}}>Haz clic en "Imprimir / Descargar PDF" para abrir y exportar el documento completo en formato oscuro profesional</div>
-      </div>
-    </div>
+    <iframe ref={iframeRef} style={{flex:1,width:'100%',border:'none',background:'#080808'}} title="propuesta"/>
   </div>
   );
 }
