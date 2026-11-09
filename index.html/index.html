@@ -280,7 +280,12 @@ function FormView({initial,editingId,onGenerate,onLibrary,savedCount,onHome}){
   const set=k=>e=>setF(p=>({...p,[k]:e.target.value}));
   const arr=k=>v=>setF(p=>({...p,[k]:v}));
   const submit=()=>{
-    if(!f.clientName||!f.empresa||!f.situacion||!f.responsable||!f.planes.length){alert('Campos obligatorios: nombre, empresa, situación actual, responsable y al menos un plan.');return;}
+    const missing=[];
+    if(!f.clientName) missing.push('Nombre del cliente');
+    if(!f.empresa) missing.push('Empresa');
+    if(!f.situacion) missing.push('Situación actual');
+    if(!f.planes.length) missing.push('Al menos un plan');
+    if(missing.length){alert('Faltan estos campos:\n• '+missing.join('\n• '));return;}
     onGenerate(buildProposal(f),editingId);
   };
   return(
@@ -319,7 +324,7 @@ function FormView({initial,editingId,onGenerate,onLibrary,savedCount,onHome}){
         </div>
         <div className="glass" style={{padding:'26px'}}>
           <p className="s-head">Configuración de Propuesta</p>
-          <div style={{marginBottom:'18px'}}><label className="lbl">Responsable de Comunicaciones *</label><select className="input-f" style={{maxWidth:'320px'}} value={f.responsable} onChange={set('responsable')}><option value="">Seleccionar...</option>{RESPONSABLES.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+          <div style={{marginBottom:'18px'}}><label className="lbl">Responsable de Comunicaciones</label><select className="input-f" style={{maxWidth:'320px'}} value={f.responsable} onChange={set('responsable')}><option value="">— Sin asignar —</option>{RESPONSABLES.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
           <div style={{marginBottom:'18px'}}><label className="lbl">Planes a presentar (puedes seleccionar hasta los tres) *</label><ChkGroup items={PLAN_OPTS} selected={f.planes} onChange={arr('planes')}/></div>
           {f.planes.length>0&&(
             <div style={{marginBottom:'18px',background:'rgba(168,85,247,0.04)',border:'1px solid rgba(168,85,247,0.15)',borderRadius:'10px',padding:'16px'}}>
