@@ -7623,6 +7623,33 @@ function HomeScreen({onSelect,currentUser}){
           </button>
           );
         })()}
+
+        {/* PIPELINE — admin only */}
+        {isAdmin&&(()=>{
+          const PL_A2='#06b6d4';
+          const allC=clients_storage.load();
+          const leads=allC.filter(c=>c.estado==='Lead').length;
+          const propEnv=allC.filter(c=>c.estado==='Propuesta enviada').length;
+          const propAcep=allC.filter(c=>c.estado==='Propuesta aceptada').length;
+          const pipVal=allC.filter(c=>['Lead','Propuesta enviada','Propuesta aceptada'].includes(c.estado)).reduce((s,c)=>s+(c.montoContrato||0),0);
+          return(
+          <button onClick={()=>onSelect('pipeline')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+            <div style={{padding:'32px 28px',background:'rgba(6,182,212,0.02)',border:'1px solid rgba(6,182,212,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
+              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(6,182,212,0.4)';e.currentTarget.style.background='rgba(6,182,212,0.06)';}}
+              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(6,182,212,0.14)';e.currentTarget.style.background='rgba(6,182,212,0.02)';}}>
+              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${PL_A2},transparent)`}}/>
+              <div style={{width:'36px',height:'36px',background:'rgba(6,182,212,0.08)',border:'1px solid rgba(6,182,212,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={PL_A2} strokeWidth="1.5"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="7" width="6" height="14" rx="1"/><rect x="16" y="1" width="6" height="22" rx="1"/></svg>
+              </div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:PL_A2,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 13</p>
+              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Pipeline<br/>de Ventas</h2>
+              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Kanban visual del embudo de ventas: leads, propuestas, cierres y oportunidades activas.</p>
+              {allC.length>0&&<p style={{fontSize:'11px',color:`${PL_A2}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{leads} leads · {propEnv+propAcep} propuestas · ${pipVal.toLocaleString('es-CO')} pipeline</p>}
+              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:PL_A2,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver pipeline <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={PL_A2} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            </div>
+          </button>
+          );
+        })()}
       </div>
 
       {/* recent activity strip */}
@@ -9235,6 +9262,161 @@ function makePost(d={}){
   };
 }
 
+/* ── PIPELINE MODULE ── */
+function PipelineModule({onHome}){
+  const PL_A='#06b6d4';
+  const clients=clients_storage.load();
+  const STAGES=[
+    {id:'Lead',label:'Lead',color:'#9ca3af',bg:'rgba(156,163,175,0.06)'},
+    {id:'Propuesta enviada',label:'Propuesta\nenviada',color:'#fb923c',bg:'rgba(251,146,60,0.06)'},
+    {id:'Propuesta aceptada',label:'Propuesta\naceptada',color:'#38bdf8',bg:'rgba(56,189,248,0.06)'},
+    {id:'Activo',label:'Activo',color:CL_A,bg:'rgba(168,85,247,0.06)'},
+    {id:'Finalizado',label:'Finalizado',color:'#a78bfa',bg:'rgba(167,139,250,0.06)'},
+  ];
+  const [selected,setSelected]=React.useState(null);
+  const [clients2,setClients2]=React.useState(clients);
+  const [noteText,setNoteText]=React.useState('');
+  const refresh=()=>setClients2(clients_storage.load());
+
+  const moveClient=(id,newStage)=>{
+    const all=clients_storage.load();
+    const updated=all.map(c=>c.id===id?{...c,estado:newStage,updatedAt:new Date().toISOString()}:c);
+    clients_storage.save(updated);
+    refresh();
+    if(selected?.id===id) setSelected(updated.find(c=>c.id===id));
+  };
+
+  const addNote=()=>{
+    if(!noteText.trim()||!selected) return;
+    const all=clients_storage.load();
+    const updated=all.map(c=>c.id===selected.id?{...c,notas:(c.notas||'')+'\n['+new Date().toLocaleDateString('es-ES')+']: '+noteText.trim()}:c);
+    clients_storage.save(updated);
+    setNoteText('');
+    refresh();
+    setSelected(updated.find(c=>c.id===selected.id));
+  };
+
+  const totalPipeline=clients2.filter(c=>['Lead','Propuesta enviada','Propuesta aceptada'].includes(c.estado)).reduce((s,c)=>s+(c.montoContrato||0),0);
+  const probWin=clients2.filter(c=>c.estado==='Propuesta aceptada').reduce((s,c)=>s+(c.montoContrato||0),0);
+
+  return(
+    <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif"}}>
+      {/* header */}
+      <div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'16px 32px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
+          <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={onHome}>← Inicio</button>
+          <div style={{width:'1px',height:'18px',background:'rgba(255,255,255,0.08)'}}/>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <div style={{width:'22px',height:'22px',background:PL_A,borderRadius:'5px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="7" width="6" height="14" rx="1"/><rect x="16" y="1" width="6" height="22" rx="1"/></svg>
+            </div>
+            <span style={{fontSize:'14px',fontWeight:'700',color:'#fff',letterSpacing:'-.01em'}}>Pipeline de Ventas</span>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:'24px'}}>
+          <div style={{textAlign:'right'}}>
+            <p style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',marginBottom:'2px'}}>PIPELINE TOTAL</p>
+            <p style={{fontSize:'16px',fontWeight:'700',color:PL_A}}>${totalPipeline.toLocaleString('es-CO')}</p>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <p style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',marginBottom:'2px'}}>CIERRE PROBABLE</p>
+            <p style={{fontSize:'16px',fontWeight:'700',color:'#38bdf8'}}>${probWin.toLocaleString('es-CO')}</p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:'0',overflowX:'auto',padding:'24px',minHeight:'calc(100vh - 73px)'}}>
+        {STAGES.map(stage=>{
+          const cols=clients2.filter(c=>c.estado===stage.id);
+          const colTotal=cols.reduce((s,c)=>s+(c.montoContrato||0),0);
+          return(
+            <div key={stage.id} style={{minWidth:'220px',flex:'1',marginRight:'12px',background:stage.bg,border:`1px solid ${stage.color}22`,borderRadius:'10px',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+              {/* column header */}
+              <div style={{padding:'14px 16px',borderBottom:`1px solid ${stage.color}22`,background:`${stage.color}0a`}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
+                  <span style={{fontSize:'11px',fontWeight:'700',color:stage.color,textTransform:'uppercase',letterSpacing:'.1em',whiteSpace:'pre-wrap'}}>{stage.label.replace('\n',' ')}</span>
+                  <span style={{fontSize:'11px',fontWeight:'700',color:'rgba(255,255,255,0.3)',background:'rgba(255,255,255,0.06)',padding:'1px 7px',borderRadius:'100px'}}>{cols.length}</span>
+                </div>
+                {colTotal>0&&<p style={{fontSize:'11px',color:`${stage.color}99`,margin:0}}>${colTotal.toLocaleString('es-CO')}</p>}
+              </div>
+              {/* cards */}
+              <div style={{padding:'10px',display:'flex',flexDirection:'column',gap:'8px',overflowY:'auto',flex:1}}>
+                {cols.length===0&&<p style={{fontSize:'11px',color:'rgba(255,255,255,0.15)',textAlign:'center',padding:'20px 0'}}>Sin clientes</p>}
+                {cols.map(c=>(
+                  <div key={c.id} onClick={()=>setSelected(c)}
+                    style={{background:'rgba(255,255,255,0.03)',border:`1px solid ${selected?.id===c.id?stage.color+'66':'rgba(255,255,255,0.07)'}`,borderRadius:'8px',padding:'12px',cursor:'pointer',transition:'all .15s'}}
+                    onMouseOver={e=>e.currentTarget.style.borderColor=stage.color+'44'}
+                    onMouseOut={e=>e.currentTarget.style.borderColor=selected?.id===c.id?stage.color+'66':'rgba(255,255,255,0.07)'}>
+                    <p style={{fontSize:'12.5px',fontWeight:'700',color:'#fff',marginBottom:'4px',lineHeight:'1.2'}}>{c.empresa||c.nombre}</p>
+                    {c.nombre&&c.empresa&&<p style={{fontSize:'11px',color:'rgba(255,255,255,0.4)',marginBottom:'4px'}}>{c.nombre}</p>}
+                    <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'6px'}}>
+                      {(c.servicios||[]).map(s=>(
+                        <span key={s} style={{fontSize:'9px',fontWeight:'700',color:s==='marketing'?WARM:s==='ia'?AI_A:WEB_A,background:s==='marketing'?'rgba(249,115,22,0.1)':s==='ia'?'rgba(234,179,8,0.1)':'rgba(99,102,241,0.1)',padding:'2px 6px',borderRadius:'100px',textTransform:'uppercase'}}>{s==='marketing'?'MKT':s==='ia'?'IA':'WEB'}</span>
+                      ))}
+                    </div>
+                    {(c.montoContrato||0)>0&&<p style={{fontSize:'12px',fontWeight:'700',color:stage.color,margin:0}}>${(c.montoContrato||0).toLocaleString('es-CO')}</p>}
+                    {c.asignadoNombre&&<p style={{fontSize:'10px',color:'rgba(255,255,255,0.25)',margin:'4px 0 0'}}>👤 {c.asignadoNombre}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* side panel */}
+      {selected&&(
+        <div style={{position:'fixed',top:0,right:0,width:'340px',height:'100vh',background:'#101010',borderLeft:'1px solid rgba(255,255,255,0.08)',overflowY:'auto',zIndex:200,padding:'24px',boxSizing:'border-box'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'20px'}}>
+            <span style={{fontSize:'13px',fontWeight:'700',color:'#fff'}}>Detalle</span>
+            <button className="btn-ghost" style={{padding:'4px 8px',fontSize:'11px'}} onClick={()=>setSelected(null)}>✕</button>
+          </div>
+          <h3 style={{fontSize:'18px',fontWeight:'700',color:'#fff',marginBottom:'4px'}}>{selected.empresa||selected.nombre}</h3>
+          {selected.nombre&&selected.empresa&&<p style={{fontSize:'13px',color:'rgba(255,255,255,0.4)',marginBottom:'16px'}}>{selected.nombre}</p>}
+
+          {/* move stage */}
+          <div style={{marginBottom:'16px'}}>
+            <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'8px'}}>Mover a etapa</p>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+              {STAGES.map(s=>(
+                <button key={s.id} onClick={()=>moveClient(selected.id,s.id)}
+                  style={{all:'unset',cursor:'pointer',padding:'5px 10px',borderRadius:'100px',fontSize:'11px',fontWeight:'600',border:`1px solid ${s.color}44`,color:selected.estado===s.id?'#000':s.color,background:selected.estado===s.id?s.color:'transparent',transition:'all .15s'}}>{s.label.replace('\n',' ')}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* stats */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'16px'}}>
+            {[
+              {l:'Contrato',v:selected.montoContrato?`$${selected.montoContrato.toLocaleString('es-CO')}`:'—'},
+              {l:'Mensual',v:selected.montoMensual?`$${selected.montoMensual.toLocaleString('es-CO')}/mes`:'—'},
+              {l:'Email',v:selected.email||'—'},
+              {l:'Teléfono',v:selected.telefono||'—'},
+            ].map(x=>(
+              <div key={x.l} style={{padding:'10px',background:'rgba(255,255,255,0.03)',borderRadius:'6px'}}>
+                <p style={{fontSize:'9px',color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:'3px'}}>{x.l}</p>
+                <p style={{fontSize:'12px',fontWeight:'600',color:'rgba(255,255,255,0.7)',wordBreak:'break-all'}}>{x.v}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* notes */}
+          <div>
+            <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'8px'}}>Notas</p>
+            {selected.notas&&<div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'6px',padding:'10px',marginBottom:'8px',fontSize:'12px',color:'rgba(255,255,255,0.5)',lineHeight:'1.6',whiteSpace:'pre-wrap',maxHeight:'140px',overflowY:'auto'}}>{selected.notas}</div>}
+            <div style={{display:'flex',gap:'6px'}}>
+              <input className="input-f" placeholder="Añadir nota…" value={noteText} onChange={e=>setNoteText(e.target.value)}
+                onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addNote();}}}
+                style={{fontSize:'12px',padding:'8px 10px',flex:1}}/>
+              <button className="btn-primary" style={{padding:'8px 12px',fontSize:'12px',flexShrink:0}} onClick={addNote}>+</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CalendarModule({onHome}){
   const CA='#a78bfa';
   const [posts,setPosts]=React.useState(()=>cal_storage.load());
@@ -9736,6 +9918,9 @@ function App(){
 
   /* ── PROYECTOS module ── */
   if(module==='proyectos'&&isAdmin) return <ProyectosModule onHome={goHome}/>;
+
+  /* ── PIPELINE module ── */
+  if(module==='pipeline'&&isAdmin) return <PipelineModule onHome={goHome}/>;
 
   /* ── CALENDARIO module ── */
   if(module==='calendario'&&isAdmin) return <CalendarModule onHome={goHome}/>;
