@@ -7676,6 +7676,34 @@ function HomeScreen({onSelect,currentUser}){
           </button>
           );
         })()}
+
+        {/* HORAS — all users */}
+        {(()=>{
+          const HR_A2='#a3e635';
+          const hData=JSON.parse(localStorage.getItem('glowlabs_horas_v1')||'[]');
+          const now=new Date();const day=now.getDay();const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));
+          const weekStart=mon.toISOString().slice(0,10);
+          const weekEntries=hData.filter(e=>e.fecha>=weekStart&&(!currentUser||isAdmin||e.userId===currentUser?.id));
+          const weekHours=weekEntries.reduce((s,e)=>s+e.horas,0);
+          const totalHoursAll=hData.length;
+          return(
+          <button onClick={()=>onSelect('horas')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+            <div style={{padding:'32px 28px',background:'rgba(163,230,53,0.02)',border:'1px solid rgba(163,230,53,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
+              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(163,230,53,0.4)';e.currentTarget.style.background='rgba(163,230,53,0.06)';}}
+              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(163,230,53,0.14)';e.currentTarget.style.background='rgba(163,230,53,0.02)';}}>
+              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${HR_A2},transparent)`}}/>
+              <div style={{width:'36px',height:'36px',background:'rgba(163,230,53,0.08)',border:'1px solid rgba(163,230,53,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={HR_A2} strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:HR_A2,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 15</p>
+              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Control<br/>de Horas</h2>
+              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Registra el tiempo dedicado a cada cliente con timer, categorías y resúmenes semanales.</p>
+              <p style={{fontSize:'11px',color:`${HR_A2}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{weekHours.toFixed(1)}h esta semana · {totalHoursAll} registros</p>
+              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:HR_A2,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver horas <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={HR_A2} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            </div>
+          </button>
+          );
+        })()}
       </div>
 
       {/* recent activity strip */}
@@ -9288,6 +9316,283 @@ function makePost(d={}){
   };
 }
 
+/* ── CONTROL DE HORAS MODULE ── */
+const HOURS_KEY='glowlabs_horas_v1';
+const hours_storage={load:()=>{try{return JSON.parse(localStorage.getItem(HOURS_KEY)||'[]');}catch{return[];}},save:(d)=>localStorage.setItem(HOURS_KEY,JSON.stringify(d))};
+function HorasModule({onHome,currentUser,isAdmin}){
+  const HR_A='#a3e635';
+  const [entries,setEntries]=React.useState(()=>hours_storage.load());
+  const [showForm,setShowForm]=React.useState(false);
+  const [form,setForm]=React.useState({clienteId:'',proyecto:'',descripcion:'',horas:'',fecha:new Date().toISOString().slice(0,10),categoria:'Gestión'});
+  const [filterUser,setFilterUser]=React.useState('todos');
+  const [filterClient,setFilterClient]=React.useState('todos');
+  const [filterWeek,setFilterWeek]=React.useState('esta');
+  const [timerActive,setTimerActive]=React.useState(false);
+  const [timerStart,setTimerStart]=React.useState(null);
+  const [timerElapsed,setTimerElapsed]=React.useState(0);
+  const timerRef=React.useRef(null);
+  const allClients=clients_storage.load();
+  const allUsers=users_storage.load();
+  const CATS=['Gestión','Contenido','Diseño','Estrategia','Reunión','Reportes','Administración','Otro'];
+
+  React.useEffect(()=>{
+    if(timerActive){
+      timerRef.current=setInterval(()=>setTimerElapsed(Math.floor((Date.now()-timerStart)/1000)),1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return()=>clearInterval(timerRef.current);
+  },[timerActive,timerStart]);
+
+  const startTimer=()=>{setTimerStart(Date.now());setTimerActive(true);setTimerElapsed(0);};
+  const stopTimer=()=>{
+    setTimerActive(false);
+    const hrs=(timerElapsed/3600).toFixed(2);
+    setForm(f=>({...f,horas:hrs}));
+    setShowForm(true);
+  };
+  const fmtTimer=s=>`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+
+  const saveEntry=()=>{
+    if(!form.clienteId||!form.horas||parseFloat(form.horas)<=0) return;
+    const entry={
+      id:'h'+Date.now(),
+      userId:currentUser?.id||'admin',
+      userName:currentUser?.nombre||'Admin',
+      clienteId:form.clienteId,
+      clienteNombre:allClients.find(c=>c.id===form.clienteId)?.empresa||allClients.find(c=>c.id===form.clienteId)?.nombre||'',
+      proyecto:form.proyecto,
+      descripcion:form.descripcion,
+      horas:parseFloat(form.horas),
+      fecha:form.fecha,
+      categoria:form.categoria,
+      creadoEn:new Date().toISOString(),
+    };
+    const updated=[entry,...entries];
+    setEntries(updated);hours_storage.save(updated);
+    setShowForm(false);setForm({clienteId:'',proyecto:'',descripcion:'',horas:'',fecha:new Date().toISOString().slice(0,10),categoria:'Gestión'});
+  };
+
+  const deleteEntry=(id)=>{const u=entries.filter(e=>e.id!==id);setEntries(u);hours_storage.save(u);};
+
+  // Week helpers
+  const getWeekRange=(offset=0)=>{
+    const now=new Date();
+    const day=now.getDay();
+    const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1)+offset*7);
+    const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+    return{start:mon.toISOString().slice(0,10),end:sun.toISOString().slice(0,10)};
+  };
+  const weekOffset=filterWeek==='esta'?0:filterWeek==='pasada'?-1:null;
+  const weekRange=weekOffset!==null?getWeekRange(weekOffset):null;
+
+  const filtered=entries.filter(e=>{
+    if(!isAdmin&&e.userId!==currentUser?.id) return false;
+    if(isAdmin&&filterUser!=='todos'&&e.userId!==filterUser) return false;
+    if(filterClient!=='todos'&&e.clienteId!==filterClient) return false;
+    if(weekRange&&(e.fecha<weekRange.start||e.fecha>weekRange.end)) return false;
+    return true;
+  });
+
+  const totalHoras=filtered.reduce((s,e)=>s+e.horas,0);
+  const byClient=filtered.reduce((acc,e)=>{acc[e.clienteNombre]=(acc[e.clienteNombre]||0)+e.horas;return acc;},{});
+  const byUser=filtered.reduce((acc,e)=>{acc[e.userName]=(acc[e.userName]||0)+e.horas;return acc;},{});
+  const byCat=filtered.reduce((acc,e)=>{acc[e.categoria]=(acc[e.categoria]||0)+e.horas;return acc;},{});
+
+  const CAT_C={'Gestión':'#9ca3af',Contenido:'#38bdf8',Diseño:'#f472b6',Estrategia:'#a78bfa',Reunión:'#fb923c',Reportes:'#fbbf24',Administración:'#4ade80',Otro:'#f87171'};
+
+  return(
+    <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif",display:'flex',flexDirection:'column'}}>
+      {/* header */}
+      <div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'16px 32px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
+          <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={onHome}>← Inicio</button>
+          <div style={{width:'1px',height:'18px',background:'rgba(255,255,255,0.08)'}}/>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <div style={{width:'22px',height:'22px',background:HR_A,borderRadius:'5px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span style={{fontSize:'14px',fontWeight:'700',color:'#fff',letterSpacing:'-.01em'}}>Control de Horas</span>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+          {/* timer */}
+          <div style={{display:'flex',alignItems:'center',gap:'8px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'100px',padding:'6px 14px'}}>
+            <span style={{fontFamily:'monospace',fontSize:'14px',color:timerActive?HR_A:'rgba(255,255,255,0.3)',fontWeight:'700',minWidth:'70px'}}>{fmtTimer(timerElapsed)}</span>
+            {!timerActive?(
+              <button onClick={startTimer} style={{all:'unset',cursor:'pointer',width:'24px',height:'24px',background:HR_A,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <svg width="8" height="10" viewBox="0 0 8 10" fill="#000"><polygon points="1,0 7,5 1,10"/></svg>
+              </button>
+            ):(
+              <button onClick={stopTimer} style={{all:'unset',cursor:'pointer',width:'24px',height:'24px',background:'#f87171',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="#fff"><rect width="8" height="8"/></svg>
+              </button>
+            )}
+          </div>
+          <button className="btn-primary" style={{padding:'7px 14px',fontSize:'12px'}} onClick={()=>setShowForm(true)}>+ Registrar horas</button>
+        </div>
+      </div>
+
+      <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+        {/* left: stats sidebar */}
+        <div style={{width:'260px',flexShrink:0,borderRight:'1px solid rgba(255,255,255,0.06)',padding:'20px 16px',overflowY:'auto',display:'flex',flexDirection:'column',gap:'16px'}}>
+          {/* filters */}
+          <div>
+            <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'8px'}}>Período</p>
+            <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
+              {[['esta','Esta semana'],['pasada','Semana pasada'],['todo','Todo el tiempo']].map(([v,l])=>(
+                <button key={v} onClick={()=>setFilterWeek(v)}
+                  style={{all:'unset',cursor:'pointer',padding:'6px 10px',borderRadius:'6px',fontSize:'12px',
+                    background:filterWeek===v?'rgba(163,230,53,0.1)':'transparent',
+                    color:filterWeek===v?HR_A:'rgba(255,255,255,0.4)',fontWeight:filterWeek===v?'700':'400',transition:'all .15s'}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {isAdmin&&(
+            <div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'8px'}}>Equipo</p>
+              <select className="input-f" value={filterUser} onChange={e=>setFilterUser(e.target.value)} style={{fontSize:'12px',padding:'6px 10px',width:'100%'}}>
+                <option value="todos">Todos</option>
+                {allUsers.filter(u=>u.role!=='client').map(u=><option key={u.id} value={u.id}>{u.nombre}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'8px'}}>Cliente</p>
+            <select className="input-f" value={filterClient} onChange={e=>setFilterClient(e.target.value)} style={{fontSize:'12px',padding:'6px 10px',width:'100%'}}>
+              <option value="todos">Todos</option>
+              {allClients.map(c=><option key={c.id} value={c.id}>{c.empresa||c.nombre}</option>)}
+            </select>
+          </div>
+
+          {/* total */}
+          <div style={{background:'rgba(163,230,53,0.06)',border:'1px solid rgba(163,230,53,0.15)',borderRadius:'10px',padding:'16px'}}>
+            <p style={{fontSize:'11px',color:`${HR_A}99`,fontWeight:'700',marginBottom:'4px'}}>Total horas</p>
+            <p style={{fontSize:'28px',fontWeight:'800',color:HR_A,letterSpacing:'-.02em'}}>{totalHoras.toFixed(1)}<span style={{fontSize:'14px',fontWeight:'400',color:`${HR_A}70`,marginLeft:'4px'}}>h</span></p>
+          </div>
+
+          {/* by client */}
+          {Object.keys(byClient).length>0&&(
+            <div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'8px'}}>Por cliente</p>
+              {Object.entries(byClient).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([name,hrs])=>(
+                <div key={name} style={{marginBottom:'8px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:'3px'}}>
+                    <span style={{fontSize:'11px',color:'rgba(255,255,255,0.6)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'140px'}}>{name}</span>
+                    <span style={{fontSize:'11px',color:HR_A,fontWeight:'700'}}>{hrs.toFixed(1)}h</span>
+                  </div>
+                  <div style={{height:'3px',background:'rgba(255,255,255,0.05)',borderRadius:'2px'}}>
+                    <div style={{height:'100%',background:HR_A,borderRadius:'2px',width:`${Math.min(100,hrs/totalHoras*100)}%`}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* by category */}
+          {Object.keys(byCat).length>0&&(
+            <div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:'rgba(255,255,255,0.2)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'8px'}}>Por categoría</p>
+              {Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([cat,hrs])=>(
+                <div key={cat} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                    <div style={{width:'6px',height:'6px',borderRadius:'50%',background:CAT_C[cat]||'#9ca3af'}}/>
+                    <span style={{fontSize:'11px',color:'rgba(255,255,255,0.5)'}}>{cat}</span>
+                  </div>
+                  <span style={{fontSize:'11px',color:'rgba(255,255,255,0.6)',fontWeight:'600'}}>{hrs.toFixed(1)}h</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* right: entries list */}
+        <div style={{flex:1,overflowY:'auto',padding:'20px 28px'}}>
+          {filtered.length===0?(
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:'12px'}}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <p style={{fontSize:'13px',color:'rgba(255,255,255,0.2)'}}>Sin registros para este período</p>
+              <button className="btn-primary" style={{fontSize:'12px'}} onClick={()=>setShowForm(true)}>Registrar primeras horas</button>
+            </div>
+          ):(
+            <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+              {filtered.map(entry=>(
+                <div key={entry.id} style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'10px',padding:'14px 18px',display:'flex',alignItems:'center',gap:'16px',transition:'border .15s'}}
+                  onMouseOver={e=>e.currentTarget.style.border='1px solid rgba(163,230,53,0.2)'}
+                  onMouseOut={e=>e.currentTarget.style.border='1px solid rgba(255,255,255,0.06)'}>
+                  <div style={{textAlign:'center',minWidth:'40px'}}>
+                    <p style={{fontSize:'18px',fontWeight:'800',color:HR_A,lineHeight:1}}>{entry.horas.toFixed(1)}</p>
+                    <p style={{fontSize:'9px',color:`${HR_A}70`,fontWeight:'600'}}>horas</p>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'4px'}}>
+                      <span style={{fontSize:'13px',fontWeight:'600',color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.clienteNombre||'Sin cliente'}</span>
+                      {entry.proyecto&&<span style={{fontSize:'10px',color:'rgba(255,255,255,0.3)',flexShrink:0}}>· {entry.proyecto}</span>}
+                    </div>
+                    {entry.descripcion&&<p style={{fontSize:'12px',color:'rgba(255,255,255,0.4)',lineHeight:'1.4',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.descripcion}</p>}
+                    <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'6px'}}>
+                      <span style={{fontSize:'10px',padding:'2px 7px',borderRadius:'100px',background:`${CAT_C[entry.categoria]||'#9ca3af'}18`,color:CAT_C[entry.categoria]||'#9ca3af',fontWeight:'600'}}>{entry.categoria}</span>
+                      {isAdmin&&<span style={{fontSize:'10px',color:'rgba(255,255,255,0.25)'}}>{entry.userName}</span>}
+                      <span style={{fontSize:'10px',color:'rgba(255,255,255,0.2)'}}>{new Date(entry.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>
+                    </div>
+                  </div>
+                  <button onClick={()=>deleteEntry(entry.id)} style={{all:'unset',cursor:'pointer',padding:'4px',color:'rgba(255,255,255,0.15)',transition:'color .15s'}}
+                    onMouseOver={e=>e.currentTarget.style.color='#f87171'} onMouseOut={e=>e.currentTarget.style.color='rgba(255,255,255,0.15)'}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* form modal */}
+      {showForm&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300}}>
+          <div style={{background:'#111',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'16px',padding:'28px',width:'440px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+              <h3 style={{fontSize:'16px',fontWeight:'700',color:'#fff',margin:0}}>Registrar horas</h3>
+              <button className="btn-ghost" style={{padding:'4px 8px',fontSize:'11px'}} onClick={()=>setShowForm(false)}>✕</button>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+              <div style={{display:'flex',gap:'12px'}}>
+                <div style={{flex:1}}><label className="lbl">Cliente *</label>
+                  <select className="input-f" value={form.clienteId} onChange={e=>setForm({...form,clienteId:e.target.value})}>
+                    <option value="">Selecciona cliente</option>
+                    {allClients.map(c=><option key={c.id} value={c.id}>{c.empresa||c.nombre}</option>)}
+                  </select></div>
+                <div style={{flex:1}}><label className="lbl">Horas *</label>
+                  <input className="input-f" type="number" step="0.25" min="0.25" max="24" placeholder="ej: 2.5" value={form.horas} onChange={e=>setForm({...form,horas:e.target.value})}/></div>
+              </div>
+              <div><label className="lbl">Proyecto / tarea</label>
+                <input className="input-f" placeholder="ej: Contenido Instagram" value={form.proyecto} onChange={e=>setForm({...form,proyecto:e.target.value})}/></div>
+              <div><label className="lbl">Descripción</label>
+                <textarea className="input-f" placeholder="¿Qué hiciste?" value={form.descripcion} onChange={e=>setForm({...form,descripcion:e.target.value})} rows={2} style={{resize:'none'}}/></div>
+              <div style={{display:'flex',gap:'12px'}}>
+                <div style={{flex:1}}><label className="lbl">Categoría</label>
+                  <select className="input-f" value={form.categoria} onChange={e=>setForm({...form,categoria:e.target.value})}>
+                    {CATS.map(c=><option key={c}>{c}</option>)}
+                  </select></div>
+                <div style={{flex:1}}><label className="lbl">Fecha</label>
+                  <input className="input-f" type="date" value={form.fecha} onChange={e=>setForm({...form,fecha:e.target.value})}/></div>
+              </div>
+              <div style={{display:'flex',gap:'8px',justifyContent:'flex-end',marginTop:'4px'}}>
+                <button className="btn-ghost" onClick={()=>setShowForm(false)}>Cancelar</button>
+                <button className="btn-primary" onClick={saveEntry}>Guardar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── COMUNICACIONES MODULE ── */
 const COMM_KEY='glowlabs_comunicaciones_v1';
 const comm_storage={load:()=>{try{return JSON.parse(localStorage.getItem(COMM_KEY)||'[]');}catch{return[];}},save:(d)=>localStorage.setItem(COMM_KEY,JSON.stringify(d))};
@@ -10206,6 +10511,9 @@ function App(){
 
   /* ── PROYECTOS module ── */
   if(module==='proyectos'&&isAdmin) return <ProyectosModule onHome={goHome}/>;
+
+  /* ── HORAS module ── */
+  if(module==='horas') return <HorasModule onHome={goHome} currentUser={currentUser} isAdmin={isAdmin}/>;
 
   /* ── COMUNICACIONES module ── */
   if(module==='comunicaciones'&&isAdmin) return <ComunicacionesModule onHome={goHome}/>;
