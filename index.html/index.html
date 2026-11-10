@@ -7383,40 +7383,6 @@ function HomeScreen({onSelect,currentUser}){
         </button>}
 
         {/* CLIENTES */}
-        {empPerms.clients&&<button onClick={()=>onSelect('clients')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-          <div style={{padding:'32px 28px',background:`rgba(74,222,128,0.02)`,border:`1px solid rgba(74,222,128,0.14)`,borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-            onMouseOver={e=>{e.currentTarget.style.border=`1px solid rgba(74,222,128,0.4)`;e.currentTarget.style.background='rgba(74,222,128,0.06)';}}
-            onMouseOut={e=>{e.currentTarget.style.border=`1px solid rgba(74,222,128,0.14)`;e.currentTarget.style.background='rgba(74,222,128,0.02)';}}>
-            <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${CL_A},transparent)`}}/>
-            {(homeStats.overdue+homeStats.expiring)>0&&<div style={{position:'absolute',top:'10px',right:'10px',minWidth:'18px',height:'18px',background:'#ef4444',borderRadius:'9px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'10px',fontWeight:'700',color:'#fff',padding:'0 5px',fontFamily:"'Inter',sans-serif",boxShadow:'0 0 0 2px rgba(9,9,11,0.85)',zIndex:2,lineHeight:1}}>{homeStats.overdue+homeStats.expiring}</div>}
-            <div style={{width:'36px',height:'36px',background:'rgba(74,222,128,0.08)',border:'1px solid rgba(74,222,128,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-              <svg width="17" height="17" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4" r="2.5" stroke={CL_A} strokeWidth="1.3"/><path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke={CL_A} strokeWidth="1.3" strokeLinecap="round"/><circle cx="10.5" cy="5" r="2" stroke={CL_A} strokeWidth="1.3"/><path d="M13 12c0-1.7-1.1-3.1-2.5-3.5" stroke={CL_A} strokeWidth="1.3" strokeLinecap="round"/></svg>
-            </div>
-            <p style={{fontSize:'10px',fontWeight:'700',color:CL_A,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 04</p>
-            <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Client<br/>Management</h2>
-            <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Gestiona clientes, proyectos activos, portales y el ciclo de vida completo de cada cuenta.</p>
-            <p style={{fontSize:'11px',color:`${CL_A}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{homeStats.clientCount} cliente{homeStats.clientCount!==1?'s':''} · {homeStats.activeClients} activo{homeStats.activeClients!==1?'s':''}</p>
-            <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:CL_A,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver clientes <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={CL_A} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-          </div>
-        </button>}
-        {/* DASHBOARD — admin only */}
-        {isAdmin&&(
-        <button onClick={()=>onSelect('dashboard')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-          <div style={{padding:'32px 28px',background:'rgba(245,158,11,0.02)',border:'1px solid rgba(245,158,11,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-            onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(245,158,11,0.4)';e.currentTarget.style.background='rgba(245,158,11,0.06)';}}
-            onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(245,158,11,0.14)';e.currentTarget.style.background='rgba(245,158,11,0.02)';}}>
-            <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:'linear-gradient(90deg,#f59e0b,transparent)'}}/>
-            <div style={{width:'36px',height:'36px',background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-              <svg width="17" height="17" viewBox="0 0 14 14" fill="none"><rect x="1" y="7" width="3" height="6" rx="1" fill="#f59e0b"/><rect x="5.5" y="4" width="3" height="9" rx="1" fill="#f59e0b"/><rect x="10" y="1" width="3" height="12" rx="1" fill="#f59e0b"/></svg>
-            </div>
-            <p style={{fontSize:'10px',fontWeight:'700',color:'#f59e0b',letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 06</p>
-            <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Analytics<br/>Dashboard</h2>
-            <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Ingresos, pipeline, leaderboard de equipo, conversiones y métricas clave en tiempo real.</p>
-            <p style={{fontSize:'11px',color:'rgba(245,158,11,0.6)',fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>${homeStats.totalRevenue.toLocaleString('es-CO')} ingresos totales</p>
-            <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:'#f59e0b',fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver analytics <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke="#f59e0b" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-          </div>
-        </button>
-        )}
 
 
         {/* Pricing card — admin only */}
@@ -7474,21 +7440,6 @@ function HomeScreen({onSelect,currentUser}){
           const pendReview=calPosts.filter(p=>p.estado==='revision').length;
           const pendApproval=calPosts.filter(p=>p.estado==='borrador').length;
           return(
-          <button onClick={()=>onSelect('calendario')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(167,139,250,0.02)',border:'1px solid rgba(167,139,250,0.12)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(167,139,250,0.4)';e.currentTarget.style.background='rgba(167,139,250,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(167,139,250,0.12)';e.currentTarget.style.background='rgba(167,139,250,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:'linear-gradient(90deg,#a78bfa,transparent)'}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(167,139,250,0.08)',border:'1px solid rgba(167,139,250,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:'#a78bfa',letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 12</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Calendario<br/>de Contenido</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Planifica y organiza publicaciones por cliente, plataforma y estado.</p>
-              {calPosts.length>0&&<p style={{fontSize:'11px',color:'rgba(167,139,250,0.7)',fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{monthCount} este mes · {pendReview} en revisión · {pendApproval} borradores</p>}
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:'#a78bfa',fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver calendario <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke="#a78bfa" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
           );
         })()}
 
@@ -8421,7 +8372,7 @@ function InvoiceForm({initial,onSave,onPreview,onBack}){
   const allContracts=contracts_storage.load();
   const allClients=clients_storage.load();
   const emptyItem=()=>({id:Date.now().toString()+Math.random(),desc:'',qty:'1',unitPrice:''});
-  const defaults={id:Date.now().toString(),tipo:'factura',estado:'Borrador',fecha:new Date().toISOString().slice(0,10),fechaVencimiento:'',ivaRate:'0',clienteNombre:'',clienteEmpresa:'',clienteNIF:'',clienteEmail:'',clienteDireccion:'',agenciaNombre:'JAM Ventures Services FZCO',agenciaNIF:'',agenciaEmail:'hello@mafemontillamueller.com',agenciaDireccion:'Dubai, United Arab Emirates',ibanAgencia:'',notasPago:'Payment via bank transfer within the indicated period.',notas:'',contractRef:'',items:[emptyItem()]};
+  const defaults={id:Date.now().toString(),invoiceNum:'',tipo:'factura',estado:'Borrador',fecha:new Date().toISOString().slice(0,10),fechaVencimiento:'',ivaRate:'0',currency:'EUR',clienteNombre:'',clienteEmpresa:'',clienteNIF:'',clienteEmail:'',clienteDireccion:'',agenciaNombre:'JAM VENTURES SERVICES FZCO',agenciaNIF:'64934',agenciaEmail:'hello@mafemontillamueller.com',agenciaDireccion:'Building A1, Dubai Digital Park\nDubai Silicon Oasis, Dubai, UAE',ibanAgencia:'AE750860000006067404495',notasPago:'Account holder: María Fernanda Montilla Mueller\nBank: Wio Bank P.J.S.C.\nIBAN: AE750860000006067404495\nSWIFT/BIC: WIOBAEAD',taxNote:'VAT not charged by the UAE supplier. For B2B services supplied to a business established in Spain, the customer should account for Spanish VAT under the reverse-charge mechanism, where applicable.',notas:'',contractRef:'',items:[emptyItem()]};
   const [form,setForm]=useState(()=>initial&&initial.agenciaNombre?initial:{...defaults,...(initial||{})});
   const upd=(k,v)=>setForm(f=>({...f,[k]:v}));
   const updItem=(idx,k,v)=>setForm(f=>({...f,items:f.items.map((it,i)=>i===idx?{...it,[k]:v}:it)}));
@@ -8492,14 +8443,14 @@ function InvoiceForm({initial,onSave,onPreview,onBack}){
             </div>
           </>}/>
         }/>}
-        <Sec t="Fechas" ch={<R2 ch={<><div><FLabel c="Fecha de emisión"/><FInput f='fecha' type='date'/></div><div><FLabel c="Fecha de vencimiento"/><FInput f='fechaVencimiento' type='date'/></div></>}/>}/>
+        <Sec t="Número y fechas" ch={<><R2 ch={<><div><FLabel c="Invoice No."/><FInput f='invoiceNum' ph='JAM Ventures Services FZCO_003_EUR'/></div><div><FLabel c="Fecha de emisión"/><FInput f='fecha' type='date'/></div></>}/><div style={{marginBottom:'14px'}}><FLabel c="Fecha de vencimiento"/><FInput f='fechaVencimiento' type='date'/></div></>}/>
         <Sec t="Datos del cliente" ch={<>
           <R2 ch={<><div><FLabel c="Nombre del contacto"/><FInput f='clienteNombre' ph='Nombre completo'/></div><div><FLabel c="Empresa / Razón social"/><FInput f='clienteEmpresa' ph='Empresa S.L.'/></div></>}/>
           <R2 ch={<><div><FLabel c="NIF / CIF"/><FInput f='clienteNIF' ph='B-12345678'/></div><div><FLabel c="Email"/><FInput f='clienteEmail' ph='cliente@empresa.com' type='email'/></div></>}/>
           <div style={{marginBottom:'14px'}}><FLabel c="Dirección"/><FInput f='clienteDireccion' ph='Calle, Ciudad, CP'/></div>
         </>}/>
         <Sec t="Datos de la agencia" ch={<>
-          <R2 ch={<><div><FLabel c="Nombre agencia"/><FInput f='agenciaNombre' ph='GlowLabs Agencia IA'/></div><div><FLabel c="NIF agencia"/><FInput f='agenciaNIF' ph='A-XXXXXXXX'/></div></>}/>
+          <R2 ch={<><div><FLabel c="Nombre agencia"/><FInput f='agenciaNombre' ph='GlowLabs Agencia IA'/></div><div><FLabel c="License No."/><FInput f='agenciaNIF' ph='64934'/></div></>}/>
           <R2 ch={<><div><FLabel c="Email agencia"/><FInput f='agenciaEmail' ph='hello@glowlabs.com' type='email'/></div><div><FLabel c="Dirección agencia"/><FInput f='agenciaDireccion' ph='Calle, Ciudad, CP'/></div></>}/>
         </>}/>
         <Sec t="Líneas de factura" ch={
@@ -8532,9 +8483,17 @@ function InvoiceForm({initial,onSave,onPreview,onBack}){
           </div>
         }/>
         <Sec t="Condiciones de pago" ch={<>
-          <div style={{marginBottom:'14px'}}><FLabel c="IBAN agencia"/><FInput f='ibanAgencia' ph='ES00 0000 0000 0000 0000 0000'/></div>
-          <div style={{marginBottom:'14px'}}><FLabel c="Nota de pago"/>
-            <textarea value={form.notasPago||''} onChange={e=>upd('notasPago',e.target.value)} rows={3} style={{width:'100%',padding:'9px 12px',background:'rgba(20,20,22,0.98)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'7px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",resize:'vertical',boxSizing:'border-box',outline:'none'}}/>
+          <div style={{marginBottom:'14px'}}><FLabel c="Currency"/>
+            <select value={form.currency||'EUR'} onChange={e=>upd('currency',e.target.value)} style={{width:'100%',padding:'9px 12px',background:'rgba(20,20,22,0.98)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'7px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif"}}>
+              <option value='EUR'>EUR — Euro</option><option value='USD'>USD — US Dollar</option><option value='GBP'>GBP — British Pound</option><option value='AED'>AED — UAE Dirham</option>
+            </select>
+          </div>
+          <div style={{marginBottom:'14px'}}><FLabel c="IBAN agencia"/><FInput f='ibanAgencia' ph='AE00 0000 0000 0000 0000 000'/></div>
+          <div style={{marginBottom:'14px'}}><FLabel c="Payment information"/>
+            <textarea value={form.notasPago||''} onChange={e=>upd('notasPago',e.target.value)} rows={4} style={{width:'100%',padding:'9px 12px',background:'rgba(20,20,22,0.98)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'7px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",resize:'vertical',boxSizing:'border-box',outline:'none'}}/>
+          </div>
+          <div style={{marginBottom:'14px'}}><FLabel c="Tax note"/>
+            <textarea value={form.taxNote||''} onChange={e=>upd('taxNote',e.target.value)} rows={3} style={{width:'100%',padding:'9px 12px',background:'rgba(20,20,22,0.98)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'7px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",resize:'vertical',boxSizing:'border-box',outline:'none'}}/>
           </div>
           <div><FLabel c="Notas internas"/>
             <textarea value={form.notas||''} onChange={e=>upd('notas',e.target.value)} rows={2} placeholder='Solo visible en el sistema...' style={{width:'100%',padding:'9px 12px',background:'rgba(20,20,22,0.98)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'7px',color:'#fff',fontSize:'13px',fontFamily:"'Inter',sans-serif",resize:'vertical',boxSizing:'border-box',outline:'none'}}/>
@@ -8547,16 +8506,29 @@ function InvoiceForm({initial,onSave,onPreview,onBack}){
 
 function InvoiceView({data,onBack,onBackList}){
   const IA=INV_A;
+  const cur=data.currency||'EUR';
   const subtotal=(data.items||[]).reduce((s,it)=>s+(parseFloat(it.qty||1)*parseFloat(it.unitPrice||0)),0);
-  const ivaRate=parseFloat(data.ivaRate||21);
+  const ivaRate=parseFloat(data.ivaRate||0);
   const ivaAmt=subtotal*ivaRate/100;
   const total=subtotal+ivaAmt;
-  const numFac=`${data.tipo==='proforma'?'PRO':'FAC'}-${(data.id||'').slice(-6).toUpperCase()}`;
+  const numFac=data.invoiceNum||`${data.tipo==='proforma'?'PROFORMA':'INVOICE'} No. ${(data.id||'').slice(-3).toUpperCase()}`;
   const printInvoice=()=>{
-    const win=window.open('','_blank');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${numFac}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#111;background:#fff;padding:40px;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:24px;border-bottom:2px solid #111;}.agency-name{font-size:22px;font-weight:800;letter-spacing:-.03em;}.invoice-title{text-align:right;}.invoice-title h1{font-size:28px;font-weight:800;letter-spacing:-.04em;}.invoice-title p{font-size:12px;color:#f59e0b;font-weight:700;margin-top:4px;}.meta{display:flex;justify-content:space-between;margin-bottom:40px;}.meta-block h3{font-size:10px;font-weight:700;color:#999;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}.meta-block p{font-size:13px;line-height:1.6;}table{width:100%;border-collapse:collapse;margin-bottom:28px;}th{font-size:10px;font-weight:700;color:#999;letter-spacing:.08em;text-transform:uppercase;text-align:left;padding:10px 12px;border-bottom:2px solid #111;}td{padding:12px;border-bottom:1px solid #eee;font-size:13px;}.tar{text-align:right;}.totals{margin-left:auto;width:280px;}.tot-row{display:flex;justify-content:space-between;padding:7px 0;font-size:13px;color:#555;}.tot-final{font-size:16px;font-weight:800;color:#111;border-top:2px solid #111;padding-top:12px;margin-top:4px;}.payment{margin-top:32px;padding:16px;background:#f9f9f9;border-radius:8px;font-size:12px;color:#555;line-height:1.8;}.footer{margin-top:40px;font-size:10px;color:#bbb;text-align:center;border-top:1px solid #eee;padding-top:20px;}@media print{body{padding:20px;}}</style></head><body><div class="header"><div><div class="agency-name">${data.agenciaNombre||'GlowLabs'}</div><div style="font-size:11px;color:#666;margin-top:4px;">${data.agenciaNIF?'NIF: '+data.agenciaNIF+'<br/>':''}${data.agenciaEmail||''}<br/>${data.agenciaDireccion||''}</div></div><div class="invoice-title"><h1>${data.tipo==='proforma'?'FACTURA PROFORMA':'FACTURA'}</h1><p>${numFac}</p></div></div><div class="meta"><div class="meta-block"><h3>Facturado a</h3><p><strong>${data.clienteEmpresa||data.clienteNombre||'—'}</strong><br/>${data.clienteNIF?'NIF: '+data.clienteNIF+'<br/>':''}${data.clienteEmail||''}<br/>${data.clienteDireccion||''}</p></div><div class="meta-block" style="text-align:right"><h3>Detalles</h3><p>Emisión: <strong>${data.fecha||'—'}</strong><br/>${data.fechaVencimiento?'Vencimiento: <strong>'+data.fechaVencimiento+'</strong><br/>':''}Estado: <strong>${data.estado||'Borrador'}</strong></p></div></div><table><thead><tr><th>Descripción</th><th class="tar">Uds.</th><th class="tar">Precio unit.</th><th class="tar">Total</th></tr></thead><tbody>${(data.items||[]).map(it=>`<tr><td>${it.desc||'—'}</td><td class="tar">${it.qty||1}</td><td class="tar">${parseFloat(it.unitPrice||0).toFixed(2)}€</td><td class="tar"><strong>${(parseFloat(it.qty||1)*parseFloat(it.unitPrice||0)).toFixed(2)}€</strong></td></tr>`).join('')}</tbody></table><div class="totals"><div class="tot-row"><span>Subtotal</span><span>${subtotal.toFixed(2)}€</span></div><div class="tot-row"><span>IVA (${ivaRate}%)</span><span>${ivaAmt.toFixed(2)}€</span></div><div class="tot-row tot-final"><span>TOTAL</span><span style="color:#f59e0b">${total.toFixed(2)}€</span></div></div>${(data.ibanAgencia||data.notasPago)?`<div class="payment">${data.ibanAgencia?'<strong>IBAN:</strong> '+data.ibanAgencia+'<br/>':''}${data.notasPago||''}</div>`:''}<div class="footer">${data.agenciaNombre||'GlowLabs'} · ${numFac} · Generado con Agency OS</div></body></html>`);
-    win.document.close();
-    setTimeout(()=>win.print(),400);
+    const cur2=cur;
+    const rows=(data.items||[]).map(it=>{const lt=parseFloat(it.qty||1)*parseFloat(it.unitPrice||0);return`<tr><td style="padding:12px 8px;border-bottom:1px solid #eee;font-size:13px;color:#111">${it.desc||'—'}</td><td style="padding:12px 8px;border-bottom:1px solid #eee;text-align:center;font-size:13px;color:#555">${it.qty||1}</td><td style="padding:12px 8px;border-bottom:1px solid #eee;text-align:right;font-size:13px;color:#555">${cur2} ${parseFloat(it.unitPrice||0).toFixed(2)}</td><td style="padding:12px 8px;border-bottom:1px solid #eee;text-align:right;font-size:13px;font-weight:600;color:#111">${cur2} ${lt.toFixed(2)}</td></tr>`;}).join('');
+    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${numFac}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;color:#111;background:#fff;padding:50px;max-width:800px;margin:0 auto;}table{width:100%;border-collapse:collapse;}th{padding:10px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;border-top:1px solid #111;border-bottom:1px solid #111;}th.r{text-align:right;}@media print{body{padding:30px;}}</style></head><body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:48px;">
+  <div><div style="font-size:30px;font-weight:900;letter-spacing:.04em;color:#111">${data.tipo==='proforma'?'PROFORMA':'INVOICE'}</div><div style="margin-top:12px;font-size:13px;color:#555">${numFac}</div><div style="font-size:13px;color:#555;margin-top:4px">Date: ${data.fecha||'—'}</div><div style="font-size:13px;color:#555;margin-top:4px">Currency: ${cur2}</div></div>
+  <div style="text-align:right"><div style="font-size:15px;font-weight:700;color:#111">${data.agenciaNombre||'JAM VENTURES SERVICES FZCO'}</div>${(data.agenciaDireccion||'').split('\n').map(l=>`<div style="font-size:12px;color:#555;margin-top:3px">${l}</div>`).join('')}${data.agenciaNIF?`<div style="font-size:12px;color:#555;margin-top:4px">License No.: ${data.agenciaNIF}</div>`:''}</div>
+</div>
+<div style="margin-bottom:36px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#999;margin-bottom:8px">Bill To</div><div style="font-size:15px;font-weight:700;color:#111">${data.clienteEmpresa||data.clienteNombre||'—'}</div>${data.clienteNIF?`<div style="font-size:13px;color:#555;margin-top:3px">NIF: ${data.clienteNIF}</div>`:''} ${(data.clienteDireccion||'').split('\n').map(l=>`<div style="font-size:13px;color:#555;margin-top:2px">${l}</div>`).join('')}${data.clienteEmail?`<div style="font-size:13px;color:#555;margin-top:3px">Email: ${data.clienteEmail}</div>`:''}</div>
+<table><thead><tr><th>Description</th><th style="text-align:center">Qty.</th><th class="r">Unit Price (${cur2})</th><th class="r">Total (${cur2})</th></tr></thead><tbody>${rows}</tbody></table>
+<div style="display:flex;justify-content:flex-end;margin-top:16px"><div style="width:300px"><div style="display:flex;justify-content:space-between;padding:7px 8px;font-size:13px;color:#555"><span>Subtotal</span><span>${cur2} ${subtotal.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;padding:7px 8px;font-size:13px;color:#555"><span>VAT</span><span>${cur2} ${ivaAmt.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;padding:12px 8px;border-top:1px solid #111;margin-top:4px"><span style="font-size:14px;font-weight:800;color:#111">TOTAL DUE</span><span style="font-size:14px;font-weight:800;color:#111">${cur2} ${total.toFixed(2)} ${cur2}</span></div></div></div>
+${total>0?`<div style="margin-top:12px;font-size:12px;color:#777;padding:0 8px">Currency: All amounts on this invoice are stated in ${cur2}. Total amount due: ${cur2} ${total.toFixed(2)} ${cur2}.</div>`:''}
+${data.taxNote?`<div style="margin-top:24px;padding:16px;background:#f9f9f9;border-radius:4px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:6px">Tax note</div><div style="font-size:11px;color:#666;line-height:1.65">${data.taxNote}</div></div>`:''}
+${data.notasPago?`<div style="margin-top:16px;padding:16px;background:#f9f9f9;border-radius:4px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px">Payment information</div><div style="font-size:13px;color:#444;line-height:1.8">${data.notasPago.replace(/\n/g,'<br/>')}</div></div>`:''}
+<div style="margin-top:40px;padding-top:16px;border-top:1px solid #eee;text-align:center;font-size:11px;color:#ccc;font-style:italic">Thank you for your business.</div>
+</body></html>`;
+    const w=window.open('','_blank');w.document.write(html);w.document.close();setTimeout(()=>w.print(),400);
   };
   const badge={Borrador:'rgba(255,255,255,0.12)',Enviada:'rgba(59,130,246,0.2)',Pagada:'rgba(34,197,94,0.2)',Vencida:'rgba(239,68,68,0.2)'}[data.estado]||'rgba(255,255,255,0.1)';
   const badgeC={Borrador:'rgba(255,255,255,0.5)',Enviada:'#60a5fa',Pagada:'#4ade80',Vencida:'#f87171'}[data.estado]||'#fff';
@@ -8571,71 +8543,76 @@ function InvoiceView({data,onBack,onBackList}){
         </div>
         <div style={{display:'flex',gap:'10px'}}>
           <button onClick={onBackList} style={{padding:'8px 16px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'8px',color:'rgba(255,255,255,0.5)',fontSize:'12px',cursor:'pointer'}}>← Lista</button>
-          <button onClick={printInvoice} style={{padding:'8px 18px',background:IA,border:'none',borderRadius:'8px',color:'#fff',fontSize:'12px',fontWeight:'700',cursor:'pointer'}}>🖨 Imprimir / PDF</button>
+          <button onClick={printInvoice} style={{padding:'8px 18px',background:IA,border:'none',borderRadius:'8px',color:'#fff',fontSize:'12px',fontWeight:'700',cursor:'pointer'}}>🖨 PDF</button>
         </div>
       </div>
-      <div style={{maxWidth:'800px',margin:'40px auto',padding:'0 28px 60px'}}>
-        <div style={{background:'#fff',borderRadius:'12px',padding:'48px',boxShadow:'0 24px 80px rgba(0,0,0,0.5)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'40px',paddingBottom:'24px',borderBottom:'2px solid #111'}}>
+      <div style={{maxWidth:'820px',margin:'40px auto',padding:'0 28px 60px'}}>
+        <div style={{background:'#fff',borderRadius:'8px',padding:'50px',boxShadow:'0 20px 60px rgba(0,0,0,0.4)'}}>
+          {/* Header: INVOICE title left, agency info right */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'48px'}}>
             <div>
-              <p style={{fontSize:'22px',fontWeight:'800',letterSpacing:'-.03em',color:'#111'}}>{data.agenciaNombre||'GlowLabs'}</p>
-              {data.agenciaNIF&&<p style={{fontSize:'11px',color:'#666',marginTop:'4px'}}>NIF: {data.agenciaNIF}</p>}
-              {data.agenciaEmail&&<p style={{fontSize:'11px',color:'#666'}}>{data.agenciaEmail}</p>}
-              {data.agenciaDireccion&&<p style={{fontSize:'11px',color:'#666'}}>{data.agenciaDireccion}</p>}
+              <h1 style={{fontSize:'30px',fontWeight:'900',letterSpacing:'.04em',color:'#111'}}>{data.tipo==='proforma'?'PROFORMA':'INVOICE'}</h1>
+              <p style={{fontSize:'13px',color:'#555',marginTop:'10px'}}>{numFac}</p>
+              <p style={{fontSize:'13px',color:'#555',marginTop:'3px'}}>Date: {data.fecha||'—'}</p>
+              <p style={{fontSize:'13px',color:'#555',marginTop:'3px'}}>Currency: {cur}</p>
             </div>
             <div style={{textAlign:'right'}}>
-              <h1 style={{fontSize:'28px',fontWeight:'800',letterSpacing:'-.04em',color:'#111'}}>{data.tipo==='proforma'?'FACTURA PROFORMA':'FACTURA'}</h1>
-              <p style={{fontSize:'13px',color:IA,fontWeight:'700',marginTop:'4px'}}>{numFac}</p>
+              <p style={{fontSize:'15px',fontWeight:'700',color:'#111'}}>{data.agenciaNombre||'JAM VENTURES SERVICES FZCO'}</p>
+              {(data.agenciaDireccion||'').split('\n').map((l,i)=><p key={i} style={{fontSize:'12px',color:'#666',marginTop:'3px'}}>{l}</p>)}
+              {data.agenciaNIF&&<p style={{fontSize:'12px',color:'#666',marginTop:'4px'}}>License No.: {data.agenciaNIF}</p>}
             </div>
           </div>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:'36px'}}>
-            <div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:'#999',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:'8px'}}>Facturado a</p>
-              <p style={{fontSize:'14px',fontWeight:'700',color:'#111'}}>{data.clienteEmpresa||data.clienteNombre||'—'}</p>
-              {data.clienteNIF&&<p style={{fontSize:'12px',color:'#555'}}>NIF: {data.clienteNIF}</p>}
-              {data.clienteEmail&&<p style={{fontSize:'12px',color:'#555'}}>{data.clienteEmail}</p>}
-              {data.clienteDireccion&&<p style={{fontSize:'12px',color:'#555'}}>{data.clienteDireccion}</p>}
-            </div>
-            <div style={{textAlign:'right'}}>
-              <p style={{fontSize:'10px',fontWeight:'700',color:'#999',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:'8px'}}>Detalles</p>
-              <p style={{fontSize:'12px',color:'#555'}}>Emisión: <strong style={{color:'#111'}}>{data.fecha||'—'}</strong></p>
-              {data.fechaVencimiento&&<p style={{fontSize:'12px',color:'#555'}}>Vencimiento: <strong style={{color:'#111'}}>{data.fechaVencimiento}</strong></p>}
-            </div>
+          {/* Bill To */}
+          <div style={{marginBottom:'36px'}}>
+            <p style={{fontSize:'10px',fontWeight:'700',textTransform:'uppercase',letterSpacing:'.1em',color:'#999',marginBottom:'8px'}}>Bill To</p>
+            <p style={{fontSize:'15px',fontWeight:'700',color:'#111'}}>{data.clienteEmpresa||data.clienteNombre||'—'}</p>
+            {data.clienteNIF&&<p style={{fontSize:'13px',color:'#555',marginTop:'3px'}}>NIF: {data.clienteNIF}</p>}
+            {(data.clienteDireccion||'').split('\n').filter(Boolean).map((l,i)=><p key={i} style={{fontSize:'13px',color:'#555',marginTop:'2px'}}>{l}</p>)}
+            {data.clienteEmail&&<p style={{fontSize:'13px',color:'#555',marginTop:'3px'}}>Email: {data.clienteEmail}</p>}
           </div>
-          <table style={{width:'100%',borderCollapse:'collapse',marginBottom:'28px'}}>
+          {/* Table */}
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
             <thead>
-              <tr>{['Descripción','Uds.','Precio unit.','Total'].map((h,i)=>(
-                <th key={h} style={{fontSize:'10px',fontWeight:'700',color:'#999',letterSpacing:'.08em',textTransform:'uppercase',padding:'10px 12px',borderBottom:'2px solid #111',textAlign:i===0?'left':'right'}}>{h}</th>
+              <tr>{[['Description','left'],['Qty.','center'],['Unit Price ('+cur+')','right'],['Total ('+cur+')','right']].map(([h,a])=>(
+                <th key={h} style={{fontSize:'10px',fontWeight:'700',color:'#999',letterSpacing:'.08em',textTransform:'uppercase',padding:'10px 8px',borderTop:'1px solid #111',borderBottom:'1px solid #111',textAlign:a}}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
-              {(data.items||[]).map((it,i)=>(
+              {(data.items||[]).map((it,i)=>{const lt=parseFloat(it.qty||1)*parseFloat(it.unitPrice||0);return(
                 <tr key={i} style={{borderBottom:'1px solid #eee'}}>
-                  <td style={{padding:'13px 12px',fontSize:'13px',color:'#111'}}>{it.desc||'—'}</td>
-                  <td style={{padding:'13px 12px',fontSize:'13px',color:'#555',textAlign:'right'}}>{it.qty||1}</td>
-                  <td style={{padding:'13px 12px',fontSize:'13px',color:'#555',textAlign:'right'}}>{parseFloat(it.unitPrice||0).toFixed(2)}€</td>
-                  <td style={{padding:'13px 12px',fontSize:'13px',fontWeight:'700',color:'#111',textAlign:'right'}}>{(parseFloat(it.qty||1)*parseFloat(it.unitPrice||0)).toFixed(2)}€</td>
+                  <td style={{padding:'13px 8px',fontSize:'13px',color:'#111'}}>{it.desc||'—'}</td>
+                  <td style={{padding:'13px 8px',fontSize:'13px',color:'#555',textAlign:'center'}}>{it.qty||1}</td>
+                  <td style={{padding:'13px 8px',fontSize:'13px',color:'#555',textAlign:'right'}}>{cur} {parseFloat(it.unitPrice||0).toFixed(2)}</td>
+                  <td style={{padding:'13px 8px',fontSize:'13px',fontWeight:'600',color:'#111',textAlign:'right'}}>{cur} {lt.toFixed(2)}</td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
-          <div style={{marginLeft:'auto',width:'280px'}}>
-            {[['Subtotal',`${subtotal.toFixed(2)}€`],[`IVA (${ivaRate}%)`,`${ivaAmt.toFixed(2)}€`]].map(([l,v])=>(
-              <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',fontSize:'13px',color:'#555'}}><span>{l}</span><span>{v}</span></div>
-            ))}
-            <div style={{display:'flex',justifyContent:'space-between',padding:'13px 0 0',borderTop:'2px solid #111',marginTop:'4px'}}>
-              <span style={{fontSize:'16px',fontWeight:'800',color:'#111'}}>TOTAL</span>
-              <span style={{fontSize:'18px',fontWeight:'800',color:IA}}>{total.toFixed(2)}€</span>
+          {/* Totals */}
+          <div style={{display:'flex',justifyContent:'flex-end',marginTop:'16px'}}>
+            <div style={{width:'300px'}}>
+              {[['Subtotal',`${cur} ${subtotal.toFixed(2)}`],['VAT',`${cur} ${ivaAmt.toFixed(2)}`]].map(([l,v])=>(
+                <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'7px 8px',fontSize:'13px',color:'#555'}}><span>{l}</span><span>{v}</span></div>
+              ))}
+              <div style={{display:'flex',justifyContent:'space-between',padding:'12px 8px',borderTop:'1px solid #111',marginTop:'4px'}}>
+                <span style={{fontSize:'14px',fontWeight:'800',color:'#111'}}>TOTAL DUE</span>
+                <span style={{fontSize:'14px',fontWeight:'800',color:'#111'}}>{cur} {total.toFixed(2)} {cur}</span>
+              </div>
             </div>
           </div>
-          {(data.ibanAgencia||data.notasPago)&&(
-            <div style={{marginTop:'36px',padding:'18px',background:'#f9fafb',borderRadius:'8px',fontSize:'12px',color:'#555',lineHeight:'1.8'}}>
-              {data.ibanAgencia&&<p><strong>Cuenta bancaria (IBAN):</strong> {data.ibanAgencia}</p>}
-              {data.notasPago&&<p style={{marginTop:data.ibanAgencia?'4px':0}}>{data.notasPago}</p>}
-            </div>
-          )}
-          <div style={{marginTop:'48px',paddingTop:'20px',borderTop:'1px solid #eee',textAlign:'center'}}>
-            <p style={{fontSize:'10px',color:'#bbb'}}>{data.agenciaNombre||'GlowLabs Agencia IA'} · {numFac} · Generado con Agency OS</p>
+          {total>0&&<p style={{fontSize:'12px',color:'#999',marginTop:'10px',paddingLeft:'8px'}}>Currency: All amounts on this invoice are stated in {cur}. Total amount due: {cur} {total.toFixed(2)} {cur}.</p>}
+          {/* Tax note */}
+          {data.taxNote&&<div style={{marginTop:'24px',padding:'16px',background:'#f9fafb',borderRadius:'4px'}}>
+            <p style={{fontSize:'10px',fontWeight:'700',textTransform:'uppercase',letterSpacing:'.08em',color:'#999',marginBottom:'6px'}}>Tax note</p>
+            <p style={{fontSize:'12px',color:'#666',lineHeight:'1.65'}}>{data.taxNote}</p>
+          </div>}
+          {/* Payment info */}
+          {data.notasPago&&<div style={{marginTop:'16px',padding:'16px',background:'#f9fafb',borderRadius:'4px'}}>
+            <p style={{fontSize:'10px',fontWeight:'700',textTransform:'uppercase',letterSpacing:'.08em',color:'#999',marginBottom:'10px'}}>Payment information</p>
+            {data.notasPago.split('\n').map((l,i)=><p key={i} style={{fontSize:'13px',color:'#444',lineHeight:'1.7'}}>{l}</p>)}
+          </div>}
+          <div style={{marginTop:'40px',paddingTop:'18px',borderTop:'1px solid #eee',textAlign:'center'}}>
+            <p style={{fontSize:'12px',color:'#bbb',fontStyle:'italic'}}>Thank you for your business.</p>
           </div>
         </div>
       </div>
