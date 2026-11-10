@@ -7431,17 +7431,6 @@ function HomeScreen({onSelect,currentUser}){
         })()}
 
 
-        {/* CALENDARIO DE CONTENIDO — admin only */}
-        {isAdmin&&(()=>{
-          const calPosts=cal_storage.load();
-          const now=new Date();
-          const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-          const monthCount=calPosts.filter(p=>p.fecha&&p.fecha.startsWith(thisMonth)).length;
-          const pendReview=calPosts.filter(p=>p.estado==='revision').length;
-          const pendApproval=calPosts.filter(p=>p.estado==='borrador').length;
-          return(
-          );
-        })()}
 
         {/* REPORTES — admin only */}
         {isAdmin&&(()=>{
