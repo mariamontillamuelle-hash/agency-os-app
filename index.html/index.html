@@ -1216,13 +1216,15 @@ function ProposalDeck({data,savedId,onBack,onEdit,onSave,isSaved,onAccept}){
         {onSave&&<button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:isSaved?'rgba(255,255,255,0.3)':'#888'}} onClick={handleSave}>{isSaved?'✓ Guardada':'Guardar'}</button>}
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={handlePDF}>↓ PDF</button>
         <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:'#a78bfa'}} onClick={()=>copyProposalLink(data,'marketing')}>🔗 Link</button>
-        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:'#D4A0B0'}} onClick={()=>{
+        <button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px',color:'#D4A0B0'}} onClick={async()=>{
+          setToast('⏳ Generando PDF…');
+          await handlePDF();
           const subject=encodeURIComponent('Propuesta para '+data.empresa);
-          const link=genProposalLink(data,'marketing')||window.location.href;
-          const body=encodeURIComponent('Hola '+( data.clientName||data.empresa)+',\n\nTe comparto la propuesta que hemos preparado especialmente para ti.\n\nVer propuesta:\n'+link+'\n\nQuedo atenta a tus comentarios y preguntas.\n\nMafe Montilla\nEstrategia de Marketing Digital\nhello@mafemontillamueller.com');
+          const fname='Propuesta_'+data.empresa.replace(/\s+/g,'_')+'.pdf';
+          const body=encodeURIComponent('Hola '+(data.clientName||data.empresa)+',\n\nAdjunto encontrarás la propuesta que hemos preparado especialmente para ti (archivo: '+fname+').\n\nQuedo atenta a tus comentarios y preguntas.\n\nMafe Montilla\nEstrategia de Marketing Digital\nhello@mafemontillamueller.com');
           window.open('mailto:?subject='+subject+'&body='+body);
-          setToast('✉ Correo abierto');
-        }}>✉ Correo</button>
+          setToast('✉ PDF descargado — adjúntalo al correo que se abrió');
+        }}>✉ Correo + PDF</button>
         {onAccept&&<button onClick={()=>setAcceptOpen(true)} style={{padding:'6px 14px',fontSize:'12px',background:`linear-gradient(135deg,${WARM},${WARM2})`,border:'none',borderRadius:'6px',color:'#fff',fontWeight:'700',cursor:'pointer',fontFamily:"'Plus Jakarta Sans','Inter',sans-serif",letterSpacing:'-.01em'}}>✓ Aceptar propuesta</button>}
         {onBack&&<button className="btn-ghost" style={{padding:'6px 12px',fontSize:'12px'}} onClick={onBack}>← Biblioteca</button>}
       </div>
