@@ -7705,6 +7705,29 @@ function HomeScreen({onSelect,currentUser}){
           );
         })()}
 
+        {/* BRIEFING — admin only */}
+        {isAdmin&&(()=>{
+          const BF_A2='#c084fc';
+          const bData=JSON.parse(localStorage.getItem('glowlabs_briefings_v1')||'[]');
+          return(
+          <button onClick={()=>onSelect('briefing')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+            <div style={{padding:'32px 28px',background:'rgba(192,132,252,0.02)',border:'1px solid rgba(192,132,252,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
+              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(192,132,252,0.4)';e.currentTarget.style.background='rgba(192,132,252,0.06)';}}
+              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(192,132,252,0.14)';e.currentTarget.style.background='rgba(192,132,252,0.02)';}}>
+              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${BF_A2},transparent)`}}/>
+              <div style={{width:'36px',height:'36px',background:'rgba(192,132,252,0.08)',border:'1px solid rgba(192,132,252,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={BF_A2} strokeWidth="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </div>
+              <p style={{fontSize:'10px',fontWeight:'700',color:BF_A2,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 18</p>
+              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Briefing<br/>de Clientes</h2>
+              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Formulario de onboarding: marca, audiencia, contenido, competencia y objetivos por cliente.</p>
+              <p style={{fontSize:'11px',color:`${BF_A2}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{bData.length} briefings completados</p>
+              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:BF_A2,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver briefings <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={BF_A2} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            </div>
+          </button>
+          );
+        })()}
+
         {/* PROPUESTAS — admin only */}
         {isAdmin&&(()=>{
           const PR_A2='#38bdf8';
@@ -9365,6 +9388,273 @@ function makePost(d={}){
     notas:d.notas||'',
     creadoEn:d.creadoEn||new Date().toISOString(),
   };
+}
+
+/* ── BRIEFING MODULE ── */
+const BRIEF_KEY='glowlabs_briefings_v1';
+const brief_storage={load:()=>{try{return JSON.parse(localStorage.getItem(BRIEF_KEY)||'[]');}catch{return[];}},save:(d)=>localStorage.setItem(BRIEF_KEY,JSON.stringify(d))};
+const BRIEF_STEPS=[
+  {id:'marca',label:'Marca',icon:'🏢'},
+  {id:'audiencia',label:'Audiencia',icon:'👥'},
+  {id:'contenido',label:'Contenido',icon:'📱'},
+  {id:'competencia',label:'Competencia',icon:'🎯'},
+  {id:'objetivos',label:'Objetivos',icon:'🚀'},
+];
+const EMPTY_BRIEF={
+  clienteId:'',
+  marca:{nombre:'',descripcion:'',mision:'',valores:'',personalidad:'',colores:'',tipografia:'',logoUrl:''},
+  audiencia:{edades:'',genero:'Mixto',ubicacion:'',intereses:'',pain_points:'',tono:''},
+  contenido:{redes:[],frecuencia:'',tipos:[],hashtags:'',noPublicar:'',ejemplosRef:''},
+  competencia:{comp1:'',comp2:'',comp3:'',diferenciador:''},
+  objetivos:{meta1:'',meta2:'',meta3:'',kpi:'',plazo:'3 meses'},
+  completado:false,
+};
+function BriefingModule({onHome}){
+  const BF_A='#c084fc';
+  const [briefings,setBriefings]=React.useState(()=>brief_storage.load());
+  const [view,setView]=React.useState('list');
+  const [selectedBrief,setSelectedBrief]=React.useState(null);
+  const [step,setStep]=React.useState(0);
+  const [form,setForm]=React.useState({...EMPTY_BRIEF});
+  const allClients=clients_storage.load();
+  const REDES=['Instagram','Facebook','TikTok','YouTube','LinkedIn','Twitter/X','Pinterest'];
+  const TIPOS_CONTENIDO=['Posts estáticos','Reels / Videos cortos','Stories','Carruseles','Lives','Podcasts','Blogs'];
+  const GENEROS=['Femenino','Masculino','Mixto','Otro'];
+
+  const startNew=()=>{setSelectedBrief(null);setForm({...JSON.parse(JSON.stringify(EMPTY_BRIEF))});setStep(0);setView('editor');};
+  const openBrief=(b)=>{setSelectedBrief(b);setForm({...JSON.parse(JSON.stringify(b))});setStep(0);setView('view');};
+
+  const updateField=(section,field,val)=>{
+    setForm(f=>({...f,[section]:{...f[section],[field]:val}}));
+  };
+  const toggleArray=(section,field,val)=>{
+    setForm(f=>{const arr=f[section][field]||[];return{...f,[section]:{...f[section],[field]:arr.includes(val)?arr.filter(x=>x!==val):[...arr,val]}};});
+  };
+
+  const saveBrief=()=>{
+    if(!form.clienteId) return;
+    const cliente=allClients.find(c=>c.id===form.clienteId);
+    const record={...form,id:selectedBrief?.id||'br'+Date.now(),clienteNombre:cliente?.empresa||cliente?.nombre||'',updatedAt:new Date().toISOString(),completado:true};
+    let updated;
+    if(selectedBrief){updated=briefings.map(b=>b.id===selectedBrief.id?record:b);}
+    else{updated=[record,...briefings];}
+    setBriefings(updated);brief_storage.save(updated);setView('list');
+  };
+
+  const deleteBrief=(id)=>{const u=briefings.filter(b=>b.id!==id);setBriefings(u);brief_storage.save(u);};
+
+  /* step content */
+  const renderStep=(s)=>{
+    if(s===0) return(
+      <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+        <div><label className="lbl">Cliente *</label>
+          <select className="input-f" value={form.clienteId} onChange={e=>setForm({...form,clienteId:e.target.value})}>
+            <option value="">Selecciona cliente</option>
+            {allClients.map(c=><option key={c.id} value={c.id}>{c.empresa||c.nombre}</option>)}
+          </select></div>
+        <div><label className="lbl">Nombre de la marca</label><input className="input-f" value={form.marca.nombre} onChange={e=>updateField('marca','nombre',e.target.value)} placeholder="ej: GlowLabs IA"/></div>
+        <div><label className="lbl">¿A qué se dedica la empresa?</label><textarea className="input-f" value={form.marca.descripcion} onChange={e=>updateField('marca','descripcion',e.target.value)} rows={3} placeholder="Describe brevemente el negocio, sus productos o servicios..." style={{resize:'none'}}/></div>
+        <div><label className="lbl">Misión de la empresa</label><textarea className="input-f" value={form.marca.mision} onChange={e=>updateField('marca','mision',e.target.value)} rows={2} placeholder="¿Cuál es el propósito de la empresa?" style={{resize:'none'}}/></div>
+        <div style={{display:'flex',gap:'12px'}}>
+          <div style={{flex:1}}><label className="lbl">Valores de marca</label><input className="input-f" value={form.marca.valores} onChange={e=>updateField('marca','valores',e.target.value)} placeholder="ej: Calidad, Innovación, Cercanía"/></div>
+          <div style={{flex:1}}><label className="lbl">Personalidad de marca</label><input className="input-f" value={form.marca.personalidad} onChange={e=>updateField('marca','personalidad',e.target.value)} placeholder="ej: Jovial, profesional, innovadora"/></div>
+        </div>
+        <div style={{display:'flex',gap:'12px'}}>
+          <div style={{flex:1}}><label className="lbl">Colores corporativos</label><input className="input-f" value={form.marca.colores} onChange={e=>updateField('marca','colores',e.target.value)} placeholder="ej: Azul #1D4ED8, Blanco, Negro"/></div>
+          <div style={{flex:1}}><label className="lbl">Tipografía</label><input className="input-f" value={form.marca.tipografia} onChange={e=>updateField('marca','tipografia',e.target.value)} placeholder="ej: Inter, Playfair Display"/></div>
+        </div>
+      </div>
+    );
+    if(s===1) return(
+      <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+        <div style={{display:'flex',gap:'12px'}}>
+          <div style={{flex:1}}><label className="lbl">Rango de edad del cliente ideal</label><input className="input-f" value={form.audiencia.edades} onChange={e=>updateField('audiencia','edades',e.target.value)} placeholder="ej: 25-45 años"/></div>
+          <div style={{flex:1}}><label className="lbl">Género predominante</label>
+            <select className="input-f" value={form.audiencia.genero} onChange={e=>updateField('audiencia','genero',e.target.value)}>
+              {GENEROS.map(g=><option key={g}>{g}</option>)}
+            </select></div>
+        </div>
+        <div><label className="lbl">Ubicación geográfica</label><input className="input-f" value={form.audiencia.ubicacion} onChange={e=>updateField('audiencia','ubicacion',e.target.value)} placeholder="ej: Colombia, Bogotá principalmente"/></div>
+        <div><label className="lbl">Intereses y estilo de vida</label><textarea className="input-f" value={form.audiencia.intereses} onChange={e=>updateField('audiencia','intereses',e.target.value)} rows={2} placeholder="¿Qué le gusta hacer? ¿Qué consume?" style={{resize:'none'}}/></div>
+        <div><label className="lbl">Problemas o necesidades que resuelve la marca</label><textarea className="input-f" value={form.audiencia.pain_points} onChange={e=>updateField('audiencia','pain_points',e.target.value)} rows={3} placeholder="¿Qué dolores o necesidades tiene el cliente ideal?" style={{resize:'none'}}/></div>
+        <div><label className="lbl">Tono de comunicación preferido</label><input className="input-f" value={form.audiencia.tono} onChange={e=>updateField('audiencia','tono',e.target.value)} placeholder="ej: Cercano y educativo, formal con humor, inspiracional"/></div>
+      </div>
+    );
+    if(s===2) return(
+      <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+        <div>
+          <label className="lbl">Redes sociales activas</label>
+          <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginTop:'6px'}}>
+            {REDES.map(r=>(
+              <button key={r} onClick={()=>toggleArray('contenido','redes',r)}
+                style={{all:'unset',cursor:'pointer',padding:'5px 12px',borderRadius:'100px',fontSize:'12px',fontWeight:'600',
+                  background:(form.contenido.redes||[]).includes(r)?`${BF_A}20`:'rgba(255,255,255,0.05)',
+                  color:(form.contenido.redes||[]).includes(r)?BF_A:'rgba(255,255,255,0.4)',
+                  border:`1px solid ${(form.contenido.redes||[]).includes(r)?BF_A:'transparent'}`,transition:'all .15s'}}>
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="lbl">Tipos de contenido</label>
+          <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginTop:'6px'}}>
+            {TIPOS_CONTENIDO.map(t=>(
+              <button key={t} onClick={()=>toggleArray('contenido','tipos',t)}
+                style={{all:'unset',cursor:'pointer',padding:'5px 12px',borderRadius:'100px',fontSize:'12px',fontWeight:'600',
+                  background:(form.contenido.tipos||[]).includes(t)?`${BF_A}20`:'rgba(255,255,255,0.05)',
+                  color:(form.contenido.tipos||[]).includes(t)?BF_A:'rgba(255,255,255,0.4)',
+                  border:`1px solid ${(form.contenido.tipos||[]).includes(t)?BF_A:'transparent'}`,transition:'all .15s'}}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div><label className="lbl">Frecuencia de publicación esperada</label><input className="input-f" value={form.contenido.frecuencia} onChange={e=>updateField('contenido','frecuencia',e.target.value)} placeholder="ej: 5 veces por semana en Instagram, 3 en TikTok"/></div>
+        <div><label className="lbl">Hashtags importantes de la marca</label><input className="input-f" value={form.contenido.hashtags} onChange={e=>updateField('contenido','hashtags',e.target.value)} placeholder="ej: #GlowLabs #MarketingIA #AgenciaDigital"/></div>
+        <div><label className="lbl">¿Qué NO debe publicarse?</label><textarea className="input-f" value={form.contenido.noPublicar} onChange={e=>updateField('contenido','noPublicar',e.target.value)} rows={2} placeholder="Temas sensibles, competidores directos, restricciones..." style={{resize:'none'}}/></div>
+        <div><label className="lbl">Referencias de contenido que les guste</label><textarea className="input-f" value={form.contenido.ejemplosRef} onChange={e=>updateField('contenido','ejemplosRef',e.target.value)} rows={2} placeholder="Cuentas, estilos o tipos de contenido de inspiración..." style={{resize:'none'}}/></div>
+      </div>
+    );
+    if(s===3) return(
+      <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+        <div><label className="lbl">Competidor 1</label><input className="input-f" value={form.competencia.comp1} onChange={e=>updateField('competencia','comp1',e.target.value)} placeholder="Nombre, redes sociales, link..."/></div>
+        <div><label className="lbl">Competidor 2</label><input className="input-f" value={form.competencia.comp2} onChange={e=>updateField('competencia','comp2',e.target.value)} placeholder="Nombre, redes sociales, link..."/></div>
+        <div><label className="lbl">Competidor 3</label><input className="input-f" value={form.competencia.comp3} onChange={e=>updateField('competencia','comp3',e.target.value)} placeholder="Nombre, redes sociales, link..."/></div>
+        <div><label className="lbl">¿En qué se diferencia tu marca de la competencia?</label><textarea className="input-f" value={form.competencia.diferenciador} onChange={e=>updateField('competencia','diferenciador',e.target.value)} rows={4} placeholder="Propuesta de valor única, ventajas competitivas..." style={{resize:'none'}}/></div>
+      </div>
+    );
+    if(s===4) return(
+      <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
+        <div><label className="lbl">Objetivo principal 1</label><input className="input-f" value={form.objetivos.meta1} onChange={e=>updateField('objetivos','meta1',e.target.value)} placeholder="ej: Aumentar seguidores en Instagram a 10,000"/></div>
+        <div><label className="lbl">Objetivo principal 2</label><input className="input-f" value={form.objetivos.meta2} onChange={e=>updateField('objetivos','meta2',e.target.value)} placeholder="ej: Generar 5 leads por semana desde redes sociales"/></div>
+        <div><label className="lbl">Objetivo principal 3</label><input className="input-f" value={form.objetivos.meta3} onChange={e=>updateField('objetivos','meta3',e.target.value)} placeholder="ej: Mejorar la percepción de marca como expertos"/></div>
+        <div><label className="lbl">KPIs de éxito</label><textarea className="input-f" value={form.objetivos.kpi} onChange={e=>updateField('objetivos','kpi',e.target.value)} rows={2} placeholder="¿Cómo mediremos el éxito? Alcance, conversiones, ventas..." style={{resize:'none'}}/></div>
+        <div><label className="lbl">Plazo para ver resultados</label>
+          <select className="input-f" value={form.objetivos.plazo} onChange={e=>updateField('objetivos','plazo',e.target.value)}>
+            {['1 mes','2 meses','3 meses','6 meses','1 año'].map(p=><option key={p}>{p}</option>)}
+          </select></div>
+      </div>
+    );
+  };
+
+  /* ── EDITOR VIEW ── */
+  if(view==='editor') return(
+    <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif",display:'flex',flexDirection:'column'}}>
+      <div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'16px 32px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+          <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={()=>setView('list')}>← Volver</button>
+          <span style={{fontSize:'14px',fontWeight:'700',color:'#fff'}}>Briefing de Cliente</span>
+        </div>
+        <div style={{display:'flex',gap:'8px'}}>
+          {step>0&&<button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={()=>setStep(s=>s-1)}>← Anterior</button>}
+          {step<BRIEF_STEPS.length-1
+            ?<button className="btn-primary" style={{padding:'7px 14px',fontSize:'12px'}} onClick={()=>setStep(s=>s+1)}>Siguiente →</button>
+            :<button className="btn-primary" style={{padding:'7px 14px',fontSize:'12px'}} onClick={saveBrief}>Guardar briefing ✓</button>}
+        </div>
+      </div>
+      {/* step nav */}
+      <div style={{padding:'0 32px',borderBottom:'1px solid rgba(255,255,255,0.05)',display:'flex',gap:'0'}}>
+        {BRIEF_STEPS.map((s,i)=>(
+          <button key={s.id} onClick={()=>setStep(i)}
+            style={{all:'unset',cursor:'pointer',padding:'12px 20px',fontSize:'12px',fontWeight:'600',borderBottom:`2px solid ${step===i?BF_A:'transparent'}`,
+              color:step===i?BF_A:'rgba(255,255,255,0.3)',transition:'all .15s'}}>
+            {s.icon} {s.label}
+          </button>
+        ))}
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:'6px',padding:'0 16px'}}>
+          {BRIEF_STEPS.map((_,i)=>(
+            <div key={i} style={{width:'6px',height:'6px',borderRadius:'50%',background:i<=step?BF_A:'rgba(255,255,255,0.1)',transition:'background .2s'}}/>
+          ))}
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'28px 32px',maxWidth:'700px'}}>
+        <h2 style={{fontSize:'18px',fontWeight:'700',color:'#fff',marginBottom:'4px'}}>{BRIEF_STEPS[step].icon} {BRIEF_STEPS[step].label}</h2>
+        <p style={{fontSize:'12px',color:'rgba(255,255,255,0.3)',marginBottom:'20px'}}>Paso {step+1} de {BRIEF_STEPS.length}</p>
+        {renderStep(step)}
+      </div>
+    </div>
+  );
+
+  /* ── VIEW (read-only) ── */
+  if(view==='view'&&selectedBrief) return(
+    <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif",display:'flex',flexDirection:'column'}}>
+      <div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'16px 32px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+          <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={()=>setView('list')}>← Briefings</button>
+          <span style={{fontSize:'14px',fontWeight:'700',color:'#fff'}}>{selectedBrief.clienteNombre}</span>
+        </div>
+        <div style={{display:'flex',gap:'8px'}}>
+          <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={()=>{setView('editor');}}>Editar</button>
+          <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px',color:'#f87171'}} onClick={()=>{deleteBrief(selectedBrief.id);setView('list');}}>Eliminar</button>
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'28px 32px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',alignContent:'start'}}>
+        {[
+          {title:'🏢 Marca',data:form.marca,fields:[['Nombre',form.marca.nombre],['Descripción',form.marca.descripcion],['Misión',form.marca.mision],['Valores',form.marca.valores],['Personalidad',form.marca.personalidad],['Colores',form.marca.colores],['Tipografía',form.marca.tipografia]]},
+          {title:'👥 Audiencia',data:form.audiencia,fields:[['Edades',form.audiencia.edades],['Género',form.audiencia.genero],['Ubicación',form.audiencia.ubicacion],['Intereses',form.audiencia.intereses],['Necesidades',form.audiencia.pain_points],['Tono',form.audiencia.tono]]},
+          {title:'📱 Contenido',data:form.contenido,fields:[['Redes',(form.contenido.redes||[]).join(', ')],['Tipos',(form.contenido.tipos||[]).join(', ')],['Frecuencia',form.contenido.frecuencia],['Hashtags',form.contenido.hashtags],['No publicar',form.contenido.noPublicar],['Referencias',form.contenido.ejemplosRef]]},
+          {title:'🎯 Competencia',data:form.competencia,fields:[['Competidor 1',form.competencia.comp1],['Competidor 2',form.competencia.comp2],['Competidor 3',form.competencia.comp3],['Diferenciador',form.competencia.diferenciador]]},
+          {title:'🚀 Objetivos',data:form.objetivos,fields:[['Meta 1',form.objetivos.meta1],['Meta 2',form.objetivos.meta2],['Meta 3',form.objetivos.meta3],['KPIs',form.objetivos.kpi],['Plazo',form.objetivos.plazo]]},
+        ].map(section=>(
+          <div key={section.title} style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'12px',padding:'18px'}}>
+            <h3 style={{fontSize:'13px',fontWeight:'700',color:BF_A,marginBottom:'12px'}}>{section.title}</h3>
+            {section.fields.filter(([,v])=>v).map(([label,val])=>(
+              <div key={label} style={{marginBottom:'10px'}}>
+                <p style={{fontSize:'10px',fontWeight:'600',color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:'2px'}}>{label}</p>
+                <p style={{fontSize:'13px',color:'rgba(255,255,255,0.75)',lineHeight:'1.5',margin:0}}>{val}</p>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  /* ── LIST VIEW ── */
+  return(
+    <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif",display:'flex',flexDirection:'column'}}>
+      <div style={{background:'rgba(255,255,255,0.02)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'16px 32px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
+          <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={onHome}>← Inicio</button>
+          <div style={{width:'1px',height:'18px',background:'rgba(255,255,255,0.08)'}}/>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <div style={{width:'22px',height:'22px',background:BF_A,borderRadius:'5px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <span style={{fontSize:'14px',fontWeight:'700',color:'#fff',letterSpacing:'-.01em'}}>Briefing de Clientes</span>
+          </div>
+        </div>
+        <button className="btn-primary" style={{padding:'7px 14px',fontSize:'12px'}} onClick={startNew}>+ Nuevo briefing</button>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'24px 32px'}}>
+        {briefings.length===0?(
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:'60px',gap:'12px'}}>
+            <p style={{fontSize:'13px',color:'rgba(255,255,255,0.2)'}}>Sin briefings todavía</p>
+            <button className="btn-primary" style={{fontSize:'12px'}} onClick={startNew}>Crear primer briefing</button>
+          </div>
+        ):(
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'14px'}}>
+            {briefings.map(b=>(
+              <div key={b.id} onClick={()=>openBrief(b)}
+                style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'12px',padding:'20px',cursor:'pointer',transition:'all .15s'}}
+                onMouseOver={e=>{e.currentTarget.style.border=`1px solid ${BF_A}40`;e.currentTarget.style.background='rgba(192,132,252,0.03)';}}
+                onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(255,255,255,0.07)';e.currentTarget.style.background='rgba(255,255,255,0.02)';}}>
+                <div style={{width:'32px',height:'32px',background:`${BF_A}15`,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'12px',fontSize:'16px'}}>📋</div>
+                <h3 style={{fontSize:'14px',fontWeight:'700',color:'#fff',margin:'0 0 4px'}}>{b.clienteNombre}</h3>
+                <p style={{fontSize:'11px',color:'rgba(255,255,255,0.3)',margin:'0 0 10px'}}>{new Date(b.updatedAt).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'})}</p>
+                <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
+                  {(b.contenido?.redes||[]).slice(0,3).map(r=>(
+                    <span key={r} style={{fontSize:'9px',fontWeight:'600',padding:'2px 7px',borderRadius:'100px',background:`${BF_A}15`,color:BF_A}}>{r}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 /* ── PROPUESTAS MODULE ── */
@@ -11079,6 +11369,9 @@ function App(){
 
   /* ── PROYECTOS module ── */
   if(module==='proyectos'&&isAdmin) return <ProyectosModule onHome={goHome}/>;
+
+  /* ── BRIEFING module ── */
+  if(module==='briefing'&&isAdmin) return <BriefingModule onHome={goHome}/>;
 
   /* ── PROPUESTAS module ── */
   if(module==='propuestas'&&isAdmin) return <PropuestasModule onHome={goHome}/>;
