@@ -8394,7 +8394,7 @@ ${data.notasPago?`<div style="margin-top:16px;padding:16px;background:#f9f9f9;bo
     const filename=(numFac||'invoice').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
     const doGen=(h2p)=>{
       const wrap=document.createElement('div');
-      wrap.style.cssText='position:fixed;top:-9999px;left:-9999px;width:750px;padding:40px;background:#fff;font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#111;box-sizing:border-box;';
+      wrap.style.cssText='position:fixed;top:0;left:0;width:750px;padding:40px;background:#fff;font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#111;box-sizing:border-box;opacity:0.01;pointer-events:none;z-index:-9999;';
       wrap.innerHTML=`<style>*{box-sizing:border-box;}table{width:100%;border-collapse:collapse;}th{padding:10px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;border-top:1px solid #111;border-bottom:1px solid #111;}th.r{text-align:right;}td{padding:12px 8px;border-bottom:1px solid #eee;font-size:13px;}</style>`+
       `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;">
         <div><div style="font-size:28px;font-weight:900;letter-spacing:.04em;color:#111">${data.tipo==='proforma'?'PROFORMA':'INVOICE'}</div><div style="margin-top:10px;font-size:13px;color:#555">${numFac}</div><div style="font-size:13px;color:#555;margin-top:3px">Date: ${data.fecha||'—'}</div><div style="font-size:13px;color:#555;margin-top:3px">Currency: ${cur2}</div></div>
