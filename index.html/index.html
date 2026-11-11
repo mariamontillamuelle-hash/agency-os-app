@@ -7233,6 +7233,140 @@ function PricingModule({onHome}){
   );
 }
 
+function AcademiaModule({onHome}){
+  return(
+    <div style={{minHeight:'100vh',background:'#080808',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'24px',fontFamily:"'Inter',sans-serif"}}>
+      <div style={{width:'64px',height:'64px',background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.25)',borderRadius:'16px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      </div>
+      <h1 style={{fontSize:'32px',fontWeight:'800',color:'#fff',letterSpacing:'-.04em',fontFamily:"'Playfair Display',serif",textAlign:'center'}}>Academia</h1>
+      <p style={{fontSize:'14px',color:'rgba(255,255,255,0.3)',textAlign:'center',maxWidth:'320px',lineHeight:'1.7'}}>Este módulo estará disponible próximamente. Aquí encontrarás formación, recursos y materiales para tu equipo.</p>
+      <button onClick={onHome} className="btn-ghost" style={{padding:'10px 24px'}}>← Volver al inicio</button>
+    </div>
+  );
+}
+
+function CotizacionesHub({onHome,onSelect}){
+  return(
+    <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif"}}>
+      <div style={{background:'#FFFFFF',borderBottom:'1px solid rgba(49,49,49,0.08)',padding:'16px 32px',display:'flex',alignItems:'center',gap:'14px'}}>
+        <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={onHome}>← Agencia</button>
+        <div style={{width:'1px',height:'18px',background:'rgba(255,255,255,0.08)'}}/>
+        <span style={{fontSize:'14px',fontWeight:'700',color:'#313131'}}>Cotizaciones</span>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'60px 32px',gap:'40px'}}>
+        <div style={{textAlign:'center'}}>
+          <h1 style={{fontSize:'30px',fontWeight:'800',color:'#fff',letterSpacing:'-.03em',fontFamily:"'Playfair Display',serif",marginBottom:'10px'}}>Cotizaciones</h1>
+          <p style={{fontSize:'13px',color:'rgba(255,255,255,0.3)'}}>Elige el tipo de propuesta que quieres generar</p>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',maxWidth:'600px',width:'100%'}}>
+          {[
+            {id:'marketing',label:'Marketing Digital',desc:'Redes sociales, contenidos, identidad de marca y crecimiento digital.',color:WARM,rgba:'rgba(212,160,176,',icon:<svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M2 14L6 10L9 13L13 8L16 11" stroke={WARM} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="16" cy="4" r="2" stroke={WARM} strokeWidth="1.3"/></svg>},
+            {id:'ia',label:'Inteligencia Artificial',desc:'Automatización, bots, CRM, fidelización y ecosistemas IA a medida.',color:AI_A,rgba:'rgba(56,189,248,',icon:<svg width="17" height="17" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="4" stroke={AI_A} strokeWidth="1.4"/><path d="M9 2v3M9 13v3M2 9h3M13 9h3M4.1 4.1l2.1 2.1M11.8 11.8l2.1 2.1M11.8 6.2l2.1-2.1M4.1 13.9l2.1-2.1" stroke={AI_A} strokeWidth="1.3" strokeLinecap="round"/></svg>},
+          ].map(c=>(
+            <button key={c.id} onClick={()=>onSelect(c.id)} style={{all:'unset',cursor:'pointer'}}>
+              <div style={{padding:'32px 28px',background:`${c.rgba}0.02)`,border:`1px solid ${c.rgba}0.14)`,borderRadius:'4px',transition:'all .2s',display:'flex',flexDirection:'column',gap:'12px',position:'relative',overflow:'hidden'}}
+                onMouseOver={e=>{e.currentTarget.style.border=`1px solid ${c.rgba}0.4)`;e.currentTarget.style.background=`${c.rgba}0.06)`;}}
+                onMouseOut={e=>{e.currentTarget.style.border=`1px solid ${c.rgba}0.14)`;e.currentTarget.style.background=`${c.rgba}0.02)`;}}>
+                <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${c.color},transparent)`}}/>
+                <div style={{width:'36px',height:'36px',background:`${c.rgba}0.08)`,border:`1px solid ${c.rgba}0.25)`,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center'}}>{c.icon}</div>
+                <div>
+                  <h3 style={{fontSize:'16px',fontWeight:'700',color:'#fff',fontFamily:"'Playfair Display',serif",marginBottom:'4px'}}>{c.label}</h3>
+                  <p style={{fontSize:'12px',color:'rgba(255,255,255,0.35)',lineHeight:'1.6'}}>{c.desc}</p>
+                </div>
+                <span style={{fontSize:'12px',color:c.color,fontWeight:'600'}}>Crear propuesta →</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GestionAdminHub({onHome,onSelect}){
+  const C_REP='#818cf8',C_EXP='#22c55e',C_INV='#f59e0b';
+  const cards=[
+    {id:'reportes',label:'Reportes & Contabilidad',desc:'P&L mensual, IVA a liquidar, top clientes.',color:C_REP,rgba:'rgba(129,140,248,'},
+    {id:'expenses',label:'Gastos & Pagos',desc:'Registra gastos, IVA deducible y métodos de pago.',color:C_EXP,rgba:'rgba(34,197,94,'},
+    {id:'invoices',label:'Facturas & Cobros',desc:'Genera facturas y proformas. Rastrea cobros en PDF.',color:C_INV,rgba:'rgba(245,158,11,'},
+  ];
+  return(
+    <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif"}}>
+      <div style={{background:'#FFFFFF',borderBottom:'1px solid rgba(49,49,49,0.08)',padding:'16px 32px',display:'flex',alignItems:'center',gap:'14px'}}>
+        <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={onHome}>← Agencia</button>
+        <div style={{width:'1px',height:'18px',background:'rgba(255,255,255,0.08)'}}/>
+        <span style={{fontSize:'14px',fontWeight:'700',color:'#313131'}}>Gestión Administrativa</span>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'60px 32px',gap:'40px'}}>
+        <div style={{textAlign:'center'}}>
+          <h1 style={{fontSize:'30px',fontWeight:'800',color:'#fff',letterSpacing:'-.03em',fontFamily:"'Playfair Display',serif",marginBottom:'10px'}}>Gestión Administrativa</h1>
+          <p style={{fontSize:'13px',color:'rgba(255,255,255,0.3)'}}>Reportes, gastos y facturación</p>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:'14px',maxWidth:'740px',width:'100%'}}>
+          {cards.map(c=>(
+            <button key={c.id} onClick={()=>onSelect(c.id)} style={{all:'unset',cursor:'pointer'}}>
+              <div style={{padding:'28px 24px',background:`${c.rgba}0.02)`,border:`1px solid ${c.rgba}0.14)`,borderRadius:'4px',transition:'all .2s',display:'flex',flexDirection:'column',gap:'10px',position:'relative',overflow:'hidden'}}
+                onMouseOver={e=>{e.currentTarget.style.border=`1px solid ${c.rgba}0.4)`;e.currentTarget.style.background=`${c.rgba}0.06)`;}}
+                onMouseOut={e=>{e.currentTarget.style.border=`1px solid ${c.rgba}0.14)`;e.currentTarget.style.background=`${c.rgba}0.02)`;}}>
+                <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${c.color},transparent)`}}/>
+                <h3 style={{fontSize:'15px',fontWeight:'700',color:'#fff',fontFamily:"'Playfair Display',serif"}}>{c.label}</h3>
+                <p style={{fontSize:'12px',color:'rgba(255,255,255,0.35)',lineHeight:'1.6',flex:1}}>{c.desc}</p>
+                <span style={{fontSize:'12px',color:c.color,fontWeight:'600'}}>Abrir →</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgenciaHub({onHome,onSelect,isAdmin}){
+  const C_REP='#818cf8';
+  const cards=[
+    {id:'cotizaciones',label:'Cotizaciones',desc:'Propuestas de marketing digital e inteligencia artificial.',color:WARM,rgba:'rgba(212,160,176,',admin:false,icon:<svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M2 14L6 10L9 13L13 8L16 11" stroke={WARM} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="16" cy="4" r="2" stroke={WARM} strokeWidth="1.3"/></svg>},
+    {id:'ventas',label:'Ventas',desc:'Pipeline kanban del embudo de ventas y oportunidades activas.',color:'#06b6d4',rgba:'rgba(6,182,212,',admin:true,icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="1.5"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="7" width="6" height="14" rx="1"/><rect x="16" y="1" width="6" height="22" rx="1"/></svg>},
+    {id:'gestion_admin',label:'Gestión Administrativa',desc:'Reportes, gastos y facturas.',color:C_REP,rgba:'rgba(129,140,248,',admin:true,icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={C_REP} strokeWidth="1.5"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>},
+    {id:'pricing',label:'Precios & Paquetes',desc:'Edita precios y características de los paquetes.',color:GL_P,rgba:'rgba(168,85,247,',admin:true,icon:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GL_P} strokeWidth="1.6"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>},
+  ];
+  return(
+    <div style={{minHeight:'100vh',background:'#080808',fontFamily:"'Inter',sans-serif"}}>
+      <div style={{background:'#FFFFFF',borderBottom:'1px solid rgba(49,49,49,0.08)',padding:'16px 32px',display:'flex',alignItems:'center',gap:'14px'}}>
+        <button className="btn-ghost" style={{padding:'7px 12px',fontSize:'12px'}} onClick={onHome}>← Inicio</button>
+        <div style={{width:'1px',height:'18px',background:'rgba(255,255,255,0.08)'}}/>
+        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+          <div style={{width:'22px',height:'22px',background:WARM,borderRadius:'5px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <span style={{fontSize:'14px',fontWeight:'700',color:'#313131'}}>Agencia</span>
+        </div>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',padding:'60px 32px',gap:'40px'}}>
+        <div style={{textAlign:'center'}}>
+          <h1 style={{fontSize:'30px',fontWeight:'800',color:'#fff',letterSpacing:'-.03em',fontFamily:"'Playfair Display',serif",marginBottom:'10px'}}>Agencia</h1>
+          <p style={{fontSize:'13px',color:'rgba(255,255,255,0.3)'}}>Gestiona todos los procesos de tu agencia</p>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:'14px',maxWidth:'900px',width:'100%'}}>
+          {cards.filter(c=>!c.admin||isAdmin).map(c=>(
+            <button key={c.id} onClick={()=>onSelect(c.id)} style={{all:'unset',cursor:'pointer'}}>
+              <div style={{padding:'32px 28px',background:`${c.rgba}0.02)`,border:`1px solid ${c.rgba}0.14)`,borderRadius:'4px',transition:'all .2s',display:'flex',flexDirection:'column',gap:'10px',position:'relative',overflow:'hidden'}}
+                onMouseOver={e=>{e.currentTarget.style.border=`1px solid ${c.rgba}0.4)`;e.currentTarget.style.background=`${c.rgba}0.06)`;}}
+                onMouseOut={e=>{e.currentTarget.style.border=`1px solid ${c.rgba}0.14)`;e.currentTarget.style.background=`${c.rgba}0.02)`;}}>
+                <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${c.color},transparent)`}}/>
+                <div style={{width:'36px',height:'36px',background:`${c.rgba}0.08)`,border:`1px solid ${c.rgba}0.25)`,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center'}}>{c.icon}</div>
+                <h3 style={{fontSize:'16px',fontWeight:'700',color:'#fff',fontFamily:"'Playfair Display',serif"}}>{c.label}</h3>
+                <p style={{fontSize:'12px',color:'rgba(255,255,255,0.35)',lineHeight:'1.6',flex:1}}>{c.desc}</p>
+                <span style={{fontSize:'12px',color:c.color,fontWeight:'600'}}>Abrir →</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HomeScreen({onSelect,currentUser}){
   const isAdmin=currentUser&&currentUser.role==='admin';
   // Load employee permissions if not admin
@@ -7329,192 +7463,34 @@ function HomeScreen({onSelect,currentUser}){
         ))}
       </div>}
 
-      {/* module cards */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:'14px',maxWidth:'1550px',width:'100%',position:'relative',zIndex:2}}>
-
-        {/* MARKETING */}
-        {empPerms.marketing&&<button onClick={()=>onSelect('marketing')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-          <div style={{padding:'32px 28px',background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-            onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(184,149,106,0.4)';e.currentTarget.style.background='rgba(184,149,106,0.04)';}}
-            onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(255,255,255,0.07)';e.currentTarget.style.background='rgba(255,255,255,0.02)';}}>
-            <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${WARM},transparent)`}}/>
-            <div style={{width:'36px',height:'36px',background:`rgba(184,149,106,0.1)`,border:`1px solid rgba(184,149,106,0.25)`,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-              <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M2 14L6 10L9 13L13 8L16 11" stroke={WARM} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="16" cy="4" r="2" stroke={WARM} strokeWidth="1.3"/></svg>
+      {/* module cards — 2 main hubs */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:'20px',maxWidth:'700px',width:'100%',position:'relative',zIndex:2}}>
+        <button onClick={()=>onSelect('agencia')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+          <div style={{padding:'40px 36px',background:'rgba(212,160,176,0.03)',border:'1px solid rgba(212,160,176,0.15)',borderRadius:'4px',transition:'all .2s',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box',minHeight:'220px'}}
+            onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(212,160,176,0.45)';e.currentTarget.style.background='rgba(212,160,176,0.07)';}}
+            onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(212,160,176,0.15)';e.currentTarget.style.background='rgba(212,160,176,0.03)';}}>
+            <div style={{position:'absolute',top:0,left:0,right:0,height:'3px',background:`linear-gradient(90deg,${WARM},transparent)`}}/>
+            <div style={{width:'44px',height:'44px',background:`rgba(212,160,176,0.1)`,border:`1px solid rgba(212,160,176,0.25)`,borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'22px'}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={WARM} strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
-            <p style={{fontSize:'10px',fontWeight:'700',color:WARM,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 01</p>
-            <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Marketing<br/>Digital</h2>
-            <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Propuestas de redes sociales, contenidos, identidad de marca y crecimiento digital.</p>
-            {homeStats.marketingProps>0&&<p style={{fontSize:'11px',color:`${WARM}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{homeStats.marketingProps} propuesta{homeStats.marketingProps>1?'s':''} guardada{homeStats.marketingProps>1?'s':''}</p>}
-            <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:WARM,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Crear propuesta <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={WARM} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            <h2 style={{fontSize:'28px',fontWeight:'800',color:'#fff',letterSpacing:'-.03em',fontFamily:"'Playfair Display',serif",marginBottom:'10px',lineHeight:'1.1'}}>Agencia</h2>
+            <p style={{fontSize:'13px',color:'rgba(255,255,255,0.35)',lineHeight:'1.7',fontFamily:"'Inter',sans-serif",flex:1}}>Cotizaciones, pipeline de ventas, facturas, gastos, reportes y precios.</p>
+            <div style={{marginTop:'18px',display:'flex',alignItems:'center',gap:'6px',color:WARM,fontSize:'13px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Entrar <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={WARM} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
           </div>
-        </button>}
-
-        {/* IA */}
-        {empPerms.ia&&<button onClick={()=>onSelect('ia')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-          <div style={{padding:'32px 28px',background:'rgba(56,189,248,0.02)',border:`1px solid rgba(56,189,248,0.12)`,borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-            onMouseOver={e=>{e.currentTarget.style.border=`1px solid rgba(56,189,248,0.4)`;e.currentTarget.style.background='rgba(56,189,248,0.06)';}}
-            onMouseOut={e=>{e.currentTarget.style.border=`1px solid rgba(56,189,248,0.12)`;e.currentTarget.style.background='rgba(56,189,248,0.02)';}}>
-            <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${AI_A},transparent)`}}/>
-            <div style={{width:'36px',height:'36px',background:`rgba(56,189,248,0.08)`,border:`1px solid rgba(56,189,248,0.25)`,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-              <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="4" stroke={AI_A} strokeWidth="1.4"/><path d="M9 2v3M9 13v3M2 9h3M13 9h3M4.1 4.1l2.1 2.1M11.8 11.8l2.1 2.1M11.8 6.2l2.1-2.1M4.1 13.9l2.1-2.1" stroke={AI_A} strokeWidth="1.3" strokeLinecap="round"/></svg>
+        </button>
+        <button onClick={()=>onSelect('academia')} style={{all:'unset',cursor:'pointer',display:'block'}}>
+          <div style={{padding:'40px 36px',background:'rgba(99,102,241,0.03)',border:'1px solid rgba(99,102,241,0.15)',borderRadius:'4px',transition:'all .2s',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box',minHeight:'220px'}}
+            onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(99,102,241,0.45)';e.currentTarget.style.background='rgba(99,102,241,0.07)';}}
+            onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(99,102,241,0.15)';e.currentTarget.style.background='rgba(99,102,241,0.03)';}}>
+            <div style={{position:'absolute',top:0,left:0,right:0,height:'3px',background:`linear-gradient(90deg,#6366f1,transparent)`}}/>
+            <div style={{width:'44px',height:'44px',background:`rgba(99,102,241,0.08)`,border:`1px solid rgba(99,102,241,0.25)`,borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'22px'}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
             </div>
-            <p style={{fontSize:'10px',fontWeight:'700',color:AI_A,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 02</p>
-            <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Inteligencia<br/>Artificial</h2>
-            <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Propuestas de automatización, bots, CRM, fidelización y ecosistemas IA a medida.</p>
-            {homeStats.aiProps>0&&<p style={{fontSize:'11px',color:`${AI_A}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{homeStats.aiProps} propuesta{homeStats.aiProps>1?'s':''} guardada{homeStats.aiProps>1?'s':''}</p>}
-            <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:AI_A,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Crear propuesta <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={AI_A} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+            <h2 style={{fontSize:'28px',fontWeight:'800',color:'#fff',letterSpacing:'-.03em',fontFamily:"'Playfair Display',serif",marginBottom:'10px',lineHeight:'1.1'}}>Academia</h2>
+            <p style={{fontSize:'13px',color:'rgba(255,255,255,0.35)',lineHeight:'1.7',fontFamily:"'Inter',sans-serif",flex:1}}>Próximamente — formación y recursos para tu equipo.</p>
+            <div style={{marginTop:'18px',display:'flex',alignItems:'center',gap:'6px',color:'#6366f1',fontSize:'13px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Próximamente <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke="#6366f1" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
           </div>
-        </button>}
-
-        {/* WEB */}
-        {empPerms.web&&<button onClick={()=>onSelect('web')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-          <div style={{padding:'32px 28px',background:'rgba(167,139,250,0.02)',border:'1px solid rgba(167,139,250,0.12)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-            onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(167,139,250,0.4)';e.currentTarget.style.background='rgba(167,139,250,0.06)';}}
-            onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(167,139,250,0.12)';e.currentTarget.style.background='rgba(167,139,250,0.02)';}}>
-            <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${WEB_A},transparent)`}}/>
-            <div style={{width:'36px',height:'36px',background:'rgba(167,139,250,0.08)',border:'1px solid rgba(167,139,250,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-              <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke={WEB_A} strokeWidth="1.4"/><path d="M2 7h14M6 7v8" stroke={WEB_A} strokeWidth="1.2" strokeLinecap="round"/></svg>
-            </div>
-            <p style={{fontSize:'10px',fontWeight:'700',color:WEB_A,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 03</p>
-            <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Web Page<br/>Generation</h2>
-            <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Genera prompts profesionales para crear webs completas con IA. Briefing → prompt listo para usar.</p>
-            <div style={{marginTop:'20px',display:'flex',alignItems:'center',gap:'6px',color:WEB_A,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Generar prompt <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={WEB_A} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-          </div>
-        </button>}
-
-        {/* CLIENTES */}
-
-
-        {/* Pricing card — admin only */}
-        {isAdmin&&(()=>{
-          const PC=GL_P;
-          return(
-          <button onClick={()=>onSelect('pricing')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:`rgba(168,85,247,0.02)`,border:`1px solid rgba(168,85,247,0.14)`,borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border=`1px solid rgba(168,85,247,0.4)`;e.currentTarget.style.background='rgba(168,85,247,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border=`1px solid rgba(168,85,247,0.14)`;e.currentTarget.style.background='rgba(168,85,247,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${PC},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:`rgba(168,85,247,0.08)`,border:`1px solid rgba(168,85,247,0.25)`,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={PC} strokeWidth="1.6"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:PC,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Admin</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Precios<br/>& Paquetes</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Edita precios, características y servicios de los paquetes de Marketing e IA.</p>
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:PC,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Editar precios <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={PC} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
-
-        {/* CONTRATOS — admin only */}
-
-
-
-        {/* REPORTES — admin only */}
-        {isAdmin&&(()=>{
-          const RA=REP_A;
-          const invs=invoices_storage.load().filter(i=>i.estado==='Pagada');
-          const exps=expenses_storage.load().filter(g=>g.estado==='Pagado');
-          const totalInv=invs.reduce((s,i)=>{const b=(i.items||[]).reduce((ss,it)=>ss+(parseFloat(it.qty||1)*parseFloat(it.unitPrice||0)),0);return s+b*(1+parseFloat(i.ivaRate||21)/100);},0);
-          const totalExp=exps.reduce((s,g)=>s+parseFloat(g.importe||0)*(1+parseFloat(g.ivaRate||0)/100),0);
-          const ben=totalInv-totalExp;
-          return(
-          <button onClick={()=>onSelect('reportes')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(129,140,248,0.02)',border:'1px solid rgba(129,140,248,0.12)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(129,140,248,0.4)';e.currentTarget.style.background='rgba(129,140,248,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(129,140,248,0.12)';e.currentTarget.style.background='rgba(129,140,248,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${RA},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(129,140,248,0.08)',border:'1px solid rgba(129,140,248,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={RA} strokeWidth="1.5"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:RA,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 10</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Reportes<br/>& Contabilidad</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>P&L mensual, IVA a liquidar, top clientes y desglose de gastos por categoría.</p>
-              {(invs.length>0||exps.length>0)&&<p style={{fontSize:'11px',color:`${RA}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>Ingresos {Math.round(totalInv).toLocaleString('es-ES')}€ · Gastos {Math.round(totalExp).toLocaleString('es-ES')}€ · Beneficio {Math.round(ben).toLocaleString('es-ES')}€</p>}
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:RA,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver reportes <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={RA} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
-
-        {/* GASTOS — admin only */}
-        {isAdmin&&(()=>{
-          const GA=EXP_A;
-          const exps=expenses_storage.load();
-          const totalGastado=exps.reduce((s,g)=>s+parseFloat(g.importe||0)*(1+parseFloat(g.ivaRate||0)/100),0);
-          const pendientes=exps.filter(g=>g.estado==='Pendiente').length;
-          return(
-          <button onClick={()=>onSelect('expenses')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(34,197,94,0.02)',border:'1px solid rgba(34,197,94,0.12)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(34,197,94,0.4)';e.currentTarget.style.background='rgba(34,197,94,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(34,197,94,0.12)';e.currentTarget.style.background='rgba(34,197,94,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${GA},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(34,197,94,0.08)',border:'1px solid rgba(34,197,94,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GA} strokeWidth="1.5"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:GA,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 09</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Gastos<br/>& Pagos</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Registra gastos, IVA deducible y métodos de pago. Exporta a CSV para contabilidad.</p>
-              {exps.length>0&&<p style={{fontSize:'11px',color:`${GA}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{exps.length} gasto{exps.length!==1?'s':''}{pendientes>0?` · ${pendientes} pendiente${pendientes!==1?'s':''}`:''}{totalGastado>0?` · ${Math.round(totalGastado).toLocaleString('es-ES')}€ total`:''}</p>}
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:GA,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver gastos <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={GA} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
-
-        {/* FACTURAS — admin only */}
-        {isAdmin&&(()=>{
-          const FA=INV_A;
-          const invs=invoices_storage.load();
-          const pagadas=invs.filter(i=>i.estado==='Pagada').length;
-          const totalCobrado=invs.filter(i=>i.estado==='Pagada').reduce((s,i)=>{const sub=(i.items||[]).reduce((ss,it)=>ss+(parseFloat(it.qty||1)*parseFloat(it.unitPrice||0)),0);return s+sub*(1+parseFloat(i.ivaRate||21)/100);},0);
-          return(
-          <button onClick={()=>onSelect('invoices')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(245,158,11,0.02)',border:'1px solid rgba(245,158,11,0.12)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(245,158,11,0.4)';e.currentTarget.style.background='rgba(245,158,11,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(245,158,11,0.12)';e.currentTarget.style.background='rgba(245,158,11,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${FA},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={FA} strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:FA,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 08</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Facturas<br/>& Cobros</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Genera facturas y proformas profesionales. Rastrea cobros y exporta en PDF.</p>
-              {invs.length>0&&<p style={{fontSize:'11px',color:`${FA}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{invs.length} factura{invs.length!==1?'s':''}{pagadas>0?` · ${pagadas} cobrada${pagadas!==1?'s':''}`:''}{totalCobrado>0?` · ${Math.round(totalCobrado).toLocaleString('es-ES')}€ cobrado`:''}</p>}
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:FA,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver facturas <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={FA} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
-
-        {/* PIPELINE — admin only */}
-        {isAdmin&&(()=>{
-          const PL_A2='#06b6d4';
-          const allC=clients_storage.load();
-          const leads=allC.filter(c=>c.estado==='Lead').length;
-          const propEnv=allC.filter(c=>c.estado==='Propuesta enviada').length;
-          const propAcep=allC.filter(c=>c.estado==='Propuesta aceptada').length;
-          const pipVal=allC.filter(c=>['Lead','Propuesta enviada','Propuesta aceptada'].includes(c.estado)).reduce((s,c)=>s+(c.montoContrato||0),0);
-          return(
-          <button onClick={()=>onSelect('pipeline')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(6,182,212,0.02)',border:'1px solid rgba(6,182,212,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(6,182,212,0.4)';e.currentTarget.style.background='rgba(6,182,212,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(6,182,212,0.14)';e.currentTarget.style.background='rgba(6,182,212,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${PL_A2},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(6,182,212,0.08)',border:'1px solid rgba(6,182,212,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={PL_A2} strokeWidth="1.5"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="7" width="6" height="14" rx="1"/><rect x="16" y="1" width="6" height="22" rx="1"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:PL_A2,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 13</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Pipeline<br/>de Ventas</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Kanban visual del embudo de ventas: leads, propuestas, cierres y oportunidades activas.</p>
-              {allC.length>0&&<p style={{fontSize:'11px',color:`${PL_A2}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{leads} leads · {propEnv+propAcep} propuestas · ${pipVal.toLocaleString('es-CO')} pipeline</p>}
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:PL_A2,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver pipeline <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={PL_A2} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
-
-
+        </button>
       </div>
 
       {/* recent activity strip */}
@@ -10568,10 +10544,21 @@ function PipelineModule({onHome}){
     {id:'Activo',label:'Activo',color:CL_A,bg:'rgba(168,85,247,0.06)'},
     {id:'Finalizado',label:'Finalizado',color:'#a78bfa',bg:'rgba(167,139,250,0.06)'},
   ];
+  const PIPELINE_ESTADOS=new Set(['Lead','Propuesta enviada','Propuesta aceptada','Activo','Finalizado']);
   const [selected,setSelected]=React.useState(null);
   const [clients2,setClients2]=React.useState(clients);
   const [noteText,setNoteText]=React.useState('');
   const refresh=()=>setClients2(clients_storage.load());
+  // clients with proposals but not yet in pipeline → auto-show in Lead
+  const propList=(()=>{try{return JSON.parse(localStorage.getItem('propuestas_v2')||'[]');}catch{return[];}})();
+  const propEmpresas=new Set(propList.map(p=>(p.empresa||'').trim().toLowerCase()));
+  const getColClients=(stageId)=>{
+    if(stageId!=='Lead') return clients2.filter(c=>c.estado===stageId);
+    const inPipeline=clients2.filter(c=>c.estado==='Lead');
+    const withProp=clients2.filter(c=>!PIPELINE_ESTADOS.has(c.estado)&&propEmpresas.has((c.empresa||c.nombre||'').trim().toLowerCase()));
+    const ids=new Set(inPipeline.map(c=>c.id));
+    return [...inPipeline,...withProp.filter(c=>!ids.has(c.id))];
+  };
 
   const moveClient=(id,newStage)=>{
     const all=clients_storage.load();
@@ -10622,7 +10609,7 @@ function PipelineModule({onHome}){
 
       <div style={{display:'flex',gap:'0',overflowX:'auto',padding:'24px',minHeight:'calc(100vh - 73px)'}}>
         {STAGES.map(stage=>{
-          const cols=clients2.filter(c=>c.estado===stage.id);
+          const cols=getColClients(stage.id);
           const colTotal=cols.reduce((s,c)=>s+(c.montoContrato||0),0);
           return(
             <div key={stage.id} style={{minWidth:'220px',flex:'1',marginRight:'12px',background:stage.bg,border:`1px solid ${stage.color}22`,borderRadius:'10px',display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -11234,6 +11221,24 @@ function App(){
 
   /* ── CALENDARIO module ── */
   if(module==='calendario'&&isAdmin) return <CalendarModule onHome={goHome}/>;
+
+  /* ── HUB: AGENCIA ── */
+  if(module==='agencia') return <AgenciaHub onHome={goHome} onSelect={setModule} isAdmin={isAdmin}/>;
+
+  /* ── HUB: ACADEMIA ── */
+  if(module==='academia') return <AcademiaModule onHome={goHome}/>;
+
+  /* ── HUB: COTIZACIONES ── */
+  if(module==='cotizaciones') return <CotizacionesHub onHome={()=>setModule('agencia')} onSelect={setModule}/>;
+
+  /* ── HUB: GESTIÓN ADMINISTRATIVA ── */
+  if(module==='gestion_admin'&&isAdmin) return <GestionAdminHub onHome={()=>setModule('agencia')} onSelect={setModule}/>;
+
+  /* ── HUB: VENTAS ── */
+  if(module==='ventas'&&isAdmin) return <PipelineModule onHome={()=>setModule('agencia')}/>;
+
+  /* ── PRICING module ── */
+  if(module==='pricing'&&isAdmin) return <PricingModule onHome={()=>setModule('agencia')}/>;
 
   return null;
 }
