@@ -7269,6 +7269,30 @@ const GEN_CONV_STORAGE='gen_conversations_v1';
 function getToolConvs(toolId){try{const all=JSON.parse(localStorage.getItem(GEN_CONV_STORAGE)||'{}');return all[toolId]||[];}catch{return[];}}
 function upsertConv(toolId,conv){const all=JSON.parse(localStorage.getItem(GEN_CONV_STORAGE)||'{}');if(!all[toolId])all[toolId]=[];const idx=all[toolId].findIndex(c=>c.id===conv.id);if(idx>=0)all[toolId][idx]=conv;else all[toolId].unshift(conv);localStorage.setItem(GEN_CONV_STORAGE,JSON.stringify(all));}
 
+function renderMd(text){
+  const lines=text.split('\n');
+  const els=[];let listItems=[];let key=0;
+  const flushList=()=>{if(listItems.length){els.push(React.createElement('ul',{key:key++,style:{margin:'8px 0',paddingLeft:'20px'}},listItems));listItems=[];}};
+  lines.forEach(line=>{
+    if(/^###\s+/.test(line)){flushList();els.push(React.createElement('p',{key:key++,style:{fontWeight:'700',fontSize:'13px',margin:'12px 0 4px',color:'inherit'}},[line.replace(/^###\s+/,'').replace(/\*\*/g,'')]));return;}
+    if(/^##\s+/.test(line)){flushList();els.push(React.createElement('p',{key:key++,style:{fontWeight:'800',fontSize:'15px',margin:'14px 0 6px',color:'inherit'}},[line.replace(/^##\s+/,'').replace(/\*\*/g,'')]));return;}
+    if(/^#\s+/.test(line)){flushList();els.push(React.createElement('p',{key:key++,style:{fontWeight:'800',fontSize:'17px',margin:'16px 0 8px',color:'inherit'}},[line.replace(/^#\s+/,'').replace(/\*\*/g,'')]));return;}
+    if(/^[-*]\s+/.test(line)){
+      const content=line.replace(/^[-*]\s+/,'');
+      const parts=content.split(/\*\*(.*?)\*\*/g);
+      const children=parts.map((p,i)=>i%2===1?React.createElement('strong',{key:i},p):p);
+      listItems.push(React.createElement('li',{key:key++,style:{marginBottom:'4px',lineHeight:'1.6'}},children));return;
+    }
+    if(line.trim()==='---'||line.trim()===''){flushList();if(line.trim()==='')els.push(React.createElement('br',{key:key++}));return;}
+    flushList();
+    const parts=line.split(/\*\*(.*?)\*\*/g);
+    const children=parts.map((p,i)=>i%2===1?React.createElement('strong',{key:i},p):p);
+    els.push(React.createElement('p',{key:key++,style:{margin:'4px 0',lineHeight:'1.7'}},children));
+  });
+  flushList();
+  return els;
+}
+
 async function callClaudeAPI(messages,systemPrompt){
   const apiKey=localStorage.getItem(GEN_API_KEY)||'';
   if(!apiKey) throw new Error('NO_KEY');
@@ -7482,8 +7506,8 @@ function GeneradorChat({tool,onSelectTool,convId,setConvId}){
               <div style={{width:'30px',height:'30px',background:'#E8BFCA',border:`1px solid ${ROSA}`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:'13px'}}>{tool.icon}</div>
             )}
             <div style={{maxWidth:'75%',display:'flex',flexDirection:'column',gap:'8px'}}>
-              <div style={{padding:'12px 16px',borderRadius:'16px',background:msg.role==='user'?G:'#fff',color:msg.role==='user'?'#fff':G,fontSize:'14px',lineHeight:'1.7',whiteSpace:'pre-wrap',boxShadow:'0 1px 4px rgba(49,49,49,0.08)'}}>
-                {msg.content}
+              <div style={{padding:'12px 16px',borderRadius:'16px',background:msg.role==='user'?G:'#fff',color:msg.role==='user'?'#fff':G,fontSize:'14px',lineHeight:'1.7',boxShadow:'0 1px 4px rgba(49,49,49,0.08)'}}>
+                {msg.role==='user'?msg.content:renderMd(msg.content)}
               </div>
               {msg.role==='assistant'&&(
                 <div style={{display:'flex',gap:'12px',paddingLeft:'4px'}}>
