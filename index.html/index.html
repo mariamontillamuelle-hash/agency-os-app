@@ -7235,16 +7235,16 @@ function PricingModule({onHome}){
 
 /* ═══════════════════ GENERADOR DE ACTIVOS — Claude AI ═══════════════════ */
 const GENERADOR_TOOLS=[
-  {id:'cliente-correcto',label:'Cliente Correcto',desc:'Definí tu cliente ideal en detalle',icon:'🎯'},
-  {id:'nueva-manera',label:'Nueva Manera',desc:'Articulá tu mecanismo único de venta',icon:'✨'},
-  {id:'promesa-alto-valor',label:'Promesa de Alto Valor',desc:'Construí una promesa irresistible',icon:'🏆'},
-  {id:'ofertas-ganadoras',label:'Ofertas Ganadoras',desc:'Diseñá tu oferta principal',icon:'🎁'},
-  {id:'emails',label:'Emails',desc:'Escribí emails que convierten',icon:'📧'},
-  {id:'crear-ads',label:'Crear ADS',desc:'Generá ads de Meta (TOFU/MOFU)',icon:'📢'},
+  {id:'cliente-correcto',label:'Cliente Correcto',desc:'Define tu cliente ideal en detalle',icon:'🎯'},
+  {id:'nueva-manera',label:'Nueva Manera',desc:'Articula tu mecanismo único de venta',icon:'✨'},
+  {id:'promesa-alto-valor',label:'Promesa de Alto Valor',desc:'Construye una promesa irresistible',icon:'🏆'},
+  {id:'ofertas-ganadoras',label:'Ofertas Ganadoras',desc:'Diseña tu oferta principal',icon:'🎁'},
+  {id:'emails',label:'Emails',desc:'Escribe emails que convierten',icon:'📧'},
+  {id:'crear-ads',label:'Crear ADS',desc:'Genera ads de Meta (TOFU/MOFU)',icon:'📢'},
   {id:'crear-ffw',label:'Crear FFW',desc:'Asistencia con material FFW',icon:'🎬'},
   {id:'script-setter',label:'Script de Setter',desc:'Script de calificación para setters',icon:'💬'},
   {id:'script-closer',label:'Script de Closer',desc:'Script de venta para closers',icon:'🤝'},
-  {id:'generar-vsl',label:'Generar VSL',desc:'Generá tu VSL con fórmula probada',icon:'🎥'},
+  {id:'generar-vsl',label:'Generar VSL',desc:'Genera tu VSL con fórmula probada',icon:'🎥'},
   {id:'presentacion-cliente',label:'Presentación Cliente',desc:'Presentación profesional de marca personal',icon:'🌟'},
 ];
 
@@ -7418,7 +7418,7 @@ function GeneradorChat({tool,onSelectTool,convId,setConvId}){
     if(initialInput)setMessages(initMsgs);
     if(initialInput)persistConv(initMsgs);
     try{
-      const reply=await callClaudeAPI(initMsgs,TOOL_PROMPTS[tool.id]+(initMsgs.length?'':'\n\nComienza presentándote en 1 línea y haz tu primera pregunta.'));
+      const reply=await callClaudeAPI(initMsgs,TOOL_PROMPTS[tool.id]+(initMsgs.length?'':'\n\nComienza presentándote en 1 línea y haz tu primera pregunta al usuario.'));
       const finalMsgs=[...initMsgs,{role:'assistant',content:reply}];
       setMessages(finalMsgs);persistConv(finalMsgs);
     }catch(e){setMessages(m=>[...m,{role:'assistant',content:'❌ Error: '+e.message}]);}
