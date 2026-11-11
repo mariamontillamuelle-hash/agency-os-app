@@ -7233,110 +7233,95 @@ function PricingModule({onHome}){
   );
 }
 
-/* ═══════════════════ GENERADOR DE ACTIVOS ═══════════════════ */
+/* ═══════════════════ GENERADOR DE ACTIVOS — Claude AI ═══════════════════ */
 const GENERADOR_TOOLS=[
-  {id:'cliente-correcto',label:'Cliente Correcto',desc:'Definí tu cliente ideal en detalle',icon:'🎯',
-   questions:[
-     {id:'producto',text:'¿Cuál es tu producto o servicio principal?'},
-     {id:'problema',text:'¿Qué problema específico resuelve para tu cliente?'},
-     {id:'perfil',text:'Describe el perfil de tu cliente ideal (edad, ocupación, situación de vida)'},
-     {id:'resultado',text:'¿Qué resultado concreto obtiene después de trabajar contigo?'},
-     {id:'frustraciones',text:'¿Cuáles son sus mayores frustraciones y miedos antes de conocerte?'},
-     {id:'deseos',text:'¿Qué desea profundamente conseguir en su vida o negocio?'},
-   ],
-   generate:(a)=>`# 🎯 Cliente Correcto\n\n## Perfil del Cliente Ideal\n\n**Producto/Servicio:** ${a.producto}\n\n**Problema que resuelves:** ${a.problema}\n\n**Perfil demográfico:** ${a.perfil}\n\n**Resultado que obtiene:** ${a.resultado}\n\n**Frustraciones y miedos:** ${a.frustraciones}\n\n**Deseos profundos:** ${a.deseos}\n\n---\n*Generado con tu Generador de Activos*`},
-  {id:'nueva-manera',label:'Nueva Manera',desc:'Articulá tu mecanismo único de venta',icon:'✨',
-   questions:[
-     {id:'metodo',text:'¿Cómo se llama tu método o proceso único?'},
-     {id:'problema_viejo',text:'¿Por qué los métodos tradicionales NO funcionan para tu cliente?'},
-     {id:'diferencia',text:'¿Qué hace diferente tu método a todo lo demás?'},
-     {id:'pasos',text:'Describe los pasos de tu proceso (ej: Paso 1... Paso 2...)'},
-     {id:'prueba',text:'¿Qué prueba tienes de que funciona? (resultados, casos de éxito)'},
-   ],
-   generate:(a)=>`# ✨ Nueva Manera — ${a.metodo}\n\n## El Problema con los Métodos Tradicionales\n${a.problema_viejo}\n\n## Nuestra Diferencia\n${a.diferencia}\n\n## El Proceso\n${a.pasos}\n\n## Prueba Social\n${a.prueba}\n\n---\n*Generado con tu Generador de Activos*`},
-  {id:'promesa-alto-valor',label:'Promesa de Alto Valor',desc:'Construí una promesa irresistible',icon:'🏆',
-   questions:[
-     {id:'resultado',text:'¿Qué resultado específico y medible ofreces?'},
-     {id:'tiempo',text:'¿En cuánto tiempo obtienen ese resultado?'},
-     {id:'para_quien',text:'¿Para quién es específicamente esta promesa?'},
-     {id:'sin_que',text:'¿Qué es lo que NO tienen que hacer o sacrificar?'},
-     {id:'garantia',text:'¿Qué garantía ofreces si no se cumple?'},
-   ],
-   generate:(a)=>`# 🏆 Promesa de Alto Valor\n\n## La Promesa\n> *"[Resultado: ${a.resultado}] en [Tiempo: ${a.tiempo}] para [Quién: ${a.para_quien}] sin [Sacrificio: ${a.sin_que}]"*\n\n## Garantía\n${a.garantia}\n\n---\n*Generado con tu Generador de Activos*`},
-  {id:'ofertas-ganadoras',label:'Ofertas Ganadoras',desc:'Diseñá tu oferta principal',icon:'🎁',
-   questions:[
-     {id:'nombre',text:'¿Cómo se llama tu oferta o paquete principal?'},
-     {id:'incluye',text:'¿Qué incluye exactamente? (lista cada entregable)'},
-     {id:'valor',text:'¿Cuál es el valor percibido total de cada componente?'},
-     {id:'precio',text:'¿Cuál es el precio de inversión?'},
-     {id:'bonus',text:'¿Qué bonus o extras inesperados incluyes?'},
-     {id:'urgencia',text:'¿Hay algún limitante de tiempo o cupos?'},
-   ],
-   generate:(a)=>`# 🎁 Oferta Ganadora: ${a.nombre}\n\n## ¿Qué Incluye?\n${a.incluye}\n\n## Valor Total\n${a.valor}\n\n## Inversión\n**${a.precio}**\n\n## Bonus\n${a.bonus}\n\n## Urgencia\n${a.urgencia}\n\n---\n*Generado con tu Generador de Activos*`},
-  {id:'emails',label:'Emails',desc:'Escribí emails que convierten',icon:'📧',
-   questions:[
-     {id:'objetivo',text:'¿Cuál es el objetivo de este email? (venta, lead magnet, nurturing...)'},
-     {id:'asunto',text:'¿Qué asunto quieres usar? (o describe qué quieres comunicar)'},
-     {id:'audiencia',text:'¿A quién va dirigido este email?'},
-     {id:'oferta',text:'¿Qué ofreces o qué acción quieres que tomen?'},
-     {id:'tono',text:'¿Qué tono quieres? (urgente, amigable, educativo, inspirador)'},
-   ],
-   generate:(a)=>`# 📧 Email: ${a.asunto}\n\n**Objetivo:** ${a.objetivo}\n**Audiencia:** ${a.audiencia}\n**Tono:** ${a.tono}\n\n---\n\n**Asunto:** ${a.asunto}\n\nHola [Nombre],\n\n[Apertura con gancho relacionado a ${a.audiencia}]\n\n[Desarrollo del problema + agitación]\n\n[Presentación de la solución: ${a.oferta}]\n\n[Prueba social / resultado]\n\n[CTA claro y directo]\n\nUn abrazo,\n[Tu nombre]\n\n---\n*Estructura generada. Personaliza el contenido entre corchetes.*`},
-  {id:'crear-ads',label:'Crear ADS',desc:'Generá ads de Meta (TOFU/MOFU)',icon:'📢',
-   questions:[
-     {id:'tipo',text:'¿Es un ad TOFU (frío, nuevo tráfico) o MOFU (retargeting, ya te conocen)?'},
-     {id:'producto',text:'¿Qué producto o servicio anuncias?'},
-     {id:'audiencia',text:'¿A quién va dirigido el anuncio?'},
-     {id:'problema',text:'¿Qué dolor o deseo principal activa este ad?'},
-     {id:'oferta',text:'¿Cuál es la oferta o CTA del anuncio?'},
-   ],
-   generate:(a)=>`# 📢 Ad de Meta — ${a.tipo}\n\n**Producto:** ${a.producto}\n**Audiencia:** ${a.audiencia}\n\n---\n\n## Versión 1 (Problema)\n🔴 ¿Estás [problema: ${a.problema}]?\n\nSi eres [${a.audiencia}] y te pasa esto, necesitas escuchar esto...\n\n[Desarrollo del dolor]\n\n👉 ${a.oferta}\n\n---\n\n## Versión 2 (Resultado)\n✅ Así es como [resultado] en [tiempo]...\n\n[Historia breve / prueba social]\n\n👉 ${a.oferta}\n\n---\n*Generado con tu Generador de Activos*`},
-  {id:'crear-ffw',label:'Crear FFW',desc:'Asistencia con material FFW',icon:'🎬',
-   questions:[
-     {id:'tema',text:'¿Cuál es el tema principal de tu Free For Work / contenido de valor?'},
-     {id:'formato',text:'¿Qué formato tendrá? (webinar, video, PDF, challenge...)'},
-     {id:'audiencia',text:'¿A quién va dirigido?'},
-     {id:'aprendizaje',text:'¿Qué aprenderán o lograrán al terminarlo?'},
-     {id:'siguiente',text:'¿Cuál es el siguiente paso que quieres que tomen después?'},
-   ],
-   generate:(a)=>`# 🎬 Material FFW: ${a.tema}\n\n**Formato:** ${a.formato}\n**Audiencia:** ${a.audiencia}\n\n## Estructura\n\n### Intro (5 min)\n- Quién eres y por qué escucharte\n- Qué van a aprender hoy\n- Resultado prometido: ${a.aprendizaje}\n\n### Contenido Principal\n- Problema actual de ${a.audiencia}\n- Por qué los métodos anteriores fallan\n- Tu solución y método\n- Paso a paso / framework\n- Casos de éxito\n\n### Cierre\n- Resumen de lo aprendido\n- Siguiente paso: ${a.siguiente}\n- CTA claro\n\n---\n*Generado con tu Generador de Activos*`},
-  {id:'script-setter',label:'Script de Setter',desc:'Script de calificación para setters',icon:'💬',
-   questions:[
-     {id:'producto',text:'¿Qué producto o servicio vende tu equipo?'},
-     {id:'precio',text:'¿Cuál es el rango de precio/inversión?'},
-     {id:'perfil_ideal',text:'¿Cuál es el perfil del prospecto ideal que debe pasar a la llamada con el closer?'},
-     {id:'objeciones',text:'¿Cuáles son las objeciones más comunes que escuchan los setters?'},
-   ],
-   generate:(a)=>`# 💬 Script de Setter\n\n**Producto:** ${a.producto} | **Inversión:** ${a.precio}\n\n---\n\n## 1. Apertura\n"Hola [Nombre], soy [Tu nombre] del equipo de [Empresa]. ¿Tienes 5 minutos ahora?"\n\n## 2. Calificación\n"Cuéntame, ¿qué te llevó a contactarnos hoy?"\n"¿Cuánto tiempo llevas intentando resolver [problema]?"\n"¿Has invertido en algo parecido antes?"\n\n## 3. Validación del perfil ideal\nPerfil que buscar: ${a.perfil_ideal}\n\n## 4. Manejo de objeciones\n${a.objeciones}\n\n## 5. Cierre del setter\n"Perfecto, creo que podemos ayudarte. Voy a conectarte con [Closer] para una llamada estratégica de 30 min. ¿Tienes disponibilidad esta semana?"\n\n---\n*Generado con tu Generador de Activos*`},
-  {id:'script-closer',label:'Script de Closer',desc:'Script de venta para closers',icon:'🤝',
-   questions:[
-     {id:'producto',text:'¿Qué producto/servicio cierra el closer?'},
-     {id:'precio',text:'¿Cuál es el precio de inversión?'},
-     {id:'objeciones',text:'Lista las 3 objeciones más comunes (precio, tiempo, debo consultarlo, etc.)'},
-     {id:'garantia',text:'¿Qué garantía o seguridad ofreces al cliente?'},
-   ],
-   generate:(a)=>`# 🤝 Script de Closer\n\n**Producto:** ${a.producto} | **Precio:** ${a.precio}\n\n---\n\n## 1. Rapport y diagnóstico\n"Antes de contarte sobre nosotros, quiero entender tu situación. ¿Qué te trajo hoy aquí?"\n\n## 2. Profundizar el dolor\n"¿Cuánto tiempo llevas con este problema?"\n"¿Qué has intentado antes?"\n"¿Qué pasa si esto no cambia en los próximos 6 meses?"\n\n## 3. Presentación de la solución\n"Lo que hacemos es [${a.producto}]. Hemos ayudado a [casos de éxito] a lograr [resultado]."\n\n## 4. Precio\n"La inversión es ${a.precio}. ¿Tiene sentido para ti?"\n\n## 5. Manejo de objeciones\n${a.objeciones}\n\n## 6. Garantía\n${a.garantia}\n\n## 7. Cierre\n"¿Qué necesitas para tomar una decisión hoy?"\n\n---\n*Generado con tu Generador de Activos*`},
-  {id:'generar-vsl',label:'Generar VSL',desc:'Generá tu VSL con fórmula probada',icon:'🎥',
-   questions:[
-     {id:'audiencia',text:'¿A quién va dirigido el VSL?'},
-     {id:'problema',text:'¿Cuál es el problema principal que experimentan?'},
-     {id:'solucion',text:'¿Cuál es tu solución y cómo funciona?'},
-     {id:'prueba',text:'¿Qué prueba social o testimonios tienes?'},
-     {id:'oferta',text:'¿Cuál es la oferta específica al final del VSL?'},
-   ],
-   generate:(a)=>`# 🎥 Video Sales Letter (VSL)\n**Audiencia:** ${a.audiencia}\n\n---\n\n## Bloque 1: Apertura y gancho (0:00–0:30)\n"Si eres [${a.audiencia}] y [${a.problema}], este video cambiará todo para ti. Quédate hasta el final."\n\n## Bloque 2: Agitación del problema (0:30–2:00)\n"Sé exactamente cómo te sientes cuando [${a.problema}]..."\n[Profundizar el dolor, hacer que se sientan identificados]\n\n## Bloque 3: La solución (2:00–4:00)\n"Descubrí que el problema no es lo que creías... La solución real es [${a.solucion}]"\n\n## Bloque 4: Prueba social (4:00–6:00)\n${a.prueba}\n\n## Bloque 5: La oferta (6:00–8:00)\n${a.oferta}\n\n## Bloque 6: Urgencia y CTA (8:00–9:00)\n"Esta oferta está disponible solo para las próximas [X] personas. Haz clic abajo ahora."\n\n---\n*Generado con tu Generador de Activos*`},
-  {id:'presentacion-cliente',label:'Presentación Cliente',desc:'Presentación profesional de marca personal',icon:'🌟',
-   questions:[
-     {id:'nombre',text:'¿Cuál es tu nombre y título profesional?'},
-     {id:'historia',text:'¿Cuál es tu historia? ¿Por qué haces lo que haces?'},
-     {id:'logros',text:'¿Cuáles son tus 3 logros o resultados más importantes?'},
-     {id:'metodologia',text:'¿Cómo describes tu metodología o forma de trabajo?'},
-     {id:'cta',text:'¿Qué acción quieres que tome quien vea esta presentación?'},
-   ],
-   generate:(a)=>`# 🌟 Presentación de Marca Personal\n\n## Slide 1: Portada\n**${a.nombre}**\n[Título llamativo relacionado a tu resultado]\n\n## Slide 2: Mi Historia\n${a.historia}\n\n## Slide 3: Resultados\n✅ ${a.logros}\n\n## Slide 4: Mi Metodología\n${a.metodologia}\n\n## Slide 5: ¿Cómo puedo ayudarte?\n[Descripción de tu servicio principal]\n\n## Slide 6: CTA\n${a.cta}\n\n---\n*Generado con tu Generador de Activos*`},
+  {id:'cliente-correcto',label:'Cliente Correcto',desc:'Definí tu cliente ideal en detalle',icon:'🎯'},
+  {id:'nueva-manera',label:'Nueva Manera',desc:'Articulá tu mecanismo único de venta',icon:'✨'},
+  {id:'promesa-alto-valor',label:'Promesa de Alto Valor',desc:'Construí una promesa irresistible',icon:'🏆'},
+  {id:'ofertas-ganadoras',label:'Ofertas Ganadoras',desc:'Diseñá tu oferta principal',icon:'🎁'},
+  {id:'emails',label:'Emails',desc:'Escribí emails que convierten',icon:'📧'},
+  {id:'crear-ads',label:'Crear ADS',desc:'Generá ads de Meta (TOFU/MOFU)',icon:'📢'},
+  {id:'crear-ffw',label:'Crear FFW',desc:'Asistencia con material FFW',icon:'🎬'},
+  {id:'script-setter',label:'Script de Setter',desc:'Script de calificación para setters',icon:'💬'},
+  {id:'script-closer',label:'Script de Closer',desc:'Script de venta para closers',icon:'🤝'},
+  {id:'generar-vsl',label:'Generar VSL',desc:'Generá tu VSL con fórmula probada',icon:'🎥'},
+  {id:'presentacion-cliente',label:'Presentación Cliente',desc:'Presentación profesional de marca personal',icon:'🌟'},
 ];
 
+const TOOL_PROMPTS={
+  'cliente-correcto':`Eres un experto en marketing y definición de avatares de cliente ideal. Tu misión es ayudar al usuario a construir un perfil profundo y detallado de su cliente correcto. Haz preguntas estratégicas de forma conversacional, una o dos a la vez. Cuando tengas suficiente información, genera un documento estructurado con secciones: Perfil Demográfico, Situación Actual, Dolores y Frustraciones, Deseos Profundos, Objeciones, Comportamientos, y Resultado Altamente Deseable. Responde siempre en español. Sé conciso, estratégico y orientado a resultados de ventas.`,
+  'nueva-manera':`Eres un experto en copywriting de respuesta directa y posicionamiento de mercado. Tu misión es ayudar al usuario a identificar y articular su Mecanismo Único de Venta — lo que hace diferente su solución de todo lo demás. Pregunta sobre su método, por qué los enfoques tradicionales fallan, cuál es el insight o descubrimiento clave detrás de su solución, y cómo lo llaman. Genera un documento con la Nueva Manera articulada de forma persuasiva. Responde siempre en español.`,
+  'promesa-alto-valor':`Eres un experto en creación de promesas de alto valor y ofertas irresistibles. Tu misión es ayudar al usuario a construir una promesa clara, específica y poderosa que mueva a su cliente ideal a tomar acción. Pregunta sobre el resultado específico, el tiempo, para quién es, qué obstáculos elimina, y qué garantía ofrece. Genera una promesa de alto valor lista para usar en ventas. Responde siempre en español.`,
+  'ofertas-ganadoras':`Eres un experto en diseño de ofertas y estructuración de propuestas de valor. Tu misión es ayudar al usuario a construir una oferta ganadora irresistible. Pregunta sobre cada componente del paquete, el valor de cada entregable, el precio, los bonos, la garantía y la urgencia. Genera una estructura de oferta lista para presentar a clientes. Responde siempre en español.`,
+  'emails':`Eres un copywriter experto en email marketing de alta conversión. Tu misión es ayudar al usuario a escribir emails que convierten. Pregunta sobre el objetivo del email, la audiencia, la oferta, el tono deseado y el CTA. Luego escribe el email completo, listo para enviar. Responde siempre en español.`,
+  'crear-ads':`Eres un experto en publicidad de respuesta directa en Meta (Facebook e Instagram). Tu misión es ayudar al usuario a crear anuncios que conviertan. Pregunta si es TOFU o MOFU, el producto, la audiencia, el dolor principal y el CTA. Genera múltiples versiones del anuncio (hook de dolor, hook de resultado, hook de historia) listas para publicar. Responde siempre en español.`,
+  'crear-ffw':`Eres un experto en creación de contenido de valor gratuito (Free For Work / Lead Magnets). Tu misión es ayudar al usuario a estructurar material gratuito que posicione su expertise y genere leads calificados. Pregunta sobre el tema, el formato, la audiencia y el siguiente paso en el funnel. Genera la estructura completa del FFW. Responde siempre en español.`,
+  'script-setter':`Eres un experto en ventas consultivas y entrenamiento de equipos comerciales. Tu misión es ayudar al usuario a crear el script perfecto para sus setters. Pregunta sobre el producto, el precio, el perfil ideal del prospecto y las objeciones más comunes. Genera un script de setter completo con preguntas de calificación, manejo de objeciones y cierre de agenda. Responde siempre en español.`,
+  'script-closer':`Eres un experto en cierre de ventas de alto valor. Tu misión es ayudar al usuario a crear el script perfecto para sus closers. Pregunta sobre el producto, el precio, las objeciones más comunes y la garantía. Genera un script de closer completo con diagnóstico, presentación, manejo de objeciones y cierre. Responde siempre en español.`,
+  'generar-vsl':`Eres un experto en Video Sales Letters (VSL) y copywriting de video. Tu misión es ayudar al usuario a crear el guión de un VSL de alta conversión. Pregunta sobre la audiencia, el dolor principal, la solución, la prueba social y la oferta. Genera el guión completo del VSL con bloques: hook, agitación del problema, presentación de la solución, prueba social, oferta y CTA. Responde siempre en español.`,
+  'presentacion-cliente':`Eres un experto en personal branding y presentaciones de ventas. Tu misión es ayudar al usuario a crear una presentación profesional de marca personal para clientes potenciales. Pregunta sobre su historia, logros, metodología y CTA. Genera la estructura completa de la presentación lista para usar en llamadas de ventas o como propuesta. Responde siempre en español.`,
+};
+
 const GEN_STORAGE='activos_generados_v1';
+const GEN_API_KEY='claude_api_key_generador';
+
+async function callClaudeAPI(messages,systemPrompt){
+  const apiKey=localStorage.getItem(GEN_API_KEY)||'';
+  if(!apiKey) throw new Error('NO_KEY');
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true',
+    },
+    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:2048,system:systemPrompt,messages:messages}),
+  });
+  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API error '+res.status);}
+  const data=await res.json();
+  return data.content[0].text;
+}
+
+function GeneradorApiSetup({onSave,onCancel}){
+  const [key,setKey]=React.useState(localStorage.getItem(GEN_API_KEY)||'');
+  const [err,setErr]=React.useState('');
+  const [testing,setTesting]=React.useState(false);
+  const save=async()=>{
+    if(!key.trim())return setErr('Ingresa tu API key');
+    if(!key.trim().startsWith('sk-ant-'))return setErr('La clave debe empezar con sk-ant-');
+    setTesting(true);setErr('');
+    const prev=localStorage.getItem(GEN_API_KEY);
+    localStorage.setItem(GEN_API_KEY,key.trim());
+    try{
+      await callClaudeAPI([{role:'user',content:'di hola brevemente'}],'Di hola brevemente.');
+      onSave();
+    }catch(e){
+      localStorage.setItem(GEN_API_KEY,prev||'');
+      setErr('Clave inválida: '+e.message);
+    }
+    setTesting(false);
+  };
+  const G='#C9A843';
+  return(
+    <div style={{minHeight:'100vh',background:'#fff',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontFamily:"'Inter',sans-serif",padding:'32px'}}>
+      <div style={{maxWidth:'440px',width:'100%'}}>
+        <div style={{fontSize:'32px',marginBottom:'16px',textAlign:'center'}}>🔑</div>
+        <h1 style={{fontSize:'22px',fontWeight:'800',color:'#1f2937',marginBottom:'8px',textAlign:'center'}}>Conecta Claude API</h1>
+        <p style={{fontSize:'13px',color:'#6b7280',textAlign:'center',marginBottom:'32px',lineHeight:'1.6'}}>Necesitas una API key de Anthropic. Consíguela en <a href="https://console.anthropic.com" target="_blank" style={{color:G}}>console.anthropic.com</a></p>
+        <input value={key} onChange={e=>setKey(e.target.value)} placeholder="sk-ant-api03-..." type="password"
+          style={{width:'100%',boxSizing:'border-box',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'12px 16px',fontSize:'14px',outline:'none',fontFamily:"'Inter',sans-serif",marginBottom:'12px'}}/>
+        {err&&<p style={{fontSize:'12px',color:'#ef4444',marginBottom:'12px'}}>{err}</p>}
+        <button onClick={save} disabled={!key||testing}
+          style={{all:'unset',cursor:'pointer',width:'100%',boxSizing:'border-box',background:G,color:'#fff',borderRadius:'8px',padding:'12px',fontSize:'14px',fontWeight:'700',textAlign:'center',display:'block'}}>
+          {testing?'Verificando...':'Guardar y conectar'}
+        </button>
+        {onCancel&&<button onClick={onCancel} style={{all:'unset',cursor:'pointer',display:'block',width:'100%',textAlign:'center',marginTop:'12px',fontSize:'13px',color:'#9ca3af'}}>Cancelar</button>}
+        <p style={{fontSize:'11px',color:'#9ca3af',textAlign:'center',marginTop:'16px'}}>Tu clave se guarda solo en tu navegador (localStorage). Nunca sale a ningún servidor externo.</p>
+      </div>
+    </div>
+  );
+}
 
 function GeneradorActivos({onBack}){
   const [activos,setActivos]=React.useState(()=>{try{return JSON.parse(localStorage.getItem(GEN_STORAGE)||'[]');}catch{return[];}});
@@ -7345,7 +7330,7 @@ function GeneradorActivos({onBack}){
   const tool=open?GENERADOR_TOOLS.find(t=>t.id===open.toolId):null;
   if(open) return(
     <div style={{minHeight:'100vh',background:'#fff',fontFamily:"'Inter',sans-serif",display:'flex',flexDirection:'column'}}>
-      <div style={{borderBottom:'1px solid #e5e7eb',padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px',background:'#fff'}}>
+      <div style={{borderBottom:'1px solid #e5e7eb',padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px'}}>
         <button onClick={()=>setOpen(null)} style={{all:'unset',cursor:'pointer',fontSize:'13px',color:'#6b7280'}}>← Mis Activos</button>
         <span style={{color:'#d1d5db'}}>·</span>
         <span style={{fontSize:'13px',fontWeight:'600',color:'#1f2937'}}>{tool?tool.icon+' '+tool.label:''}</span>
@@ -7353,9 +7338,7 @@ function GeneradorActivos({onBack}){
       <div style={{flex:1,padding:'32px',maxWidth:'800px',margin:'0 auto',width:'100%',boxSizing:'border-box'}}>
         <h2 style={{fontSize:'20px',fontWeight:'700',color:'#1f2937',marginBottom:'8px'}}>{open.title||tool?.label}</h2>
         <p style={{fontSize:'12px',color:'#9ca3af',marginBottom:'24px'}}>{new Date(open.createdAt).toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</p>
-        <div style={{background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'24px',whiteSpace:'pre-wrap',lineHeight:'1.8',fontSize:'14px',color:'#374151'}}>
-          {open.content}
-        </div>
+        <div style={{background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'24px',whiteSpace:'pre-wrap',lineHeight:'1.8',fontSize:'14px',color:'#374151'}}>{open.content}</div>
       </div>
     </div>
   );
@@ -7370,7 +7353,7 @@ function GeneradorActivos({onBack}){
         {activos.length===0?(
           <div style={{textAlign:'center',padding:'60px',color:'#9ca3af'}}>
             <div style={{fontSize:'40px',marginBottom:'12px'}}>📄</div>
-            <p>Aún no tienes activos guardados. Genera uno desde el dashboard.</p>
+            <p>Aún no tienes activos guardados. Genera uno desde el chat y guárdalo.</p>
           </div>
         ):(
           <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
@@ -7397,73 +7380,130 @@ function GeneradorActivos({onBack}){
   );
 }
 
-function GeneradorChat({tool,onBack,onSelectTool}){
+function GeneradorChat({tool,onSelectTool}){
   const [messages,setMessages]=React.useState([]);
-  const [currentQ,setCurrentQ]=React.useState(-1);
-  const [answers,setAnswers]=React.useState({});
   const [input,setInput]=React.useState('');
-  const [done,setDone]=React.useState(false);
-  const [result,setResult]=React.useState(null);
-  const [generating,setGenerating]=React.useState(false);
+  const [loading,setLoading]=React.useState(false);
+  const [started,setStarted]=React.useState(false);
   const [saved,setSaved]=React.useState(false);
   const endRef=React.useRef(null);
+  const G='#C9A843';
 
-  React.useEffect(()=>{
-    // Start conversation
-    setMessages([{id:1,role:'bot',text:`¡Hola! Vamos a crear tu activo de **${tool.label}**. 🚀\n\nTe voy a hacer ${tool.questions.length} preguntas cortas. ¡Empecemos!`}]);
-    setTimeout(()=>{
-      setMessages(m=>[...m,{id:2,role:'bot',text:tool.questions[0].text}]);
-      setCurrentQ(0);
-    },600);
-  },[tool]);
+  React.useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'});},[messages,loading]);
+  React.useEffect(()=>{setMessages([]);setStarted(false);setSaved(false);setInput('');},[tool.id]);
 
-  React.useEffect(()=>{if(endRef.current)endRef.current.scrollIntoView({behavior:'smooth'});},[messages]);
+  const start=async(initialInput)=>{
+    setStarted(true);setLoading(true);
+    const initMsgs=initialInput?[{role:'user',content:initialInput}]:[];
+    if(initialInput)setMessages(initMsgs);
+    try{
+      const reply=await callClaudeAPI(
+        initMsgs.length?initMsgs:[],
+        TOOL_PROMPTS[tool.id]+(initMsgs.length?'':'\n\nComienza presentándote en 1 línea y haz tu primera pregunta.')
+      );
+      setMessages(m=>[...m,{role:'assistant',content:reply}]);
+    }catch(e){setMessages(m=>[...m,{role:'assistant',content:'❌ Error: '+e.message}]);}
+    setLoading(false);
+  };
 
-  const send=()=>{
-    if(!input.trim()||done)return;
-    const userMsg={id:Date.now(),role:'user',text:input.trim()};
-    const newAnswers={...answers,[tool.questions[currentQ].id]:input.trim()};
-    setAnswers(newAnswers);
-    setInput('');
-    const nextQ=currentQ+1;
-    if(nextQ<tool.questions.length){
-      setMessages(m=>[...m,userMsg,{id:Date.now()+1,role:'bot',text:tool.questions[nextQ].text}]);
-      setCurrentQ(nextQ);
-    } else {
-      setMessages(m=>[...m,userMsg,{id:Date.now()+1,role:'bot',text:'¡Perfecto! Tengo todo lo que necesito. Generando tu activo...⏳'}]);
-      setGenerating(true);
-      setDone(true);
-      setTimeout(()=>{
-        const content=tool.generate(newAnswers);
-        setResult(content);
-        setGenerating(false);
-        setMessages(m=>[...m,{id:Date.now()+2,role:'result',text:content}]);
-      },1500);
-    }
+  const send=async()=>{
+    if(!input.trim()||loading)return;
+    if(!started){start(input.trim());setInput('');return;}
+    const userMsg={role:'user',content:input.trim()};
+    const newMsgs=[...messages,userMsg];
+    setMessages(newMsgs);setInput('');setLoading(true);
+    try{
+      const reply=await callClaudeAPI(newMsgs,TOOL_PROMPTS[tool.id]);
+      setMessages(m=>[...m,{role:'assistant',content:reply}]);
+    }catch(e){setMessages(m=>[...m,{role:'assistant',content:'❌ Error: '+e.message}]);}
+    setLoading(false);
   };
 
   const saveActivo=()=>{
+    const lastAI=messages.filter(m=>m.role==='assistant').pop();
+    if(!lastAI)return;
     const activos=JSON.parse(localStorage.getItem(GEN_STORAGE)||'[]');
-    const item={id:Date.now().toString(),toolId:tool.id,title:tool.label+' — '+new Date().toLocaleDateString('es-ES'),content:result,createdAt:Date.now()};
-    activos.unshift(item);
+    activos.unshift({id:Date.now().toString(),toolId:tool.id,title:tool.label+' — '+new Date().toLocaleDateString('es-ES'),content:lastAI.content,createdAt:Date.now()});
     localStorage.setItem(GEN_STORAGE,JSON.stringify(activos));
     setSaved(true);
   };
 
-  const G='#C9A843';
   return(
+    <React.Fragment>
+      <div style={{borderBottom:'1px solid #e5e7eb',padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px'}}>
+        <span style={{fontSize:'16px'}}>{tool.icon}</span>
+        <span style={{fontSize:'15px',fontWeight:'700',color:'#1f2937'}}>{tool.label}</span>
+        {messages.length>0&&!saved&&(
+          <button onClick={saveActivo} style={{all:'unset',cursor:'pointer',marginLeft:'auto',background:G,color:'#fff',borderRadius:'6px',padding:'7px 16px',fontSize:'12px',fontWeight:'700'}}>+ Guardar activo</button>
+        )}
+        {saved&&<span style={{marginLeft:'auto',fontSize:'12px',color:'#16a34a',fontWeight:'600'}}>✓ Guardado en Mis Activos</span>}
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'24px',display:'flex',flexDirection:'column',gap:'16px'}}>
+        {!started&&(
+          <div style={{textAlign:'center',margin:'auto',color:'#9ca3af',display:'flex',flexDirection:'column',alignItems:'center',gap:'16px'}}>
+            <div style={{width:'56px',height:'56px',background:`${G}18`,borderRadius:'12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'24px'}}>{tool.icon}</div>
+            <p style={{fontSize:'15px',fontWeight:'600',color:'#374151'}}>Comienza una nueva conversación</p>
+            <p style={{fontSize:'13px'}}>Escribe un mensaje para generar contenido o utiliza un activo existente.</p>
+            <button onClick={()=>start(null)} style={{all:'unset',cursor:'pointer',background:G,color:'#fff',borderRadius:'8px',padding:'10px 28px',fontSize:'14px',fontWeight:'700'}}>Comenzar →</button>
+          </div>
+        )}
+        {messages.map((msg,i)=>(
+          <div key={i} style={{display:'flex',justifyContent:msg.role==='user'?'flex-end':'flex-start',gap:'10px',alignItems:'flex-start'}}>
+            {msg.role==='assistant'&&(
+              <div style={{width:'30px',height:'30px',background:`${G}18`,border:`1px solid ${G}33`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:'13px'}}>{tool.icon}</div>
+            )}
+            <div style={{maxWidth:'75%',padding:'12px 16px',borderRadius:'10px',background:msg.role==='user'?G:'#f3f4f6',color:msg.role==='user'?'#fff':'#1f2937',fontSize:'14px',lineHeight:'1.7',whiteSpace:'pre-wrap'}}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {loading&&(
+          <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+            <div style={{width:'30px',height:'30px',background:`${G}18`,border:`1px solid ${G}33`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px'}}>{tool.icon}</div>
+            <div style={{padding:'12px 16px',borderRadius:'10px',background:'#f3f4f6',color:'#9ca3af',fontSize:'14px'}}>Pensando...</div>
+          </div>
+        )}
+        <div ref={endRef}/>
+      </div>
+      <div style={{borderTop:'1px solid #e5e7eb',padding:'16px 24px',background:'#fff'}}>
+        <div style={{display:'flex',gap:'12px',alignItems:'flex-end'}}>
+          <textarea value={input} onChange={e=>setInput(e.target.value)}
+            onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
+            placeholder="Escribe un mensaje..." rows={1}
+            style={{flex:1,border:'1px solid #e5e7eb',borderRadius:'8px',padding:'12px 16px',fontSize:'14px',resize:'none',outline:'none',fontFamily:"'Inter',sans-serif",lineHeight:'1.5',maxHeight:'120px'}}
+          />
+          <button onClick={send} disabled={loading||!input.trim()}
+            style={{all:'unset',cursor:'pointer',width:'40px',height:'40px',background:(loading||!input.trim())?'#e5e7eb':G,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'background .15s'}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+function GeneradorModule({onHome}){
+  const [view,setView]=React.useState('dashboard');
+  const [tool,setTool]=React.useState(null);
+  const [hasKey,setHasKey]=React.useState(()=>!!localStorage.getItem(GEN_API_KEY));
+  const [showSetup,setShowSetup]=React.useState(false);
+  const G='#C9A843';
+
+  if(showSetup) return <GeneradorApiSetup onSave={()=>{setHasKey(true);setShowSetup(false);}} onCancel={()=>setShowSetup(false)}/>;
+  if(view==='activos') return <GeneradorActivos onBack={()=>setView('dashboard')}/>;
+
+  if(view==='chat'&&tool) return(
     <div style={{display:'flex',height:'100vh',fontFamily:"'Inter',sans-serif",background:'#fff'}}>
-      {/* Sidebar */}
       <div style={{width:'240px',flexShrink:0,borderRight:'1px solid #e5e7eb',display:'flex',flexDirection:'column',overflow:'hidden'}}>
         <div style={{padding:'16px'}}>
-          <button onClick={onBack} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'8px',background:`${G}22`,border:`1px solid ${G}44`,borderRadius:'6px',padding:'8px 14px',fontSize:'13px',fontWeight:'600',color:'#92400e',width:'100%',boxSizing:'border-box',justifyContent:'center'}}>
+          <button onClick={()=>setView('activos')} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'8px',background:`${G}22`,border:`1px solid ${G}44`,borderRadius:'6px',padding:'8px 14px',fontSize:'13px',fontWeight:'600',color:'#92400e',width:'100%',boxSizing:'border-box',justifyContent:'center'}}>
             📊 Mis Activos
           </button>
         </div>
         <div style={{padding:'0 12px 8px',fontSize:'10px',fontWeight:'700',color:'#9ca3af',letterSpacing:'.08em'}}>CATEGORÍAS</div>
         <div style={{flex:1,overflowY:'auto'}}>
           {GENERADOR_TOOLS.map(t=>(
-            <button key={t.id} onClick={()=>onSelectTool(t)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'10px',padding:'10px 16px',width:'100%',boxSizing:'border-box',borderRadius:'6px',background:t.id===tool.id?`${G}18`:'transparent',transition:'background .15s'}}
+            <button key={t.id} onClick={()=>setTool(t)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'10px',padding:'10px 16px',width:'100%',boxSizing:'border-box',borderRadius:'6px',background:t.id===tool.id?`${G}18`:'transparent',transition:'background .15s'}}
               onMouseOver={e=>{if(t.id!==tool.id)e.currentTarget.style.background='#f9fafb';}}
               onMouseOut={e=>{if(t.id!==tool.id)e.currentTarget.style.background='transparent';}}>
               <span style={{fontSize:'16px',flexShrink:0,opacity:t.id===tool.id?1:0.6}}>{t.icon}</span>
@@ -7471,87 +7511,25 @@ function GeneradorChat({tool,onBack,onSelectTool}){
             </button>
           ))}
         </div>
+        <div style={{padding:'12px 16px',borderTop:'1px solid #e5e7eb'}}>
+          <button onClick={()=>setShowSetup(true)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'#9ca3af'}}>⚙️ Configurar API key</button>
+        </div>
       </div>
-      {/* Main chat */}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
-        {/* Header */}
-        <div style={{borderBottom:'1px solid #e5e7eb',padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px'}}>
-          <span style={{fontSize:'16px'}}>{tool.icon}</span>
-          <span style={{fontSize:'15px',fontWeight:'700',color:'#1f2937'}}>{tool.label}</span>
-          {done&&result&&!saved&&(
-            <button onClick={saveActivo} style={{all:'unset',cursor:'pointer',marginLeft:'auto',background:G,color:'#fff',borderRadius:'6px',padding:'7px 16px',fontSize:'12px',fontWeight:'700'}}>+ Guardar activo</button>
-          )}
-          {saved&&<span style={{marginLeft:'auto',fontSize:'12px',color:'#16a34a',fontWeight:'600'}}>✓ Guardado en Mis Activos</span>}
-        </div>
-        {/* Messages */}
-        <div style={{flex:1,overflowY:'auto',padding:'24px',display:'flex',flexDirection:'column',gap:'16px'}}>
-          {messages.length===0&&(
-            <div style={{textAlign:'center',margin:'auto',color:'#9ca3af'}}>
-              <div style={{fontSize:'40px',marginBottom:'12px',color:G}}>💬</div>
-              <p style={{fontSize:'15px',fontWeight:'600',color:'#374151'}}>Comienza una nueva conversación</p>
-              <p style={{fontSize:'13px'}}>Escribe un mensaje para generar contenido.</p>
-            </div>
-          )}
-          {messages.map(msg=>(
-            <div key={msg.id} style={{display:'flex',justifyContent:msg.role==='user'?'flex-end':'flex-start'}}>
-              {msg.role==='result'?(
-                <div style={{maxWidth:'100%',width:'100%',background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:'10px',padding:'20px',whiteSpace:'pre-wrap',lineHeight:'1.8',fontSize:'13px',color:'#374151'}}>
-                  <div style={{fontSize:'11px',fontWeight:'700',color:G,marginBottom:'12px',letterSpacing:'.05em'}}>✨ ACTIVO GENERADO</div>
-                  {msg.text}
-                </div>
-              ):(
-                <div style={{maxWidth:'72%',padding:'12px 16px',borderRadius:'10px',background:msg.role==='user'?G:'#f3f4f6',color:msg.role==='user'?'#fff':'#1f2937',fontSize:'14px',lineHeight:'1.6',whiteSpace:'pre-wrap'}}>
-                  {msg.text}
-                </div>
-              )}
-            </div>
-          ))}
-          {generating&&(
-            <div style={{display:'flex',justifyContent:'flex-start'}}>
-              <div style={{padding:'12px 16px',borderRadius:'10px',background:'#f3f4f6',color:'#9ca3af',fontSize:'14px'}}>Generando... ✨</div>
-            </div>
-          )}
-          <div ref={endRef}/>
-        </div>
-        {/* Input */}
-        <div style={{borderTop:'1px solid #e5e7eb',padding:'16px 24px',background:'#fff'}}>
-          <div style={{display:'flex',gap:'12px',alignItems:'flex-end'}}>
-            <textarea
-              value={input}
-              onChange={e=>setInput(e.target.value)}
-              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
-              placeholder={done?'Conversación finalizada':'Escribe tu respuesta...'}
-              disabled={done&&!result||generating}
-              rows={1}
-              style={{flex:1,border:'1px solid #e5e7eb',borderRadius:'8px',padding:'12px 16px',fontSize:'14px',resize:'none',outline:'none',fontFamily:"'Inter',sans-serif",lineHeight:'1.5',maxHeight:'120px',overflowY:'auto'}}
-            />
-            <button onClick={send} disabled={!input.trim()||done||generating} style={{all:'unset',cursor:'pointer',width:'40px',height:'40px',background:(!input.trim()||done||generating)?'#e5e7eb':G,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'background .15s'}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
-            </button>
-          </div>
-        </div>
+        <GeneradorChat tool={tool} onSelectTool={(t)=>setTool(t)}/>
       </div>
     </div>
   );
-}
-
-function GeneradorModule({onHome}){
-  const [view,setView]=React.useState('dashboard');
-  const [tool,setTool]=React.useState(null);
-  const G='#C9A843';
-
-  if(view==='activos') return <GeneradorActivos onBack={()=>setView('dashboard')}/>;
-  if(view==='chat'&&tool) return <GeneradorChat tool={tool} onBack={()=>setView('dashboard')} onSelectTool={(t)=>setTool(t)}/>;
 
   return(
     <div style={{minHeight:'100vh',background:'#fff',fontFamily:"'Inter',sans-serif"}}>
-      {/* Nav */}
       <div style={{borderBottom:'1px solid #e5e7eb',padding:'0 32px',display:'flex',alignItems:'center',justifyContent:'space-between',height:'60px'}}>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke={G} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke={G} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke={G} strokeWidth="2" strokeLinecap="round"/></svg>
           <span style={{fontSize:'18px',fontWeight:'800',letterSpacing:'-.03em',color:'#1f2937'}}>Generador</span>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+          {!hasKey&&<button onClick={()=>setShowSetup(true)} style={{all:'unset',cursor:'pointer',border:'1px solid #e5e7eb',borderRadius:'6px',padding:'7px 14px',fontSize:'12px',color:'#6b7280'}}>⚙️ Conectar API</button>}
           <button onClick={()=>setView('activos')} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',background:G,color:'#fff',borderRadius:'6px',padding:'8px 16px',fontSize:'13px',fontWeight:'700'}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
             Mis Activos
@@ -7559,13 +7537,12 @@ function GeneradorModule({onHome}){
           <button onClick={onHome} style={{all:'unset',cursor:'pointer',fontSize:'13px',color:'#6b7280'}}>← Inicio</button>
         </div>
       </div>
-      {/* Content */}
       <div style={{padding:'40px 32px',maxWidth:'1100px',margin:'0 auto'}}>
         <h1 style={{fontSize:'28px',fontWeight:'800',color:'#1f2937',marginBottom:'32px'}}>Dashboard</h1>
         <h2 style={{fontSize:'16px',fontWeight:'600',color:'#374151',marginBottom:'20px'}}>Selecciona un tipo de Chat</h2>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'16px'}}>
           {GENERADOR_TOOLS.map(t=>(
-            <button key={t.id} onClick={()=>{setTool(t);setView('chat');}} style={{all:'unset',cursor:'pointer'}}>
+            <button key={t.id} onClick={()=>{if(!hasKey){setShowSetup(true);return;}setTool(t);setView('chat');}} style={{all:'unset',cursor:'pointer'}}>
               <div style={{border:'1px solid #e5e7eb',borderRadius:'8px',padding:'20px 24px',display:'flex',alignItems:'flex-start',gap:'16px',transition:'border-color .15s,box-shadow .15s'}}
                 onMouseOver={e=>{e.currentTarget.style.borderColor=G;e.currentTarget.style.boxShadow=`0 2px 12px ${G}22`;}}
                 onMouseOut={e=>{e.currentTarget.style.borderColor='#e5e7eb';e.currentTarget.style.boxShadow='none';}}>
