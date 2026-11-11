@@ -7305,56 +7305,58 @@ function GeneradorApiSetup({onSave,onCancel}){
     }
     setTesting(false);
   };
-  const G='#C9A843';
+  const G='#313131';const ROSA='#D4A0B0';const CREMA='#FAF6EF';
   return(
-    <div style={{minHeight:'100vh',background:'#fff',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontFamily:"'Inter',sans-serif",padding:'32px'}}>
-      <div style={{maxWidth:'440px',width:'100%'}}>
+    <div style={{minHeight:'100vh',background:CREMA,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontFamily:"'Inter',sans-serif",padding:'32px'}}>
+      <div style={{maxWidth:'440px',width:'100%',background:'#fff',borderRadius:'24px',padding:'40px',boxShadow:'0 4px 24px rgba(212,160,176,0.15)'}}>
         <div style={{fontSize:'32px',marginBottom:'16px',textAlign:'center'}}>🔑</div>
-        <h1 style={{fontSize:'22px',fontWeight:'800',color:'#1f2937',marginBottom:'8px',textAlign:'center'}}>Conecta Claude API</h1>
-        <p style={{fontSize:'13px',color:'#6b7280',textAlign:'center',marginBottom:'32px',lineHeight:'1.6'}}>Necesitas una API key de Anthropic. Consíguela en <a href="https://console.anthropic.com" target="_blank" style={{color:G}}>console.anthropic.com</a></p>
-        <input value={key} onChange={e=>setKey(e.target.value)} placeholder="sk-ant-api03-..." type="password"
-          style={{width:'100%',boxSizing:'border-box',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'12px 16px',fontSize:'14px',outline:'none',fontFamily:"'Inter',sans-serif",marginBottom:'12px'}}/>
-        {err&&<p style={{fontSize:'12px',color:'#ef4444',marginBottom:'12px'}}>{err}</p>}
+        <h1 style={{fontSize:'22px',fontWeight:'800',color:G,marginBottom:'8px',textAlign:'center',letterSpacing:'-.025em'}}>Conecta <span style={{color:ROSA}}>Claude API</span></h1>
+        <p style={{fontSize:'13px',color:'#96908C',textAlign:'center',marginBottom:'32px',lineHeight:'1.6'}}>Necesitas una API key de Anthropic. Consíguela en <a href="https://console.anthropic.com" target="_blank" style={{color:ROSA}}>console.anthropic.com</a></p>
+        <input value={key} onChange={e=>setKey(e.target.value)} placeholder="sk-ant-..." type="password"
+          style={{width:'100%',boxSizing:'border-box',border:`1px solid ${ROSA}`,borderRadius:'12px',padding:'12px 16px',fontSize:'14px',outline:'none',fontFamily:"'Inter',sans-serif",marginBottom:'12px',background:CREMA,color:G}}/>
+        {err&&<p style={{fontSize:'12px',color:'#6B1A2A',marginBottom:'12px'}}>{err}</p>}
         <button onClick={save} disabled={!key||testing}
-          style={{all:'unset',cursor:'pointer',width:'100%',boxSizing:'border-box',background:G,color:'#fff',borderRadius:'8px',padding:'12px',fontSize:'14px',fontWeight:'700',textAlign:'center',display:'block'}}>
+          style={{all:'unset',cursor:'pointer',width:'100%',boxSizing:'border-box',background:G,color:'#fff',borderRadius:'24px',padding:'12px',fontSize:'14px',fontWeight:'700',textAlign:'center',display:'block'}}>
           {testing?'Verificando...':'Guardar y conectar'}
         </button>
-        {onCancel&&<button onClick={onCancel} style={{all:'unset',cursor:'pointer',display:'block',width:'100%',textAlign:'center',marginTop:'12px',fontSize:'13px',color:'#9ca3af'}}>Cancelar</button>}
-        <p style={{fontSize:'11px',color:'#9ca3af',textAlign:'center',marginTop:'16px'}}>Tu clave se guarda solo en tu navegador (localStorage). Nunca sale a ningún servidor externo.</p>
+        {onCancel&&<button onClick={onCancel} style={{all:'unset',cursor:'pointer',display:'block',width:'100%',textAlign:'center',marginTop:'12px',fontSize:'13px',color:'#96908C'}}>Cancelar</button>}
+        <p style={{fontSize:'11px',color:'#96908C',textAlign:'center',marginTop:'16px'}}>Tu clave se guarda solo en tu navegador (localStorage). Nunca sale a ningún servidor externo.</p>
       </div>
     </div>
   );
 }
 
 function GeneradorActivos({onBack}){
+  const G='#313131';const ROSA='#D4A0B0';const CREMA='#FAF6EF';
   const [activos,setActivos]=React.useState(()=>{try{return JSON.parse(localStorage.getItem(GEN_STORAGE)||'[]');}catch{return[];}});
   const del=(id)=>{const a=activos.filter(x=>x.id!==id);setActivos(a);localStorage.setItem(GEN_STORAGE,JSON.stringify(a));};
   const [open,setOpen]=React.useState(null);
   const tool=open?GENERADOR_TOOLS.find(t=>t.id===open.toolId):null;
   if(open) return(
-    <div style={{minHeight:'100vh',background:'#fff',fontFamily:"'Inter',sans-serif",display:'flex',flexDirection:'column'}}>
-      <div style={{borderBottom:'1px solid #e5e7eb',padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px'}}>
-        <button onClick={()=>setOpen(null)} style={{all:'unset',cursor:'pointer',fontSize:'13px',color:'#6b7280'}}>← Mis Activos</button>
-        <span style={{color:'#d1d5db'}}>·</span>
-        <span style={{fontSize:'13px',fontWeight:'600',color:'#1f2937'}}>{tool?tool.icon+' '+tool.label:''}</span>
+    <div style={{minHeight:'100vh',background:CREMA,fontFamily:"'Inter',sans-serif",display:'flex',flexDirection:'column'}}>
+      <div style={{borderBottom:`1px solid #E8BFCA`,padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px',background:'#fff'}}>
+        <button onClick={()=>setOpen(null)} style={{all:'unset',cursor:'pointer',fontSize:'13px',color:'#96908C'}}>← Mis Activos</button>
+        <span style={{color:'#E8BFCA'}}>·</span>
+        <span style={{fontSize:'13px',fontWeight:'600',color:G}}>{tool?tool.icon+' '+tool.label:''}</span>
       </div>
       <div style={{flex:1,padding:'32px',maxWidth:'800px',margin:'0 auto',width:'100%',boxSizing:'border-box'}}>
-        <h2 style={{fontSize:'20px',fontWeight:'700',color:'#1f2937',marginBottom:'8px'}}>{open.title||tool?.label}</h2>
-        <p style={{fontSize:'12px',color:'#9ca3af',marginBottom:'24px'}}>{new Date(open.createdAt).toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</p>
-        <div style={{background:'#f9fafb',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'24px',whiteSpace:'pre-wrap',lineHeight:'1.8',fontSize:'14px',color:'#374151'}}>{open.content}</div>
+        <h2 style={{fontSize:'20px',fontWeight:'700',color:G,marginBottom:'8px',letterSpacing:'-.025em'}}>{open.title||tool?.label}</h2>
+        <p style={{fontSize:'12px',color:'#96908C',marginBottom:'24px'}}>{new Date(open.createdAt).toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})}</p>
+        <div style={{background:'#fff',border:`1px solid #E8BFCA`,borderRadius:'16px',padding:'24px',whiteSpace:'pre-wrap',lineHeight:'1.8',fontSize:'14px',color:G,boxShadow:'0 2px 12px rgba(212,160,176,0.1)'}}>{open.content}</div>
       </div>
     </div>
   );
   return(
-    <div style={{minHeight:'100vh',background:'#fff',fontFamily:"'Inter',sans-serif"}}>
-      <div style={{borderBottom:'1px solid #e5e7eb',padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px'}}>
-        <button onClick={onBack} style={{all:'unset',cursor:'pointer',fontSize:'13px',color:'#6b7280'}}>← Dashboard</button>
-        <span style={{fontSize:'14px',fontWeight:'700',color:'#1f2937',marginLeft:'4px'}}>Mis Activos</span>
+    <div style={{minHeight:'100vh',background:CREMA,fontFamily:"'Inter',sans-serif"}}>
+      <div style={{borderBottom:`1px solid #E8BFCA`,padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px',background:'#fff'}}>
+        <button onClick={onBack} style={{all:'unset',cursor:'pointer',fontSize:'13px',color:'#96908C'}}>← Dashboard</button>
+        <span style={{fontSize:'14px',fontWeight:'700',color:G,marginLeft:'4px'}}>Mis Activos</span>
       </div>
       <div style={{padding:'32px',maxWidth:'900px',margin:'0 auto'}}>
-        <h2 style={{fontSize:'22px',fontWeight:'800',color:'#1f2937',marginBottom:'24px'}}>Mis Activos</h2>
+        <h2 style={{fontSize:'22px',fontWeight:'800',color:G,marginBottom:'4px',letterSpacing:'-.025em'}}>Mis <span style={{color:ROSA}}>Activos</span></h2>
+        <p style={{fontSize:'13px',color:'#96908C',marginBottom:'24px'}}>Contenido guardado desde el chat</p>
         {activos.length===0?(
-          <div style={{textAlign:'center',padding:'60px',color:'#9ca3af'}}>
+          <div style={{textAlign:'center',padding:'60px',color:'#96908C',background:'#fff',borderRadius:'16px',border:`1px solid #E8BFCA`}}>
             <div style={{fontSize:'40px',marginBottom:'12px'}}>📄</div>
             <p>Aún no tienes activos guardados. Genera uno desde el chat y guárdalo.</p>
           </div>
@@ -7363,16 +7365,16 @@ function GeneradorActivos({onBack}){
             {activos.map(a=>{
               const t=GENERADOR_TOOLS.find(t=>t.id===a.toolId);
               return(
-                <div key={a.id} style={{border:'1px solid #e5e7eb',borderRadius:'8px',padding:'16px 20px',display:'flex',alignItems:'center',gap:'16px',cursor:'pointer',transition:'border-color .15s'}}
+                <div key={a.id} style={{border:`1px solid #E8BFCA`,borderRadius:'16px',padding:'16px 20px',display:'flex',alignItems:'center',gap:'16px',cursor:'pointer',transition:'border-color .15s,box-shadow .15s',background:'#fff'}}
                   onClick={()=>setOpen(a)}
-                  onMouseOver={e=>e.currentTarget.style.borderColor='#C9A843'}
-                  onMouseOut={e=>e.currentTarget.style.borderColor='#e5e7eb'}>
-                  <span style={{fontSize:'24px'}}>{t?.icon||'📄'}</span>
+                  onMouseOver={e=>{e.currentTarget.style.borderColor=ROSA;e.currentTarget.style.boxShadow='0 4px 16px rgba(212,160,176,0.2)';}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor='#E8BFCA';e.currentTarget.style.boxShadow='none';}}>
+                  <div style={{width:'40px',height:'40px',background:'#E8BFCA',borderRadius:'12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'20px',flexShrink:0}}>{t?.icon||'📄'}</div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:'14px',fontWeight:'600',color:'#1f2937'}}>{a.title||t?.label}</div>
-                    <div style={{fontSize:'12px',color:'#9ca3af'}}>{t?.label} · {new Date(a.createdAt).toLocaleDateString('es-ES')}</div>
+                    <div style={{fontSize:'14px',fontWeight:'600',color:G}}>{a.title||t?.label}</div>
+                    <div style={{fontSize:'12px',color:'#96908C'}}>{t?.label} · {new Date(a.createdAt).toLocaleDateString('es-ES')}</div>
                   </div>
-                  <button onClick={e=>{e.stopPropagation();del(a.id);}} style={{all:'unset',cursor:'pointer',color:'#ef4444',fontSize:'12px',padding:'4px 8px'}}>Eliminar</button>
+                  <button onClick={e=>{e.stopPropagation();del(a.id);}} style={{all:'unset',cursor:'pointer',color:'#6B1A2A',fontSize:'12px',padding:'4px 8px'}}>Eliminar</button>
                 </div>
               );
             })}
@@ -7392,7 +7394,7 @@ function GeneradorChat({tool,onSelectTool,convId,setConvId}){
   const [savedIdx,setSavedIdx]=React.useState(null);
   const curConvId=React.useRef(convId||null);
   const endRef=React.useRef(null);
-  const G='#C9A843';
+  const G='#313131';const ROSA='#D4A0B0';const CREMA='#FAF6EF';
 
   React.useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'});},[messages,loading]);
   React.useEffect(()=>{
@@ -7455,43 +7457,43 @@ function GeneradorChat({tool,onSelectTool,convId,setConvId}){
 
   return(
     <React.Fragment>
-      <div style={{borderBottom:'1px solid #e5e7eb',padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px'}}>
+      <div style={{borderBottom:'1px solid #e5e7eb',padding:'14px 24px',display:'flex',alignItems:'center',gap:'12px',background:'#fff'}}>
         <span style={{fontSize:'16px'}}>{tool.icon}</span>
-        <span style={{fontSize:'15px',fontWeight:'700',color:'#1f2937'}}>{tool.label}</span>
-        {started&&<button onClick={()=>setConvId&&setConvId(null)} style={{all:'unset',cursor:'pointer',marginLeft:'auto',display:'flex',alignItems:'center',gap:'5px',border:'1px solid #e5e7eb',borderRadius:'6px',padding:'6px 12px',fontSize:'12px',color:'#6b7280'}}>
+        <span style={{fontSize:'15px',fontWeight:'700',color:G}}>{tool.label}</span>
+        {started&&<button onClick={()=>setConvId&&setConvId(null)} style={{all:'unset',cursor:'pointer',marginLeft:'auto',display:'flex',alignItems:'center',gap:'5px',border:`1px solid ${ROSA}`,borderRadius:'24px',padding:'6px 14px',fontSize:'12px',color:G}}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nueva conversación
         </button>}
       </div>
-      <div style={{flex:1,overflowY:'auto',padding:'24px',display:'flex',flexDirection:'column',gap:'20px'}}>
+      <div style={{flex:1,overflowY:'auto',padding:'24px',display:'flex',flexDirection:'column',gap:'20px',background:CREMA}}>
         {!started&&(
-          <div style={{textAlign:'center',margin:'auto',color:'#9ca3af',display:'flex',flexDirection:'column',alignItems:'center',gap:'16px'}}>
-            <div style={{width:'56px',height:'56px',background:`${G}18`,borderRadius:'12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'24px'}}>{tool.icon}</div>
-            <p style={{fontSize:'15px',fontWeight:'600',color:'#374151'}}>Comienza una nueva conversación</p>
-            <p style={{fontSize:'13px'}}>Escribe un mensaje para generar contenido o utiliza un activo existente.</p>
-            <button onClick={()=>start(null)} style={{all:'unset',cursor:'pointer',background:G,color:'#fff',borderRadius:'8px',padding:'10px 28px',fontSize:'14px',fontWeight:'700'}}>Comenzar →</button>
+          <div style={{textAlign:'center',margin:'auto',color:'#96908C',display:'flex',flexDirection:'column',alignItems:'center',gap:'16px'}}>
+            <div style={{width:'56px',height:'56px',background:'#E8BFCA',borderRadius:'16px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'24px'}}>{tool.icon}</div>
+            <p style={{fontSize:'15px',fontWeight:'700',color:G}}>Comienza una nueva conversación</p>
+            <p style={{fontSize:'13px',color:'#96908C'}}>Escribe un mensaje para generar contenido o utiliza un activo existente.</p>
+            <button onClick={()=>start(null)} style={{all:'unset',cursor:'pointer',background:G,color:'#fff',borderRadius:'24px',padding:'10px 28px',fontSize:'14px',fontWeight:'700'}}>Comenzar →</button>
           </div>
         )}
         {messages.map((msg,i)=>(
           <div key={i} style={{display:'flex',justifyContent:msg.role==='user'?'flex-end':'flex-start',gap:'10px',alignItems:'flex-start'}}>
             {msg.role==='assistant'&&(
-              <div style={{width:'30px',height:'30px',background:`${G}18`,border:`1px solid ${G}33`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:'13px'}}>{tool.icon}</div>
+              <div style={{width:'30px',height:'30px',background:'#E8BFCA',border:`1px solid ${ROSA}`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:'13px'}}>{tool.icon}</div>
             )}
             <div style={{maxWidth:'75%',display:'flex',flexDirection:'column',gap:'8px'}}>
-              <div style={{padding:'12px 16px',borderRadius:'10px',background:msg.role==='user'?G:'#f3f4f6',color:msg.role==='user'?'#fff':'#1f2937',fontSize:'14px',lineHeight:'1.7',whiteSpace:'pre-wrap'}}>
+              <div style={{padding:'12px 16px',borderRadius:'16px',background:msg.role==='user'?G:'#fff',color:msg.role==='user'?'#fff':G,fontSize:'14px',lineHeight:'1.7',whiteSpace:'pre-wrap',boxShadow:'0 1px 4px rgba(49,49,49,0.08)'}}>
                 {msg.content}
               </div>
               {msg.role==='assistant'&&(
                 <div style={{display:'flex',gap:'12px',paddingLeft:'4px'}}>
-                  <button onClick={()=>copyMsg(msg.content,i)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'4px',fontSize:'12px',color:copiedIdx===i?'#16a34a':'#9ca3af',transition:'color .15s'}}>
+                  <button onClick={()=>copyMsg(msg.content,i)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'4px',fontSize:'12px',color:copiedIdx===i?'#6B1A2A':'#96908C',transition:'color .15s'}}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                     {copiedIdx===i?'¡Copiado!':'Copiar'}
                   </button>
-                  <button onClick={()=>saveMsg(msg.content,i)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'4px',fontSize:'12px',color:savedIdx===i?'#16a34a':'#9ca3af',transition:'color .15s'}}>
+                  <button onClick={()=>saveMsg(msg.content,i)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'4px',fontSize:'12px',color:savedIdx===i?'#6B1A2A':'#96908C',transition:'color .15s'}}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                     {savedIdx===i?'¡Guardado!':'Guardar'}
                   </button>
-                  <button onClick={()=>exportMsg(msg.content)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'4px',fontSize:'12px',color:'#9ca3af',transition:'color .15s'}}>
+                  <button onClick={()=>exportMsg(msg.content)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'4px',fontSize:'12px',color:'#96908C',transition:'color .15s'}}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Exportar
                   </button>
@@ -7502,8 +7504,8 @@ function GeneradorChat({tool,onSelectTool,convId,setConvId}){
         ))}
         {loading&&(
           <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
-            <div style={{width:'30px',height:'30px',background:`${G}18`,border:`1px solid ${G}33`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px'}}>{tool.icon}</div>
-            <div style={{padding:'12px 16px',borderRadius:'10px',background:'#f3f4f6',color:'#9ca3af',fontSize:'14px'}}>Pensando...</div>
+            <div style={{width:'30px',height:'30px',background:'#E8BFCA',border:`1px solid ${ROSA}`,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px'}}>{tool.icon}</div>
+            <div style={{padding:'12px 16px',borderRadius:'16px',background:'#fff',color:'#96908C',fontSize:'14px',boxShadow:'0 1px 4px rgba(49,49,49,0.08)'}}>Pensando...</div>
           </div>
         )}
         <div ref={endRef}/>
@@ -7513,10 +7515,10 @@ function GeneradorChat({tool,onSelectTool,convId,setConvId}){
           <textarea value={input} onChange={e=>setInput(e.target.value)}
             onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
             placeholder="Escribe un mensaje..." rows={1}
-            style={{flex:1,border:'1px solid #e5e7eb',borderRadius:'8px',padding:'12px 16px',fontSize:'14px',resize:'none',outline:'none',fontFamily:"'Inter',sans-serif",lineHeight:'1.5',maxHeight:'120px'}}
+            style={{flex:1,border:`1px solid ${ROSA}`,borderRadius:'12px',padding:'12px 16px',fontSize:'14px',resize:'none',outline:'none',fontFamily:"'Inter',sans-serif",lineHeight:'1.5',maxHeight:'120px',background:CREMA,color:G}}
           />
           <button onClick={send} disabled={loading||!input.trim()}
-            style={{all:'unset',cursor:'pointer',width:'40px',height:'40px',background:(loading||!input.trim())?'#e5e7eb':G,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'background .15s'}}>
+            style={{all:'unset',cursor:'pointer',width:'40px',height:'40px',background:(loading||!input.trim())?'#E8BFCA':G,borderRadius:'12px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'background .15s'}}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
           </button>
         </div>
@@ -7531,7 +7533,7 @@ function GeneradorModule({onHome}){
   const [hasKey,setHasKey]=React.useState(()=>!!localStorage.getItem(GEN_API_KEY));
   const [showSetup,setShowSetup]=React.useState(false);
   const [convId,setConvId]=React.useState(null);
-  const G='#C9A843';
+  const G='#313131';const ROSA='#D4A0B0';const CREMA='#FAF6EF';
 
   const selectTool=(t)=>{setTool(t);setConvId(null);};
 
@@ -7541,39 +7543,39 @@ function GeneradorModule({onHome}){
   if(view==='chat'&&tool){
     const toolConvs=getToolConvs(tool.id);
     return(
-    <div style={{display:'flex',height:'100vh',fontFamily:"'Inter',sans-serif",background:'#fff'}}>
-      <div style={{width:'240px',flexShrink:0,borderRight:'1px solid #e5e7eb',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+    <div style={{display:'flex',height:'100vh',fontFamily:"'Inter',sans-serif",background:CREMA}}>
+      <div style={{width:'240px',flexShrink:0,borderRight:`1px solid #E8BFCA`,display:'flex',flexDirection:'column',overflow:'hidden',background:'#fff'}}>
         <div style={{padding:'16px'}}>
-          <button onClick={()=>setView('activos')} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'8px',background:`${G}22`,border:`1px solid ${G}44`,borderRadius:'6px',padding:'8px 14px',fontSize:'13px',fontWeight:'600',color:'#92400e',width:'100%',boxSizing:'border-box',justifyContent:'center'}}>
+          <button onClick={()=>setView('activos')} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'8px',background:'#E8BFCA',border:`1px solid ${ROSA}`,borderRadius:'24px',padding:'8px 14px',fontSize:'13px',fontWeight:'600',color:G,width:'100%',boxSizing:'border-box',justifyContent:'center'}}>
             📊 Mis Activos
           </button>
         </div>
-        <div style={{padding:'0 12px 8px',fontSize:'10px',fontWeight:'700',color:'#9ca3af',letterSpacing:'.08em'}}>CATEGORÍAS</div>
+        <div style={{padding:'0 16px 8px',fontSize:'10px',fontWeight:'700',color:'#96908C',letterSpacing:'.08em'}}>CATEGORÍAS</div>
         <div style={{flex:1,overflowY:'auto'}}>
           {GENERADOR_TOOLS.map(t=>(
-            <button key={t.id} onClick={()=>selectTool(t)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'10px',padding:'10px 16px',width:'100%',boxSizing:'border-box',borderRadius:'6px',background:t.id===tool.id?`${G}18`:'transparent',transition:'background .15s'}}
-              onMouseOver={e=>{if(t.id!==tool.id)e.currentTarget.style.background='#f9fafb';}}
+            <button key={t.id} onClick={()=>selectTool(t)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'10px',padding:'10px 16px',width:'100%',boxSizing:'border-box',borderRadius:'8px',background:t.id===tool.id?'#E8BFCA':'transparent',transition:'background .15s'}}
+              onMouseOver={e=>{if(t.id!==tool.id)e.currentTarget.style.background=CREMA;}}
               onMouseOut={e=>{if(t.id!==tool.id)e.currentTarget.style.background='transparent';}}>
-              <span style={{fontSize:'16px',flexShrink:0,opacity:t.id===tool.id?1:0.6}}>{t.icon}</span>
-              <span style={{fontSize:'13px',fontWeight:t.id===tool.id?'700':'400',color:t.id===tool.id?'#92400e':'#374151',lineHeight:'1.3'}}>{t.label}</span>
+              <span style={{fontSize:'16px',flexShrink:0,opacity:t.id===tool.id?1:0.5}}>{t.icon}</span>
+              <span style={{fontSize:'13px',fontWeight:t.id===tool.id?'700':'400',color:t.id===tool.id?G:'#96908C',lineHeight:'1.3'}}>{t.label}</span>
             </button>
           ))}
           {toolConvs.length>0&&(
             <React.Fragment>
-              <div style={{padding:'12px 16px 4px',fontSize:'10px',fontWeight:'700',color:'#9ca3af',letterSpacing:'.08em',borderTop:'1px solid #f3f4f6',marginTop:'8px'}}>CONVERSACIONES</div>
+              <div style={{padding:'12px 16px 4px',fontSize:'10px',fontWeight:'700',color:'#96908C',letterSpacing:'.08em',borderTop:`1px solid #E8BFCA`,marginTop:'8px'}}>CONVERSACIONES</div>
               {toolConvs.map(c=>(
-                <button key={c.id} onClick={()=>setConvId(c.id)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'8px',padding:'8px 16px',width:'100%',boxSizing:'border-box',borderRadius:'6px',background:c.id===convId?`${G}10`:'transparent',transition:'background .15s'}}
-                  onMouseOver={e=>{if(c.id!==convId)e.currentTarget.style.background='#f9fafb';}}
+                <button key={c.id} onClick={()=>setConvId(c.id)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'8px',padding:'8px 16px',width:'100%',boxSizing:'border-box',borderRadius:'8px',background:c.id===convId?'#E8BFCA':'transparent',transition:'background .15s'}}
+                  onMouseOver={e=>{if(c.id!==convId)e.currentTarget.style.background=CREMA;}}
                   onMouseOut={e=>{if(c.id!==convId)e.currentTarget.style.background='transparent';}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c.id===convId?G:'#9ca3af'} strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                  <span style={{fontSize:'11px',color:c.id===convId?'#92400e':'#6b7280',lineHeight:'1.4',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.label||'Conversación'}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c.id===convId?ROSA:'#96908C'} strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                  <span style={{fontSize:'11px',color:c.id===convId?G:'#96908C',lineHeight:'1.4',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.label||'Conversación'}</span>
                 </button>
               ))}
             </React.Fragment>
           )}
         </div>
-        <div style={{padding:'12px 16px',borderTop:'1px solid #e5e7eb'}}>
-          <button onClick={()=>setShowSetup(true)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'#9ca3af'}}>⚙️ Configurar API key</button>
+        <div style={{padding:'12px 16px',borderTop:`1px solid #E8BFCA`}}>
+          <button onClick={()=>setShowSetup(true)} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',color:'#96908C'}}>⚙️ Configurar API key</button>
         </div>
       </div>
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
@@ -7583,34 +7585,34 @@ function GeneradorModule({onHome}){
   );};
 
   return(
-    <div style={{minHeight:'100vh',background:'#fff',fontFamily:"'Inter',sans-serif"}}>
-      <div style={{borderBottom:'1px solid #e5e7eb',padding:'0 32px',display:'flex',alignItems:'center',justifyContent:'space-between',height:'60px'}}>
+    <div style={{minHeight:'100vh',background:CREMA,fontFamily:"'Inter',sans-serif"}}>
+      <div style={{borderBottom:`1px solid #E8BFCA`,padding:'0 32px',display:'flex',alignItems:'center',justifyContent:'space-between',height:'60px',background:'#fff'}}>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke={G} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke={G} strokeWidth="2" strokeLinecap="round"/></svg>
-          <span style={{fontSize:'18px',fontWeight:'800',letterSpacing:'-.03em',color:'#1f2937'}}>Generador</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke={ROSA} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M13.73 21a2 2 0 01-3.46 0" stroke={ROSA} strokeWidth="2" strokeLinecap="round"/></svg>
+          <span style={{fontSize:'18px',fontWeight:'800',letterSpacing:'-.03em',color:G}}>Generador</span>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-          {!hasKey&&<button onClick={()=>setShowSetup(true)} style={{all:'unset',cursor:'pointer',border:'1px solid #e5e7eb',borderRadius:'6px',padding:'7px 14px',fontSize:'12px',color:'#6b7280'}}>⚙️ Conectar API</button>}
-          <button onClick={()=>setView('activos')} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',background:G,color:'#fff',borderRadius:'6px',padding:'8px 16px',fontSize:'13px',fontWeight:'700'}}>
+          {!hasKey&&<button onClick={()=>setShowSetup(true)} style={{all:'unset',cursor:'pointer',border:`1px solid ${ROSA}`,borderRadius:'24px',padding:'7px 14px',fontSize:'12px',color:'#96908C'}}>⚙️ Conectar API</button>}
+          <button onClick={()=>setView('activos')} style={{all:'unset',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',background:'#E8BFCA',color:G,borderRadius:'24px',padding:'8px 16px',fontSize:'13px',fontWeight:'700',border:`1px solid ${ROSA}`}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
             Mis Activos
           </button>
-          <button onClick={onHome} style={{all:'unset',cursor:'pointer',fontSize:'13px',color:'#6b7280'}}>← Inicio</button>
+          <button onClick={onHome} style={{all:'unset',cursor:'pointer',fontSize:'13px',color:'#96908C'}}>← Inicio</button>
         </div>
       </div>
       <div style={{padding:'40px 32px',maxWidth:'1100px',margin:'0 auto'}}>
-        <h1 style={{fontSize:'28px',fontWeight:'800',color:'#1f2937',marginBottom:'32px'}}>Dashboard</h1>
-        <h2 style={{fontSize:'16px',fontWeight:'600',color:'#374151',marginBottom:'20px'}}>Selecciona un tipo de Chat</h2>
+        <h1 style={{fontSize:'28px',fontWeight:'800',color:G,marginBottom:'8px',letterSpacing:'-.025em'}}>Dashboard <span style={{color:ROSA}}>Generador</span></h1>
+        <p style={{fontSize:'14px',color:'#96908C',marginBottom:'32px'}}>Selecciona una herramienta para comenzar</p>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'16px'}}>
           {GENERADOR_TOOLS.map(t=>(
             <button key={t.id} onClick={()=>{if(!hasKey){setShowSetup(true);return;}setTool(t);setView('chat');}} style={{all:'unset',cursor:'pointer'}}>
-              <div style={{border:'1px solid #e5e7eb',borderRadius:'8px',padding:'20px 24px',display:'flex',alignItems:'flex-start',gap:'16px',transition:'border-color .15s,box-shadow .15s'}}
-                onMouseOver={e=>{e.currentTarget.style.borderColor=G;e.currentTarget.style.boxShadow=`0 2px 12px ${G}22`;}}
-                onMouseOut={e=>{e.currentTarget.style.borderColor='#e5e7eb';e.currentTarget.style.boxShadow='none';}}>
-                <div style={{width:'40px',height:'40px',background:`${G}18`,borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'18px',flexShrink:0}}>{t.icon}</div>
+              <div style={{border:`1px solid #E8BFCA`,borderRadius:'16px',padding:'20px 24px',display:'flex',alignItems:'flex-start',gap:'16px',transition:'border-color .15s,box-shadow .15s',background:'#fff'}}
+                onMouseOver={e=>{e.currentTarget.style.borderColor=ROSA;e.currentTarget.style.boxShadow=`0 4px 16px rgba(212,160,176,0.2)`;}}
+                onMouseOut={e=>{e.currentTarget.style.borderColor='#E8BFCA';e.currentTarget.style.boxShadow='none';}}>
+                <div style={{width:'40px',height:'40px',background:'#E8BFCA',borderRadius:'12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'18px',flexShrink:0}}>{t.icon}</div>
                 <div>
-                  <div style={{fontSize:'14px',fontWeight:'700',color:'#1f2937',marginBottom:'4px'}}>{t.label}</div>
-                  <div style={{fontSize:'12px',color:'#6b7280',lineHeight:'1.5'}}>{t.desc}</div>
+                  <div style={{fontSize:'14px',fontWeight:'700',color:G,marginBottom:'4px'}}>{t.label}</div>
+                  <div style={{fontSize:'12px',color:'#96908C',lineHeight:'1.5'}}>{t.desc}</div>
                 </div>
               </div>
             </button>
