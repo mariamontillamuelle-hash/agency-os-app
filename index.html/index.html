@@ -7536,133 +7536,7 @@ function HomeScreen({onSelect,currentUser}){
           );
         })()}
 
-        {/* COMUNICACIONES — admin only */}
-        {isAdmin&&(()=>{
-          const CM_A2='#f472b6';
-          const tpls=JSON.parse(localStorage.getItem('glowlabs_comunicaciones_v1')||'[]');
-          const tplCount=tpls.length||12;
-          const whatsappCount=tpls.filter?.(t=>t.canal==='WhatsApp').length||7;
-          const emailCount=tpls.filter?.(t=>t.canal==='Email').length||5;
-          return(
-          <button onClick={()=>onSelect('comunicaciones')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(244,114,182,0.02)',border:'1px solid rgba(244,114,182,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(244,114,182,0.4)';e.currentTarget.style.background='rgba(244,114,182,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(244,114,182,0.14)';e.currentTarget.style.background='rgba(244,114,182,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${CM_A2},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(244,114,182,0.08)',border:'1px solid rgba(244,114,182,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={CM_A2} strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:CM_A2,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 14</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Comunicaciones<br/>y Plantillas</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Biblioteca de mensajes por WhatsApp y email: captación, propuestas, seguimiento y facturación.</p>
-              <p style={{fontSize:'11px',color:`${CM_A2}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{tplCount} plantillas · {whatsappCount} WhatsApp · {emailCount} Email</p>
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:CM_A2,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver plantillas <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={CM_A2} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
 
-        {/* HORAS — all users */}
-        {(()=>{
-          const HR_A2='#a3e635';
-          const hData=JSON.parse(localStorage.getItem('glowlabs_horas_v1')||'[]');
-          const now=new Date();const day=now.getDay();const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));
-          const weekStart=mon.toISOString().slice(0,10);
-          const weekEntries=hData.filter(e=>e.fecha>=weekStart&&(!currentUser||isAdmin||e.userId===currentUser?.id));
-          const weekHours=weekEntries.reduce((s,e)=>s+e.horas,0);
-          const totalHoursAll=hData.length;
-          return(
-          <button onClick={()=>onSelect('horas')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(163,230,53,0.02)',border:'1px solid rgba(163,230,53,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(163,230,53,0.4)';e.currentTarget.style.background='rgba(163,230,53,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(163,230,53,0.14)';e.currentTarget.style.background='rgba(163,230,53,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${HR_A2},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(163,230,53,0.08)',border:'1px solid rgba(163,230,53,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={HR_A2} strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:HR_A2,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 15</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Control<br/>de Horas</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Registra el tiempo dedicado a cada cliente con timer, categorías y resúmenes semanales.</p>
-              <p style={{fontSize:'11px',color:`${HR_A2}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{weekHours.toFixed(1)}h esta semana · {totalHoursAll} registros</p>
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:HR_A2,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver horas <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={HR_A2} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
-
-        {/* BRIEFING — admin only */}
-        {isAdmin&&(()=>{
-          const BF_A2='#c084fc';
-          const bData=JSON.parse(localStorage.getItem('glowlabs_briefings_v1')||'[]');
-          return(
-          <button onClick={()=>onSelect('briefing')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(192,132,252,0.02)',border:'1px solid rgba(192,132,252,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(192,132,252,0.4)';e.currentTarget.style.background='rgba(192,132,252,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(192,132,252,0.14)';e.currentTarget.style.background='rgba(192,132,252,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${BF_A2},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(192,132,252,0.08)',border:'1px solid rgba(192,132,252,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={BF_A2} strokeWidth="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:BF_A2,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 18</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Briefing<br/>de Clientes</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Formulario de onboarding: marca, audiencia, contenido, competencia y objetivos por cliente.</p>
-              <p style={{fontSize:'11px',color:`${BF_A2}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{bData.length} briefings completados</p>
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:BF_A2,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver briefings <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={BF_A2} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
-
-        {/* PROPUESTAS — admin only */}
-        {isAdmin&&(()=>{
-          const PR_A2='#38bdf8';
-          const pData=JSON.parse(localStorage.getItem('glowlabs_propuestas_v1')||'[]');
-          const enviadas=pData.filter(p=>p.estado==='Enviada').length;
-          const aceptadas=pData.filter(p=>p.estado==='Aceptada').length;
-          const totalVal=pData.filter(p=>p.estado==='Aceptada').reduce((s,p)=>s+(p.total||0),0);
-          return(
-          <button onClick={()=>onSelect('propuestas')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(56,189,248,0.02)',border:'1px solid rgba(56,189,248,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(56,189,248,0.4)';e.currentTarget.style.background='rgba(56,189,248,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(56,189,248,0.14)';e.currentTarget.style.background='rgba(56,189,248,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${PR_A2},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(56,189,248,0.08)',border:'1px solid rgba(56,189,248,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={PR_A2} strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:PR_A2,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 17</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Propuestas<br/>Comerciales</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Crea y gestiona propuestas con servicios, precios, estado y vista previa en tiempo real.</p>
-              <p style={{fontSize:'11px',color:`${PR_A2}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{pData.length} propuestas · {aceptadas} aceptadas · ${totalVal.toLocaleString('es-CO')} cerrado</p>
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:PR_A2,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver propuestas <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={PR_A2} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
-
-        {/* OBJETIVOS — admin only */}
-        {isAdmin&&(()=>{
-          const OB_A2='#fbbf24';
-          const gData=JSON.parse(localStorage.getItem('glowlabs_objetivos_v1')||'[]');
-          const completed=gData.filter(g=>g.meta>0&&g.actual>=g.meta).length;
-          const avg=gData.length>0?Math.round(gData.reduce((s,g)=>s+Math.min(100,g.meta>0?g.actual/g.meta*100:0),0)/gData.length):0;
-          return(
-          <button onClick={()=>onSelect('objetivos')} style={{all:'unset',cursor:'pointer',display:'block'}}>
-            <div style={{padding:'32px 28px',background:'rgba(251,191,36,0.02)',border:'1px solid rgba(251,191,36,0.14)',borderRadius:'4px',transition:'all .2s',height:'100%',display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',boxSizing:'border-box'}}
-              onMouseOver={e=>{e.currentTarget.style.border='1px solid rgba(251,191,36,0.4)';e.currentTarget.style.background='rgba(251,191,36,0.06)';}}
-              onMouseOut={e=>{e.currentTarget.style.border='1px solid rgba(251,191,36,0.14)';e.currentTarget.style.background='rgba(251,191,36,0.02)';}}>
-              <div style={{position:'absolute',top:0,left:0,right:0,height:'2px',background:`linear-gradient(90deg,${OB_A2},transparent)`}}/>
-              <div style={{width:'36px',height:'36px',background:'rgba(251,191,36,0.08)',border:'1px solid rgba(251,191,36,0.25)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'18px'}}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={OB_A2} strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-              </div>
-              <p style={{fontSize:'10px',fontWeight:'700',color:OB_A2,letterSpacing:'.12em',textTransform:'uppercase',fontFamily:"'Inter',sans-serif",marginBottom:'7px'}}>Módulo 16</p>
-              <h2 style={{fontSize:'20px',fontWeight:'700',color:'#fff',letterSpacing:'-.02em',fontFamily:"'Playfair Display',serif",marginBottom:'9px',lineHeight:'1.2'}}>Objetivos<br/>y Metas</h2>
-              <p style={{fontSize:'12.5px',color:'rgba(255,255,255,0.35)',lineHeight:'1.65',fontFamily:"'Inter',sans-serif",flex:1}}>Define y rastrea metas de ingresos, clientes y contenido con progreso visual en tiempo real.</p>
-              <p style={{fontSize:'11px',color:`${OB_A2}99`,fontFamily:"'Inter',sans-serif",marginTop:'12px'}}>{gData.length} objetivos · {completed} completados · {avg}% promedio</p>
-              <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'6px',color:OB_A2,fontSize:'12px',fontFamily:"'Inter',sans-serif",fontWeight:'600'}}>Ver objetivos <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M6 3l2 2-2 2" stroke={OB_A2} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-            </div>
-          </button>
-          );
-        })()}
       </div>
 
       {/* recent activity strip */}
@@ -8517,7 +8391,16 @@ ${data.taxNote?`<div style="margin-top:24px;padding:16px;background:#f9f9f9;bord
 ${data.notasPago?`<div style="margin-top:16px;padding:16px;background:#f9f9f9;border-radius:4px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px">Payment information</div><div style="font-size:13px;color:#444;line-height:1.8">${data.notasPago.replace(/\n/g,'<br/>')}</div></div>`:''}
 <div style="margin-top:40px;padding-top:16px;border-top:1px solid #eee;text-align:center;font-size:11px;color:#ccc;font-style:italic">Thank you for your business.</div>
 </body></html>`;
-    const w=window.open('','_blank');w.document.write(html);w.document.close();setTimeout(()=>w.print(),400);
+    const filename=(numFac||'invoice').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
+    const doGen=(h2p)=>{
+      const el=document.createElement('div');
+      el.innerHTML=html.replace(/<!DOCTYPE[^>]*>/i,'').replace(/<\/?html[^>]*>/gi,'').replace(/<head>[\s\S]*?<\/head>/i,'').replace(/<\/?body[^>]*>/gi,'');
+      el.style.cssText='position:fixed;top:-9999px;left:-9999px;width:794px;background:#fff;';
+      document.body.appendChild(el);
+      h2p().set({margin:[15,15,15,15],filename,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true,logging:false},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).save().then(()=>document.body.removeChild(el));
+    };
+    if(window.html2pdf){doGen(window.html2pdf);}
+    else{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';s.onload=()=>doGen(window.html2pdf);document.head.appendChild(s);}
   };
   const badge={Borrador:'rgba(255,255,255,0.12)',Enviada:'rgba(59,130,246,0.2)',Pagada:'rgba(34,197,94,0.2)',Vencida:'rgba(239,68,68,0.2)'}[data.estado]||'rgba(255,255,255,0.1)';
   const badgeC={Borrador:'rgba(255,255,255,0.5)',Enviada:'#60a5fa',Pagada:'#4ade80',Vencida:'#f87171'}[data.estado]||'#fff';
