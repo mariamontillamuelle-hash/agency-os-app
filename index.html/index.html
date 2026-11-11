@@ -7415,12 +7415,14 @@ function GeneradorChat({tool,onSelectTool,convId,setConvId}){
 
   const start=async(initialInput)=>{
     setStarted(true);setLoading(true);
-    const initMsgs=initialInput?[{role:'user',content:initialInput}]:[];
-    if(initialInput)setMessages(initMsgs);
-    if(initialInput)persistConv(initMsgs);
+    const initMsgs=initialInput?[{role:'user',content:initialInput}]:[{role:'user',content:'Hola, comienza'}];
+    if(initialInput)setMessages([{role:'user',content:initialInput}]);
+    if(initialInput)persistConv([{role:'user',content:initialInput}]);
     try{
-      const reply=await callClaudeAPI(initMsgs,TOOL_PROMPTS[tool.id]+(initMsgs.length?'':'\n\nComienza presentándote en 1 línea y haz tu primera pregunta al usuario.'));
-      const finalMsgs=[...initMsgs,{role:'assistant',content:reply}];
+      const systemExtra=initialInput?'':'\n\nEl usuario acaba de comenzar la sesión. Preséntate brevemente y haz tu primera pregunta.';
+      const reply=await callClaudeAPI(initMsgs,TOOL_PROMPTS[tool.id]+systemExtra);
+      const visibleMsgs=initialInput?initMsgs:[];
+      const finalMsgs=[...visibleMsgs,{role:'assistant',content:reply}];
       setMessages(finalMsgs);persistConv(finalMsgs);
     }catch(e){setMessages(m=>[...m,{role:'assistant',content:'❌ Error: '+e.message}]);}
     setLoading(false);
