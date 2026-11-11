@@ -8441,21 +8441,23 @@ function InvoiceView({data,onBack,onBackList}){
       if(total>0){doc.setFont('helvetica','normal');doc.setFontSize(8);col(160,160,160);tx('All amounts in '+cur2+'. Total due: '+cur2+' '+total.toFixed(2)+'.',ml,y);y+=8;}
       // Tax note box
       if(data.taxNote){
-        const lines=doc.splitTextToSize(data.taxNote,mr-ml-10);
-        const bh=lines.length*4.5+12;
+        const lines=(data.taxNote).split('\n').flatMap(l=>doc.splitTextToSize(l||' ',mr-ml-12));
+        const lh=4.5,bh=lines.length*lh+14;
         doc.setFillColor(249,249,249);doc.rect(ml,y,mr-ml,bh,'F');
         y+=6;doc.setFont('helvetica','bold');doc.setFontSize(7);col(160,160,160);tx('TAX NOTE',ml+4,y);
-        y+=5;doc.setFont('helvetica','normal');doc.setFontSize(8);col(100,100,100);tx(lines,ml+4,y);
-        y+=lines.length*4.5+6;
+        y+=5;doc.setFont('helvetica','normal');doc.setFontSize(8);col(100,100,100);
+        lines.forEach(l=>{tx(l,ml+4,y);y+=lh;});
+        y+=6;
       }
       // Payment info box
       if(data.notasPago){
-        const lines=doc.splitTextToSize(data.notasPago,mr-ml-10);
-        const bh=lines.length*4.8+12;
+        const lines=(data.notasPago).split('\n').flatMap(l=>doc.splitTextToSize(l||' ',mr-ml-12));
+        const lh=5,bh=lines.length*lh+14;
         doc.setFillColor(249,249,249);doc.rect(ml,y,mr-ml,bh,'F');
         y+=6;doc.setFont('helvetica','bold');doc.setFontSize(7);col(160,160,160);tx('PAYMENT INFORMATION',ml+4,y);
-        y+=5;doc.setFont('helvetica','normal');doc.setFontSize(9);col(68,68,68);tx(lines,ml+4,y);
-        y+=lines.length*4.8+6;
+        y+=5;doc.setFont('helvetica','normal');doc.setFontSize(9);col(68,68,68);
+        lines.forEach(l=>{tx(l,ml+4,y);y+=lh;});
+        y+=6;
       }
       // Footer
       y+=6;ln(ml,y,mr,y,220,220,220,0.1);y+=6;
