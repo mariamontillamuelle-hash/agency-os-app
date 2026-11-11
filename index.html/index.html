@@ -7293,7 +7293,6 @@ function GeneradorApiSetup({onSave,onCancel}){
   const [testing,setTesting]=React.useState(false);
   const save=async()=>{
     if(!key.trim())return setErr('Ingresa tu API key');
-    if(!key.trim().startsWith('sk-ant-'))return setErr('La clave debe empezar con sk-ant-');
     setTesting(true);setErr('');
     const prev=localStorage.getItem(GEN_API_KEY);
     localStorage.setItem(GEN_API_KEY,key.trim());
