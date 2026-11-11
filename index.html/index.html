@@ -8377,41 +8377,94 @@ function InvoiceView({data,onBack,onBackList}){
   const numFac=data.invoiceNum||`${data.tipo==='proforma'?'PROFORMA':'INVOICE'} No. ${(data.id||'').slice(-3).toUpperCase()}`;
   const printInvoice=()=>{
     const cur2=cur;
-    const rows=(data.items||[]).map(it=>{const lt=parseFloat(it.qty||1)*parseFloat(it.unitPrice||0);return`<tr><td style="padding:12px 8px;border-bottom:1px solid #eee;font-size:13px;color:#111">${it.desc||'—'}</td><td style="padding:12px 8px;border-bottom:1px solid #eee;text-align:center;font-size:13px;color:#555">${it.qty||1}</td><td style="padding:12px 8px;border-bottom:1px solid #eee;text-align:right;font-size:13px;color:#555">${cur2} ${parseFloat(it.unitPrice||0).toFixed(2)}</td><td style="padding:12px 8px;border-bottom:1px solid #eee;text-align:right;font-size:13px;font-weight:600;color:#111">${cur2} ${lt.toFixed(2)}</td></tr>`;}).join('');
-    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${numFac}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;color:#111;background:#fff;padding:50px;max-width:800px;margin:0 auto;}table{width:100%;border-collapse:collapse;}th{padding:10px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;border-top:1px solid #111;border-bottom:1px solid #111;}th.r{text-align:right;}@media print{body{padding:30px;}}</style></head><body>
-<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:48px;">
-  <div><div style="font-size:30px;font-weight:900;letter-spacing:.04em;color:#111">${data.tipo==='proforma'?'PROFORMA':'INVOICE'}</div><div style="margin-top:12px;font-size:13px;color:#555">${numFac}</div><div style="font-size:13px;color:#555;margin-top:4px">Date: ${data.fecha||'—'}</div><div style="font-size:13px;color:#555;margin-top:4px">Currency: ${cur2}</div></div>
-  <div style="text-align:right"><div style="font-size:15px;font-weight:700;color:#111">${data.agenciaNombre||'JAM VENTURES SERVICES FZCO'}</div>${(data.agenciaDireccion||'').split('\n').map(l=>`<div style="font-size:12px;color:#555;margin-top:3px">${l}</div>`).join('')}${data.agenciaNIF?`<div style="font-size:12px;color:#555;margin-top:4px">License No.: ${data.agenciaNIF}</div>`:''}</div>
-</div>
-<div style="margin-bottom:36px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#999;margin-bottom:8px">Bill To</div><div style="font-size:15px;font-weight:700;color:#111">${data.clienteEmpresa||data.clienteNombre||'—'}</div>${data.clienteNIF?`<div style="font-size:13px;color:#555;margin-top:3px">NIF: ${data.clienteNIF}</div>`:''} ${(data.clienteDireccion||'').split('\n').map(l=>`<div style="font-size:13px;color:#555;margin-top:2px">${l}</div>`).join('')}${data.clienteEmail?`<div style="font-size:13px;color:#555;margin-top:3px">Email: ${data.clienteEmail}</div>`:''}</div>
-<table><thead><tr><th>Description</th><th style="text-align:center">Qty.</th><th class="r">Unit Price (${cur2})</th><th class="r">Total (${cur2})</th></tr></thead><tbody>${rows}</tbody></table>
-<div style="display:flex;justify-content:flex-end;margin-top:16px"><div style="width:300px"><div style="display:flex;justify-content:space-between;padding:7px 8px;font-size:13px;color:#555"><span>Subtotal</span><span>${cur2} ${subtotal.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;padding:7px 8px;font-size:13px;color:#555"><span>VAT</span><span>${cur2} ${ivaAmt.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;padding:12px 8px;border-top:1px solid #111;margin-top:4px"><span style="font-size:14px;font-weight:800;color:#111">TOTAL DUE</span><span style="font-size:14px;font-weight:800;color:#111">${cur2} ${total.toFixed(2)} ${cur2}</span></div></div></div>
-${total>0?`<div style="margin-top:12px;font-size:12px;color:#777;padding:0 8px">Currency: All amounts on this invoice are stated in ${cur2}. Total amount due: ${cur2} ${total.toFixed(2)} ${cur2}.</div>`:''}
-${data.taxNote?`<div style="margin-top:24px;padding:16px;background:#f9f9f9;border-radius:4px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:6px">Tax note</div><div style="font-size:11px;color:#666;line-height:1.65">${data.taxNote}</div></div>`:''}
-${data.notasPago?`<div style="margin-top:16px;padding:16px;background:#f9f9f9;border-radius:4px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:10px">Payment information</div><div style="font-size:13px;color:#444;line-height:1.8">${data.notasPago.replace(/\n/g,'<br/>')}</div></div>`:''}
-<div style="margin-top:40px;padding-top:16px;border-top:1px solid #eee;text-align:center;font-size:11px;color:#ccc;font-style:italic">Thank you for your business.</div>
-</body></html>`;
     const filename=(numFac||'invoice').replace(/[^a-zA-Z0-9_\-]/g,'_')+'.pdf';
-    const doGen=(h2p)=>{
-      const wrap=document.createElement('div');
-      wrap.style.cssText='position:fixed;top:0;left:0;width:750px;padding:40px;background:#fff;font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#111;box-sizing:border-box;opacity:0.01;pointer-events:none;z-index:-9999;';
-      wrap.innerHTML=`<style>*{box-sizing:border-box;}table{width:100%;border-collapse:collapse;}th{padding:10px 8px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#999;border-top:1px solid #111;border-bottom:1px solid #111;}th.r{text-align:right;}td{padding:12px 8px;border-bottom:1px solid #eee;font-size:13px;}</style>`+
-      `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;">
-        <div><div style="font-size:28px;font-weight:900;letter-spacing:.04em;color:#111">${data.tipo==='proforma'?'PROFORMA':'INVOICE'}</div><div style="margin-top:10px;font-size:13px;color:#555">${numFac}</div><div style="font-size:13px;color:#555;margin-top:3px">Date: ${data.fecha||'—'}</div><div style="font-size:13px;color:#555;margin-top:3px">Currency: ${cur2}</div></div>
-        <div style="text-align:right"><div style="font-size:14px;font-weight:700;color:#111">${data.agenciaNombre||'JAM VENTURES SERVICES FZCO'}</div>${(data.agenciaDireccion||'').split('\n').map(l=>`<div style="font-size:12px;color:#555;margin-top:2px">${l}</div>`).join('')}${data.agenciaNIF?`<div style="font-size:12px;color:#555;margin-top:3px">License No.: ${data.agenciaNIF}</div>`:''}</div>
-      </div>
-      <div style="margin-bottom:28px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#999;margin-bottom:6px">Bill To</div><div style="font-size:14px;font-weight:700;color:#111">${data.clienteEmpresa||data.clienteNombre||'—'}</div>${data.clienteNIF?`<div style="font-size:13px;color:#555;margin-top:2px">NIF: ${data.clienteNIF}</div>`:''}${(data.clienteDireccion||'').split('\n').filter(Boolean).map(l=>`<div style="font-size:13px;color:#555;margin-top:2px">${l}</div>`).join('')}${data.clienteEmail?`<div style="font-size:13px;color:#555;margin-top:2px">Email: ${data.clienteEmail}</div>`:''}</div>
-      <table><thead><tr><th>Description</th><th style="text-align:center">Qty.</th><th class="r">Unit Price (${cur2})</th><th class="r">Total (${cur2})</th></tr></thead><tbody>${rows}</tbody></table>
-      <div style="display:flex;justify-content:flex-end;margin-top:14px"><div style="width:280px"><div style="display:flex;justify-content:space-between;padding:6px 8px;font-size:13px;color:#555"><span>Subtotal</span><span>${cur2} ${subtotal.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;padding:6px 8px;font-size:13px;color:#555"><span>VAT</span><span>${cur2} ${ivaAmt.toFixed(2)}</span></div><div style="display:flex;justify-content:space-between;padding:10px 8px;border-top:1px solid #111;margin-top:4px"><span style="font-size:14px;font-weight:800;color:#111">TOTAL DUE</span><span style="font-size:14px;font-weight:800;color:#111">${cur2} ${total.toFixed(2)} ${cur2}</span></div></div></div>
-      ${total>0?`<div style="margin-top:10px;font-size:11px;color:#999;padding:0 8px">Currency: All amounts stated in ${cur2}. Total due: ${cur2} ${total.toFixed(2)} ${cur2}.</div>`:''}
-      ${data.taxNote?`<div style="margin-top:20px;padding:14px;background:#f9f9f9;border-radius:4px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#999;margin-bottom:5px">Tax note</div><div style="font-size:11px;color:#666;line-height:1.6">${data.taxNote}</div></div>`:''}
-      ${data.notasPago?`<div style="margin-top:12px;padding:14px;background:#f9f9f9;border-radius:4px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#999;margin-bottom:8px">Payment information</div><div style="font-size:13px;color:#444;line-height:1.7">${data.notasPago.replace(/\n/g,'<br>')}</div></div>`:''}
-      <div style="margin-top:36px;padding-top:14px;border-top:1px solid #eee;text-align:center;font-size:11px;color:#ccc;font-style:italic">Thank you for your business.</div>`;
-      document.body.appendChild(wrap);
-      h2p().set({margin:0,filename,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true,logging:false,backgroundColor:'#fff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(wrap).save().then(()=>document.body.removeChild(wrap));
+    const gen=(jsPDF)=>{
+      const doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+      const W=210,ml=15,mr=195;
+      let y=22;
+      const tx=(s,x,yy,o)=>doc.text(String(s||''),x,yy,o||{});
+      const ln=(x1,y1,x2,y2,r,g,b,w)=>{doc.setDrawColor(r||0,g||0,b||0);doc.setLineWidth(w||0.3);doc.line(x1,y1,x2,y2);};
+      const col=(r,g,b)=>doc.setTextColor(r,g,b);
+      // INVOICE title
+      doc.setFont('helvetica','bold');doc.setFontSize(26);col(17,17,17);
+      tx(data.tipo==='proforma'?'PROFORMA':'INVOICE',ml,y);
+      // Agency right
+      let ay=y-4;
+      doc.setFont('helvetica','bold');doc.setFontSize(10);col(17,17,17);
+      tx(data.agenciaNombre||'JAM VENTURES SERVICES FZCO',mr,ay,{align:'right'});ay+=5;
+      doc.setFont('helvetica','normal');doc.setFontSize(9);col(90,90,90);
+      (data.agenciaDireccion||'').split('\n').forEach(l=>{tx(l,mr,ay,{align:'right'});ay+=4;});
+      if(data.agenciaNIF){tx('License No.: '+data.agenciaNIF,mr,ay,{align:'right'});ay+=4;}
+      // Invoice meta
+      y+=8;doc.setFont('helvetica','normal');doc.setFontSize(10);col(90,90,90);
+      tx(numFac,ml,y);y+=5;tx('Date: '+(data.fecha||'—'),ml,y);y+=5;tx('Currency: '+cur2,ml,y);
+      y=Math.max(y,ay)+10;
+      // BILL TO
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);col(160,160,160);
+      tx('BILL TO',ml,y);y+=5;
+      doc.setFont('helvetica','bold');doc.setFontSize(11);col(17,17,17);
+      tx(data.clienteEmpresa||data.clienteNombre||'—',ml,y);y+=5;
+      doc.setFont('helvetica','normal');doc.setFontSize(9);col(90,90,90);
+      if(data.clienteNIF){tx('NIF: '+data.clienteNIF,ml,y);y+=4;}
+      (data.clienteDireccion||'').split('\n').filter(Boolean).forEach(l=>{tx(l,ml,y);y+=4;});
+      if(data.clienteEmail){tx('Email: '+data.clienteEmail,ml,y);y+=4;}
+      y+=8;
+      // Table header
+      ln(ml,y,mr,y,17,17,17,0.4);y+=5;
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);col(160,160,160);
+      tx('DESCRIPTION',ml,y);tx('QTY',120,y,{align:'center'});
+      tx('UNIT PRICE ('+cur2+')',160,y,{align:'right'});tx('TOTAL ('+cur2+')',mr,y,{align:'right'});
+      y+=3;ln(ml,y,mr,y,17,17,17,0.4);y+=5;
+      // Rows
+      doc.setFont('helvetica','normal');doc.setFontSize(10);col(17,17,17);
+      (data.items||[]).forEach(it=>{
+        const qty=parseFloat(it.qty||1),up=parseFloat(it.unitPrice||0),lt=qty*up;
+        const dLines=doc.splitTextToSize(it.descripcion||it.desc||'—',90);
+        tx(dLines,ml,y);
+        col(90,90,90);tx(String(qty),120,y,{align:'center'});
+        tx(up.toFixed(2),160,y,{align:'right'});
+        col(17,17,17);doc.setFont('helvetica','bold');tx(lt.toFixed(2),mr,y,{align:'right'});
+        doc.setFont('helvetica','normal');col(17,17,17);
+        y+=dLines.length*5+3;
+        ln(ml,y-1,mr,y-1,220,220,220,0.1);
+      });
+      y+=6;
+      // Totals
+      const tx2=130;
+      doc.setFontSize(10);doc.setFont('helvetica','normal');col(90,90,90);
+      tx('Subtotal',tx2,y);tx(cur2+' '+subtotal.toFixed(2),mr,y,{align:'right'});y+=6;
+      tx('VAT',tx2,y);tx(cur2+' '+ivaAmt.toFixed(2),mr,y,{align:'right'});y+=4;
+      ln(tx2,y,mr,y,17,17,17,0.3);y+=5;
+      doc.setFont('helvetica','bold');doc.setFontSize(11);col(17,17,17);
+      tx('TOTAL DUE',tx2,y);tx(cur2+' '+total.toFixed(2),mr,y,{align:'right'});y+=10;
+      // Currency note
+      if(total>0){doc.setFont('helvetica','normal');doc.setFontSize(8);col(160,160,160);tx('All amounts in '+cur2+'. Total due: '+cur2+' '+total.toFixed(2)+'.',ml,y);y+=8;}
+      // Tax note box
+      if(data.taxNote){
+        const lines=doc.splitTextToSize(data.taxNote,mr-ml-10);
+        const bh=lines.length*4.5+12;
+        doc.setFillColor(249,249,249);doc.rect(ml,y,mr-ml,bh,'F');
+        y+=6;doc.setFont('helvetica','bold');doc.setFontSize(7);col(160,160,160);tx('TAX NOTE',ml+4,y);
+        y+=5;doc.setFont('helvetica','normal');doc.setFontSize(8);col(100,100,100);tx(lines,ml+4,y);
+        y+=lines.length*4.5+6;
+      }
+      // Payment info box
+      if(data.notasPago){
+        const lines=doc.splitTextToSize(data.notasPago,mr-ml-10);
+        const bh=lines.length*4.8+12;
+        doc.setFillColor(249,249,249);doc.rect(ml,y,mr-ml,bh,'F');
+        y+=6;doc.setFont('helvetica','bold');doc.setFontSize(7);col(160,160,160);tx('PAYMENT INFORMATION',ml+4,y);
+        y+=5;doc.setFont('helvetica','normal');doc.setFontSize(9);col(68,68,68);tx(lines,ml+4,y);
+        y+=lines.length*4.8+6;
+      }
+      // Footer
+      y+=6;ln(ml,y,mr,y,220,220,220,0.1);y+=6;
+      doc.setFont('helvetica','italic');doc.setFontSize(9);col(200,200,200);
+      tx('Thank you for your business.',W/2,y,{align:'center'});
+      doc.save(filename);
     };
-    if(window.html2pdf){doGen(window.html2pdf);}
-    else{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';s.onload=()=>doGen(window.html2pdf);document.head.appendChild(s);}
+    if(window.jspdf&&window.jspdf.jsPDF){gen(window.jspdf.jsPDF);}
+    else{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=()=>gen(window.jspdf.jsPDF);document.head.appendChild(s);}
   };
   const badge={Borrador:'rgba(255,255,255,0.12)',Enviada:'rgba(59,130,246,0.2)',Pagada:'rgba(34,197,94,0.2)',Vencida:'rgba(239,68,68,0.2)'}[data.estado]||'rgba(255,255,255,0.1)';
   const badgeC={Borrador:'rgba(255,255,255,0.5)',Enviada:'#60a5fa',Pagada:'#4ade80',Vencida:'#f87171'}[data.estado]||'#fff';
