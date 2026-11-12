@@ -7263,7 +7263,7 @@ const TOOL_PROMPTS={
 };
 
 const GEN_STORAGE='activos_generados_v1';
-const GEN_API_KEY='claude_api_key_generador';
+const GEN_API_KEY='gemini_api_key_generador';
 const GEN_CONV_STORAGE='gen_conversations_v1';
 
 function getToolConvs(toolId){try{const all=JSON.parse(localStorage.getItem(GEN_CONV_STORAGE)||'{}');return all[toolId]||[];}catch{return[];}}
@@ -7296,19 +7296,19 @@ function renderMd(text){
 async function callClaudeAPI(messages,systemPrompt){
   const apiKey=localStorage.getItem(GEN_API_KEY)||'';
   if(!apiKey) throw new Error('NO_KEY');
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
+  const contents=messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,{
     method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':apiKey,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true',
-    },
-    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:2048,system:systemPrompt,messages:messages}),
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      system_instruction:{parts:[{text:systemPrompt}]},
+      contents:contents,
+      generationConfig:{maxOutputTokens:2048}
+    }),
   });
   if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'API error '+res.status);}
   const data=await res.json();
-  return data.content[0].text;
+  return data.candidates[0].content.parts[0].text;
 }
 
 function GeneradorApiSetup({onSave,onCancel}){
@@ -7334,9 +7334,9 @@ function GeneradorApiSetup({onSave,onCancel}){
     <div style={{minHeight:'100vh',background:CREMA,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontFamily:"'Inter',sans-serif",padding:'32px'}}>
       <div style={{maxWidth:'440px',width:'100%',background:'#fff',borderRadius:'24px',padding:'40px',boxShadow:'0 4px 24px rgba(212,160,176,0.15)'}}>
         <div style={{fontSize:'32px',marginBottom:'16px',textAlign:'center'}}>🔑</div>
-        <h1 style={{fontSize:'22px',fontWeight:'800',color:G,marginBottom:'8px',textAlign:'center',letterSpacing:'-.025em'}}>Conecta <span style={{color:ROSA}}>Claude API</span></h1>
-        <p style={{fontSize:'13px',color:'#96908C',textAlign:'center',marginBottom:'32px',lineHeight:'1.6'}}>Necesitas una API key de Anthropic. Consíguela en <a href="https://console.anthropic.com" target="_blank" style={{color:ROSA}}>console.anthropic.com</a></p>
-        <input value={key} onChange={e=>setKey(e.target.value)} placeholder="sk-ant-..." type="password"
+        <h1 style={{fontSize:'22px',fontWeight:'800',color:G,marginBottom:'8px',textAlign:'center',letterSpacing:'-.025em'}}>Conecta <span style={{color:ROSA}}>Gemini API</span></h1>
+        <p style={{fontSize:'13px',color:'#96908C',textAlign:'center',marginBottom:'32px',lineHeight:'1.6'}}>Gratis. Consigue tu API key en <a href="https://aistudio.google.com/app/apikey" target="_blank" style={{color:ROSA}}>Google AI Studio</a></p>
+        <input value={key} onChange={e=>setKey(e.target.value)} placeholder="AIza..." type="password"
           style={{width:'100%',boxSizing:'border-box',border:`1px solid ${ROSA}`,borderRadius:'12px',padding:'12px 16px',fontSize:'14px',outline:'none',fontFamily:"'Inter',sans-serif",marginBottom:'12px',background:CREMA,color:G}}/>
         {err&&<p style={{fontSize:'12px',color:'#6B1A2A',marginBottom:'12px'}}>{err}</p>}
         <button onClick={save} disabled={!key||testing}
